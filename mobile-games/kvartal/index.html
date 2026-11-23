@@ -152,6 +152,7 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
 #mapcv { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); }
 .legend span { display: flex; align-items: center; gap: 6px; }
+.legend .hint2 { flex-basis: 100%; color: var(--ink); opacity: .8; }
 .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 
 /* Title / game over */
@@ -252,7 +253,7 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
         </div>
       </header>
       <div class="mapwrap"><canvas id="mapcv" aria-label="Карта"></canvas></div>
-      <div class="legend">
+      <div class="legend"><span class="hint2">Два пальца — масштаб, двойное касание — ближе, один палец — двигать</span>
         <span><i style="background:#c9a77a"></i>Дома</span><span><i style="background:#d9584a"></i>Продукты</span><span><i style="background:#45b27a"></i>Аптека, больница</span>
         <span><i style="background:#e0953a"></i>Хозтовары</span><span><i style="background:#4f6fc0"></i>Полиция, АЗС</span><span><i style="background:#8a8f98"></i>Склад</span><span><i style="background:#f2a541;border-radius:2px"></i>Ты</span>
       </div>
@@ -3051,17 +3052,47 @@ function renderMap(rebuild = true) {
   c.restore();
   $("#mapZoom").textContent = "×" + mapState.zoom.toFixed(1).replace(".0", "");
 }
-mapCv.addEventListener("pointerdown", e => { mapState.drag = { x: e.clientX, y: e.clientY, cx: mapState.cx, cy: mapState.cy, id: e.pointerId }; try { mapCv.setPointerCapture(e.pointerId); } catch (er) {} });
-mapCv.addEventListener("pointermove", e => {
-  const d = mapState.drag; if (!d || d.id !== e.pointerId) return;
-  const r = mapCv.getBoundingClientRect(), sc = Math.max(Math.min(r.width, r.height), Math.max(r.width, r.height) * .6) / (N * 1.45) * mapState.zoom;
-  const dx = (e.clientX - d.x) / sc, dy = (e.clientY - d.y) / sc;
-  const wx = (dx + dy) * Math.SQRT1_2, wy = (dy - dx) * Math.SQRT1_2;
-  mapState.cx = clamp(d.cx - wx, 0, N); mapState.cy = clamp(d.cy - wy, 0, N);
+// touch gestures: one finger pans, two fingers pinch-zoom around their midpoint, double tap zooms in
+const mPtrs = new Map();
+let mGest = null, lastTap = 0;
+const mapBase = () => { const r = mapCv.getBoundingClientRect(); return { r, base: Math.max(Math.min(r.width, r.height), Math.max(r.width, r.height) * .6) / (N * 1.45) }; };
+const scrToWorld = (sx, sy, sc) => [(sx + sy) * Math.SQRT1_2 / sc, (sy - sx) * Math.SQRT1_2 / sc];
+function mapGestureStart() {
+  const { r, base } = mapBase(), pts = [...mPtrs.values()];
+  if (!pts.length) { mGest = null; return; }
+  const mx = pts.reduce((a, q) => a + q.x, 0) / pts.length - r.left - r.width / 2, my = pts.reduce((a, q) => a + q.y, 0) / pts.length - r.top - r.height / 2;
+  const sc = base * mapState.zoom, [wx, wy] = scrToWorld(mx, my, sc);
+  mGest = { n: pts.length, zoom: mapState.zoom, dist: pts.length > 1 ? Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) : 0, wx: mapState.cx + wx, wy: mapState.cy + wy };
+}
+function mapGestureMove() {
+  if (!mGest) return;
+  const { r, base } = mapBase(), pts = [...mPtrs.values()];
+  if (pts.length !== mGest.n) { mapGestureStart(); return; }
+  if (pts.length > 1) { const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y); mapState.zoom = clamp(mGest.zoom * d / Math.max(20, mGest.dist), 1, 8); }
+  const mx = pts.reduce((a, q) => a + q.x, 0) / pts.length - r.left - r.width / 2, my = pts.reduce((a, q) => a + q.y, 0) / pts.length - r.top - r.height / 2;
+  const [wx, wy] = scrToWorld(mx, my, base * mapState.zoom);
+  mapState.cx = clamp(mGest.wx - wx, 0, N); mapState.cy = clamp(mGest.wy - wy, 0, N);
   renderMap(false);
+}
+mapCv.addEventListener("pointerdown", e => {
+  e.preventDefault();
+  mPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  try { mapCv.setPointerCapture(e.pointerId); } catch (er) {}
+  const now = performance.now();
+  if (mPtrs.size === 1 && now - lastTap < 300) {
+    // double tap: zoom in around the tapped point
+    const { r, base } = mapBase(), mx = e.clientX - r.left - r.width / 2, my = e.clientY - r.top - r.height / 2;
+    const [wx0, wy0] = scrToWorld(mx, my, base * mapState.zoom), px = mapState.cx + wx0, py = mapState.cy + wy0;
+    mapState.zoom = clamp(mapState.zoom * 2, 1, 8);
+    const [wx1, wy1] = scrToWorld(mx, my, base * mapState.zoom);
+    mapState.cx = clamp(px - wx1, 0, N); mapState.cy = clamp(py - wy1, 0, N);
+    renderMap(false); lastTap = 0;
+  } else lastTap = now;
+  mapGestureStart();
 });
-const endDrag = () => { mapState.drag = null; };
-mapCv.addEventListener("pointerup", endDrag); mapCv.addEventListener("pointercancel", endDrag);
+mapCv.addEventListener("pointermove", e => { if (!mPtrs.has(e.pointerId)) return; mPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); mapGestureMove(); });
+const endPtr = e => { mPtrs.delete(e.pointerId); mapGestureStart(); };
+mapCv.addEventListener("pointerup", endPtr); mapCv.addEventListener("pointercancel", endPtr);
 mapCv.addEventListener("wheel", e => { e.preventDefault(); mapState.zoom = clamp(mapState.zoom * (e.deltaY < 0 ? 1.2 : 1 / 1.2), 1, 6); renderMap(false); }, { passive: false });
 $("#mapIn").addEventListener("click", () => { mapState.zoom = clamp(mapState.zoom * 1.5, 1, 6); renderMap(false); });
 $("#mapOut").addEventListener("click", () => { mapState.zoom = clamp(mapState.zoom / 1.5, 1, 6); renderMap(false); });
