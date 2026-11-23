@@ -319,7 +319,7 @@ const DIFF = {
   normal: { zombies: 1, dmg: 1, drain: 1, wave: 1 },
   hard: { zombies: 1.35, dmg: 1.3, drain: 1.2, wave: 1.5 }
 };
-const ZOOM = { near: 1.25, mid: 1, far: .8 };
+const ZOOM = { near: 1.6, mid: 1.3, far: 1 };
 const diff = () => DIFF[settings.difficulty] || DIFF.normal;
 
 
@@ -388,9 +388,9 @@ const ITEMS = {
 };
 const ITEM_GEN = { food: "консервы", water: "вода", bandage: "бинт", medkit: "аптечка", battery: "батарейка", ammo9: "патроны 9 мм", ammo545: "патроны 5,45" };
 const WEAPONS = {
-  fists: { name: "Кулаки", dmg: 1, range: 1.05, cd: .42, rank: 0 },
-  bat: { name: "Бита", dmg: 2, range: 1.35, cd: .5, rank: 1 },
-  axe: { name: "Топор", dmg: 3.2, range: 1.4, cd: .6, rank: 2 },
+  fists: { name: "Кулаки", dmg: 1, range: .8, cd: .42, rank: 0 },
+  bat: { name: "Бита", dmg: 2, range: 1, cd: .5, rank: 1 },
+  axe: { name: "Топор", dmg: 3.2, range: 1.05, cd: .6, rank: 2 },
   pistol: { name: "Пистолет", gun: true, dmg: 2.3, range: 9, cd: .3, mag: 12, ammo: "ammo9", noise: 15, spread: .05, reloadT: 1.3, rank: 3 },
   rifle: { name: "Автомат", gun: true, auto: true, dmg: 2.1, range: 11, cd: .11, mag: 30, ammo: "ammo545", noise: 20, spread: .09, reloadT: 1.8, rank: 4 }
 };
@@ -419,28 +419,28 @@ function rollFrom(key, min, max) {
 }
 // furniture: size (tiles), height, colour, container name, loot table
 const FD = {
-  bed: { w: 1.1, h: 2, z: 12, col: "#6a4b38" },
-  hbed: { w: 1, h: 2, z: 14, col: "#b8bcc4" },
-  sofa: { w: 2, h: .8, z: 18, col: "#5b6b8a" },
-  tv: { w: 1.1, h: .45, z: 24, col: "#4a3a2e" },
-  table: { w: 1, h: 1, z: 14, col: "#8a6040", center: 1 },
-  ctable: { w: .8, h: .8, z: 14, col: "#6e4a32", center: 1 },
-  wardrobe: { w: 1.2, h: .6, z: 46, col: "#7a5638", cont: "Шкаф", loot: "wardrobe" },
-  fridge: { w: .8, h: .75, z: 46, col: "#e3e3df", cont: "Холодильник", loot: "fridge" },
-  counter: { w: 1.2, h: .65, z: 18, col: "#cfc6b4", cont: "Кухонный шкаф", loot: "counter" },
-  stove: { w: .8, h: .65, z: 18, col: "#d8d8d4" },
-  bath: { w: 1.7, h: .85, z: 12, col: "#efefea" },
-  toilet: { w: .5, h: .6, z: 14, col: "#efefea" },
-  cabinet: { w: .9, h: .4, z: 30, col: "#e6e2d8", cont: "Шкафчик", loot: "cabinet" },
-  desk: { w: 1.3, h: .65, z: 16, col: "#7d5a3c", cont: "Стол", loot: "desk" },
-  bookshelf: { w: 1.2, h: .4, z: 44, col: "#6d4c33" },
-  plant: { w: .45, h: .45, z: 24, col: "#9a6040" },
-  shelf: { w: 2.2, h: .65, z: 30, col: "#8e959e", cont: "Полка", loot: "shop" },
-  checkout: { w: 1.6, h: .7, z: 18, col: "#b8b0a0", cont: "Касса", loot: "counter" },
-  crate: { w: .9, h: .9, z: 22, col: "#9a7a4c", cont: "Ящик", loot: "crate" },
-  workbench: { w: 1.8, h: .7, z: 18, col: "#7a5a3c", cont: "Верстак", loot: "workbench" },
-  locker: { w: 1.2, h: .5, z: 46, col: "#5e6b78", cont: "Шкафчик", loot: "locker" },
-  mcrate: { w: .95, h: .6, z: 20, col: "#4f5a3a", cont: "Армейский ящик", loot: "military" }
+  bed: { w: .9, h: 1.15, z: 12, col: "#6a4b38" },
+  hbed: { w: .6, h: 1.1, z: 14, col: "#b8bcc4" },
+  sofa: { w: 1.2, h: .5, z: 16, col: "#5b6b8a" },
+  tv: { w: .7, h: .28, z: 22, col: "#4a3a2e" },
+  table: { w: .7, h: .7, z: 14, col: "#8a6040", center: 1 },
+  ctable: { w: .45, h: .45, z: 14, col: "#6e4a32", center: 1 },
+  wardrobe: { w: .8, h: .35, z: 42, col: "#7a5638", cont: "Шкаф", loot: "wardrobe" },
+  fridge: { w: .42, h: .4, z: 38, col: "#e3e3df", cont: "Холодильник", loot: "fridge" },
+  counter: { w: .7, h: .36, z: 18, col: "#cfc6b4", cont: "Кухонный шкаф", loot: "counter" },
+  stove: { w: .42, h: .36, z: 18, col: "#d8d8d4" },
+  bath: { w: .95, h: .45, z: 11, col: "#efefea" },
+  toilet: { w: .25, h: .35, z: 14, col: "#efefea" },
+  cabinet: { w: .5, h: .22, z: 22, col: "#e6e2d8", cont: "Шкафчик", loot: "cabinet" },
+  desk: { w: .8, h: .42, z: 15, col: "#7d5a3c", cont: "Стол", loot: "desk" },
+  bookshelf: { w: .7, h: .22, z: 40, col: "#6d4c33" },
+  plant: { w: .25, h: .25, z: 20, col: "#9a6040" },
+  shelf: { w: 1.3, h: .36, z: 30, col: "#8e959e", cont: "Полка", loot: "shop" },
+  checkout: { w: .95, h: .45, z: 18, col: "#b8b0a0", cont: "Касса", loot: "counter" },
+  crate: { w: .55, h: .55, z: 20, col: "#9a7a4c", cont: "Ящик", loot: "crate" },
+  workbench: { w: 1, h: .42, z: 18, col: "#7a5a3c", cont: "Верстак", loot: "workbench" },
+  locker: { w: .7, h: .28, z: 40, col: "#5e6b78", cont: "Шкафчик", loot: "locker" },
+  mcrate: { w: .6, h: .36, z: 18, col: "#4f5a3a", cont: "Армейский ящик", loot: "military" }
 };
 const ROOMSETS = {
   living: ["sofa", "tv", "bookshelf", "plant", "table"],
@@ -554,6 +554,7 @@ function genMap() {
       for (let cx = Math.max(0, Math.floor(x0 / CH)); cx <= Math.min(NC - 1, Math.floor(x1 / CH)); cx++) M.chunks[cy * NC + cx].push(o);
   };
   const isFree = (i, j) => inb(i, j) && !occ[T(i, j)];
+  const areaFree = (x0, y0, x1, y1) => { for (let j = Math.floor(y0); j < Math.ceil(y1); j++) for (let i = Math.floor(x0); i < Math.ceil(x1); i++) if (!isFree(i, j)) return false; return true; };
 
   // ---- terrain
   for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) if (roadI[i] || roadI[j]) M.ground[T(i, j)] = RD;
@@ -572,15 +573,18 @@ function genMap() {
     occ[T(i, j)] = 1;
     const k = kind || (Math.random() < .25 ? "pine" : Math.random() < .3 ? "bush" : "tree");
     const t = { dt: "tree", x, y, s: s || (k === "bush" ? rand(.75, .95) : rand(.85, 1.2)), kind: k, p: pick(PAL.leaves), ph: Math.random() * 6 };
+    t.blobs = [];
+    for (let n2 = 0; n2 < 18; n2++) { const a = hash(x * 7 + n2, y * 3) * 6.28, r2 = Math.sqrt(hash(n2 + 1, x * y)); t.blobs.push([Math.cos(a) * r2 * 40, Math.sin(a) * r2 * 30, 15 + hash(n2 * 3, x) * 11]); }
+    t.blobs.sort((a, b) => a[1] - b[1]);
     M.trees.push(t); t.key = x + y;
-    const r = k === "bush" ? .32 : .18;
+    const r = k === "bush" ? .3 : .13;
     addBox(x - r, y - r, x + r, y + r, null);
     M.nav[T(i, j)] = 1;
     reg(t, x, y);
   }
   function addCar(x, y, alongY, kind = "car") {
     const big = kind === "truck" || kind === "amb" || kind === "mtruck";
-    const L = alongY ? [big ? .4 : .32, big ? .95 : .45] : [big ? .95 : .45, big ? .4 : .32];
+    const L = alongY ? [big ? .62 : .5, big ? 1.9 : 1.22] : [big ? 1.9 : 1.22, big ? .62 : .5];
     const car = { dt: "car", x, y, alongY, kind, c: pick(PAL.cars), wreck: kind === "car" && Math.random() < .3, burnt: kind === "car" && Math.random() < .15, key: x + y, L, ph: Math.random() * 6 };
     M.cars.push(car);
     addBox(x - L[0], y - L[1], x + L[0], y + L[1], null);
@@ -666,7 +670,7 @@ function genMap() {
   }
   function canPlace(b, x0, y0, x1, y1) {
     if (x0 < b.x || y0 < b.y || x1 > b.x + b.w || y1 > b.y + b.h) return false;
-    for (const f of b.furn || []) if (x0 < f.x1 + .18 && x1 > f.x0 - .18 && y0 < f.y1 + .18 && y1 > f.y0 - .18) return false;
+    for (const f of b.furn || []) if (x0 < f.x1 + .22 && x1 > f.x0 - .22 && y0 < f.y1 + .22 && y1 > f.y0 - .22) return false;
     for (let j = Math.floor(y0); j < Math.ceil(y1 - 1e-6); j++) for (let i = Math.floor(x0); i < Math.ceil(x1 - 1e-6); i++) if (clear.has(T(i, j))) return false;
     return true;
   }
@@ -712,10 +716,10 @@ function genMap() {
       for (const f of ROOMSETS[name]) tryPlace(b, r, f);
     });
   }
-  function shelfRows(b, loot, step = 3) {
-    for (let yy = b.y + 1.5; yy + .65 <= b.y + b.h - 1.2; yy += 1.75)
-      for (let xx = b.x + 1; xx + 2.2 <= b.x + b.w - .6; xx += step)
-        if (canPlace(b, xx, yy, xx + 2.2, yy + .65)) addFurn(b, "shelf", xx, yy, xx + 2.2, yy + .65, "C", loot);
+  function shelfRows(b, loot, step = 1.9) {
+    for (let yy = b.y + 1.2; yy + .36 <= b.y + b.h - .9; yy += 1.15)
+      for (let xx = b.x + .7; xx + 1.3 <= b.x + b.w - .5; xx += step)
+        if (canPlace(b, xx, yy, xx + 1.3, yy + .36)) addFurn(b, "shelf", xx, yy, xx + 1.3, yy + .36, "C", loot);
   }
   function furnishCom(b) {
     const room = { x: b.x, y: b.y, w: b.w, h: b.h };
@@ -741,13 +745,13 @@ function genMap() {
       tryPlace(b, room, "workbench", { side: "N" }); shelfRows(b, "hard"); tryPlace(b, room, "crate", { side: "N" }); tryPlace(b, room, "crate", { side: "E" });
     } else if (b.type === "pharm") {
       tryPlace(b, room, "cabinet", { side: "N", loot: "pharm" }); tryPlace(b, room, "cabinet", { side: "N", loot: "pharm" }); tryPlace(b, room, "cabinet", { side: "W", loot: "pharm" });
-      shelfRows(b, "pharm", 3.2); tryPlace(b, room, "checkout", { side: "S", loot: "pharm" });
+      shelfRows(b, "pharm", 2.1); tryPlace(b, room, "checkout", { side: "S", loot: "pharm" });
     } else if (b.type === "cafe") {
       tryPlace(b, room, "counter", { side: "N", loot: "cafe" }); tryPlace(b, room, "counter", { side: "N", loot: "cafe" }); tryPlace(b, room, "fridge", { side: "N" });
       for (let k = 0; k < 5; k++) tryPlace(b, room, "ctable");
       tryPlace(b, room, "plant");
     } else if (b.type === "ware") {
-      shelfRows(b, "crate", 3.4);
+      shelfRows(b, "crate", 2.2);
       for (let k = 0; k < 8; k++) tryPlace(b, room, "crate", { side: pick(["N", "W", "E", "S"]) });
     } else if (b.type === "tent") {
       tryPlace(b, room, "mcrate", { side: "N" }); tryPlace(b, room, "mcrate", { side: "E" }); tryPlace(b, room, "bed", { side: "W" });
@@ -804,8 +808,8 @@ function genMap() {
       const b2 = building(bx + 1, by + 7, 6, 5, pick(["pharm", "cafe", "pharm"]), [["S", bx + 3]], { front: "S" });
       for (let j = by + 7; j < by + 12; j++) { M.ground[T(bx, j)] = CN; M.ground[T(bx + 7, j)] = CN; occ[T(bx + 7, j)] = 1; }
       for (let i = bx + 8; i < bx + 12; i++) for (let j = by + 7; j < by + 12; j++) M.ground[T(i, j)] = LT;
-      for (let j = by + 7; j <= by + 12; j++) { M.decor.push({ t: "pline", x0: bx + 8.15, x1: bx + 9.7, y: j }); M.decor.push({ t: "pline", x0: bx + 10.3, x1: bx + 11.85, y: j }); }
-      for (let j = by + 7; j < by + 12; j++) for (const cx of [bx + 9, bx + 11]) if (Math.random() < .45) addCar(cx, j + .5, false);
+      for (const ly of [by + 7, by + 8.55, by + 10.45, by + 12]) M.decor.push({ t: "pline", x0: bx + 8.4, x1: bx + 11.9, y: ly });
+      for (const cy of [by + 7.6, by + 9.5, by + 11.4]) if (Math.random() < .6) addCar(bx + 10.1, cy, false);
       furnishCom(b1); furnishCom(b2);
       for (let i = bx + 1; i < bx + 11; i += 3) if (Math.random() < .6) addProp(pick(["planter", "bench", "bin"]), i + .5, by + .5);
       addProp("dumpster", bx + 8.2, by + .55);
@@ -849,7 +853,7 @@ function genMap() {
       furnishCom(b);
       for (let j = by + 8; j < by + 12; j++) for (let i = bx; i < bx + 12; i++) M.ground[T(i, j)] = LT;
       for (let i = bx; i <= bx + 12; i++) M.decor.push({ t: "pline", x0: i + .1, x1: i + .1, y0: by + 8.2, y1: by + 9.8, v: 1 });
-      addCar(bx + 2.5, by + 9, true, "police"); addCar(bx + 4.5, by + 9, true, "police"); if (Math.random() < .6) addCar(bx + 8.5, by + 9, true);
+      addCar(bx + 2.5, by + 10, true, "police"); addCar(bx + 4.5, by + 10, true, "police"); if (Math.random() < .6) addCar(bx + 8.5, by + 10, true);
       addProp("barrier", bx + 6, by + 11.3); addProp("cone", bx + 7.5, by + 11); addProp("cone", bx + 9, by + 11.2);
     },
     clinic(bx, by) {
@@ -875,7 +879,7 @@ function genMap() {
     for (let j = by; j < by + 12; j++) for (let i = bx; i < bx + 12; i++) M.ground[T(i, j)] = Math.random() < .7 ? DT : GR;
     for (let k = 0; k < 12; k++) if (k < 5 || k > 6) { setH(bx + k, by, 3); setH(bx + k, by + 12, 3); setV(bx, by + k, 3); setV(bx + 12, by + k, 3); }
     if (Math.random() < .8) { const b = building(bx + 8, by + 8, 3, 3, "shed", [["W", by + 9]], { win: .1 }); furnishCom(b); }
-    for (let n2 = 0; n2 < 10; n2++) { const i = bx + ri(1, 10), j = by + ri(1, 10); if (isFree(i, j) && isFree(i, j + 1) && isFree(i + 1, j)) { const car = addCar(i + .5, j + .5, Math.random() < .5); car.wreck = true; car.burnt = Math.random() < .5; } }
+    for (let n2 = 0; n2 < 14; n2++) { const ay = Math.random() < .5, i = bx + ri(1, 10), j = by + ri(1, 10), cx = i + .5, cy = j + .5; if (ay ? areaFree(cx - .5, cy - 1.25, cx + .5, cy + 1.25) && cy + 1.25 < by + 12 : areaFree(cx - 1.25, cy - .5, cx + 1.25, cy + .5) && cx + 1.25 < bx + 12) { const car = addCar(cx, cy, ay); car.wreck = true; car.burnt = Math.random() < .5; } }
     for (let n2 = 0; n2 < 16; n2++) { const i = bx + ri(0, 11), j = by + ri(0, 11); if (isFree(i, j)) addProp(pick(["tires", "tires", "barrel", "trashbags", "crateout", "pallet"]), i + .5, j + .5); }
   };
   const kinds = shuffle([...Array(33).fill("res"), ...Array(8).fill("shop"), "gas", "gas", "gas", ...Array(6).fill("park"), "ware", "ware", "ware", "ware", "police", "police", "clinic", "clinic", "camp", "camp", "junk", "junk", "junk", "junk"]);
@@ -899,7 +903,8 @@ function genMap() {
     if (M.ground[T(i, j)] !== RD || occ[T(i, j)] || (roadI[i] && roadI[j])) continue;
     if (Math.hypot(i - START.x, j - START.y) < 7) continue;
     const alongY = !!roadI[i];
-    if (alongY ? (roadI[j - 1] || roadI[j + 1] || roadI[j - 2] || roadI[j + 2]) : (roadI[i - 1] || roadI[i + 1] || roadI[i - 2] || roadI[i + 2])) continue;
+    if (alongY ? (roadI[j - 1] || roadI[j + 1] || roadI[j - 2] || roadI[j + 2] || roadI[j - 3] || roadI[j + 3]) : (roadI[i - 1] || roadI[i + 1] || roadI[i - 2] || roadI[i + 2] || roadI[i - 3] || roadI[i + 3])) continue;
+    if (alongY ? !(isFree(i, j - 1) && isFree(i, j + 1)) : !(isFree(i - 1, j) && isFree(i + 1, j))) continue;
     addCar(i + .5, j + .5, alongY, Math.random() < .05 ? "police" : "car"); n++;
   }
   // ---- street lamps
@@ -1111,7 +1116,7 @@ function freeSpot(minD, maxD, inside) {
     if (gt === WA || M.nav[j * N + i]) continue;
     const d = Math.hypot(x - p.x, y - p.y);
     if (d < minD || d > maxD) continue;
-    if (overlaps(x, y, .26)) continue;
+    if (overlaps(x, y, .18)) continue;
     return { x, y };
   }
   return null;
@@ -1122,7 +1127,7 @@ function spawnZombie(minDist, maxDist = 999, runnerChance = 0, inside = true) {
   const runner = Math.random() < runnerChance;
   world.zombies.push({
     x: s.x, y: s.y, vx: 0, vy: 0, hp: runner ? 2.5 : 3 + Math.random() * 1.5, runner,
-    spd: runner ? rand(1.55, 1.85) : rand(.7, 1.0), state: "wander", tx: s.x, ty: s.y, think: Math.random(), atkT: 0, cool: 0,
+    spd: runner ? rand(1.1, 1.3) : rand(.48, .7), state: "wander", tx: s.x, ty: s.y, think: Math.random(), atkT: 0, cool: 0,
     ph: Math.random() * 6, dir: Math.random() * 6.28, sf: 1, hit: 0, kx: 0, ky: 0, wanderT: 0, lastX: s.x, lastY: s.y, stuckT: 0, side: 0,
     limp: Math.random() < .6 ? rand(.25, .55) : 0, arms: ri(0, 2), tilt: rand(-.25, .25), lostArm: 0, bleedT: 0,
     skin: pick(PAL.skinZ), o: outfit(), seed: rand(0, 10), stain: Math.random() < .75, groanT: rand(3, 12)
@@ -1193,7 +1198,7 @@ function collide(e, r) {
   }
   e.x = clamp(e.x, .7, N - .7); e.y = clamp(e.y, .7, N - .7);
 }
-function moveEnt(e, dx, dy, r = .24) {
+function moveEnt(e, dx, dy, r = .17) {
   const n = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / .12));
   for (let k = 0; k < n; k++) { e.x += dx / n; e.y += dy / n; collide(e, r); }
 }
@@ -1488,7 +1493,7 @@ function updateHud() {
 // ================= actions =================
 function nearContainer() {
   const p = world.player, g = world.map.grid, r = 1;
-  let best = null, bd = .75;
+  let best = null, bd = .6;
   for (let gy = Math.max(0, Math.floor((p.y - r) / CELL)); gy <= Math.min(NG - 1, Math.floor((p.y + r) / CELL)); gy++)
     for (let gx = Math.max(0, Math.floor((p.x - r) / CELL)); gx <= Math.min(NG - 1, Math.floor((p.x + r) / CELL)); gx++)
       for (const b of g[gy * NG + gx]) {
@@ -1547,7 +1552,7 @@ function attack() {
   for (const z of [...world.zombies]) {
     const dx = z.x - p.x, dy = z.y - p.y, d = Math.hypot(dx, dy);
     if (d > w.range + .25) continue;
-    if (Math.abs(angDiff(p.dir, Math.atan2(dy, dx))) > 1.15 && d > .55) continue;
+    if (Math.abs(angDiff(p.dir, Math.atan2(dy, dx))) > 1.15 && d > .4) continue;
     if (!los(p.x, p.y, z.x, z.y, true)) continue;
     hitAny = true;
     const ux = dx / (d || 1), uy = dy / (d || 1);
@@ -1620,7 +1625,7 @@ function fireGun() {
     if (ni !== pi) { if (eV(Math.max(pi, ni), pj) === 1) break; pi = ni; }
     if (nj !== pj) { if (eH(pi, Math.max(pj, nj)) === 1) break; pj = nj; }
     hx = x; hy = y;
-    for (const z of cands) if ((z.x - x) ** 2 + (z.y - y) ** 2 < .1) { hit = z; break; }
+    for (const z of cands) if ((z.x - x) ** 2 + (z.y - y) ** 2 < .05) { hit = z; break; }
     if (hit) break;
   }
   world.tracers.push({ x0: p.x + cx * .45, y0: p.y + cy * .45, x1: hx, y1: hy, t: .07 });
@@ -1682,7 +1687,7 @@ function update(dt) {
   if (mode === "play") {
     const mv = readMove();
     let target = 0;
-    if (mv.m > 0) target = mv.m > .92 ? 3.4 : 2.3 * Math.min(1, mv.m / .85 + .1);
+    if (mv.m > 0) target = mv.m > .92 ? 2.5 : 1.6 * Math.min(1, mv.m / .85 + .1);
     if (p.search) target = 0;
     const acc = 1 - Math.pow(.0008, dt);
     p.vx = lerp(p.vx, mv.dx * target, acc); p.vy = lerp(p.vy, mv.dy * target, acc);
@@ -1707,12 +1712,12 @@ function update(dt) {
     p.spd = dt > 0 ? Math.min(Math.hypot(p.x - ox, p.y - oy) / dt, 4) : 0;
     if (mv.m > 0 && !p.search) p.dir += angDiff(p.dir, Math.atan2(mv.dy, mv.dx)) * Math.min(1, dt * 14);
     const prevPh = p.ph;
-    p.ph += dt * p.spd * 2.9;
+    p.ph += dt * p.spd * 7.5;
     if (Math.floor(prevPh / Math.PI) !== Math.floor(p.ph / Math.PI) && p.spd > .6) {
       footstep();
-      if (p.spd > 3) for (let k = 0; k < 2; k++) Wd.dust.push({ x: p.x - p.vx * .05, y: p.y - p.vy * .05, t: 0, r: rand(.08, .16), vx: rand(-.3, .3), vy: rand(-.3, .3) });
+      if (p.spd > 2.2) for (let k = 0; k < 2; k++) Wd.dust.push({ x: p.x - p.vx * .05, y: p.y - p.vy * .05, t: 0, r: rand(.08, .16), vx: rand(-.3, .3), vy: rand(-.3, .3) });
     }
-    if (p.spd > .3) { p.noiseT -= dt; if (p.noiseT <= 0) { p.noiseT = .5; noise(p.x, p.y, p.spd > 3 ? 4.5 : 1.6); } }
+    if (p.spd > .3) { p.noiseT -= dt; if (p.noiseT <= 0) { p.noiseT = .5; noise(p.x, p.y, p.spd > 2.2 ? 4.5 : 1.6); } }
     if (p.search && mv.m > .4) { p.search = null; toast("Обыск прерван"); }
     if (p.search) { p.search.t += dt; if (p.search.t >= p.search.dur) finishSearch(); }
     p.cool -= dt; p.swing = Math.max(0, p.swing - dt); p.hurtT = Math.max(0, p.hurtT - dt); p.flash = Math.max(0, p.flash - dt);
@@ -1721,7 +1726,7 @@ function update(dt) {
       if (p.reload <= 0) { const w = WEAPONS[p.weapon]; if (w.gun) { const take = Math.min(w.mag - p.mag[p.weapon], p.inv[w.ammo] || 0); p.mag[p.weapon] += take; p.inv[w.ammo] -= take; tone(640, .06, "square", .03); hudT = 0; } }
     }
     if (input.atk && WEAPONS[p.weapon].auto && p.cool <= 0) attack();
-    const run = p.spd > 3, k6 = 6 / settings.dayLen;
+    const run = p.spd > 2.2, k6 = 6 / settings.dayLen;
     p.food = Math.max(0, p.food - dt * 100 / 420 * (run ? 1.5 : 1) * D.drain * k6);
     p.water = Math.max(0, p.water - dt * 100 / 330 * (run ? 1.6 : 1) * D.drain * k6);
     if (p.food <= 0 || p.water <= 0) { p.hp -= dt * 1.4; if (!Wd.events.has("starve")) { Wd.events.add("starve"); toast(p.food <= 0 ? "Голод отнимает силы. Поешь" : "Жажда отнимает силы. Попей", true); } }
@@ -1777,7 +1782,7 @@ function update(dt) {
     }
     let tx = null, ty = null, sp = z.spd * (nf > .5 ? 1.2 : 1);
     if (z.state === "chase" && mode === "play") {
-      if (d < .82) { if (z.atkT <= 0 && z.cool <= 0) { z.atkT = z.runner ? .3 : .4; z.dir = Math.atan2(dy, dx); } }
+      if (d < .6) { if (z.atkT <= 0 && z.cool <= 0) { z.atkT = z.runner ? .3 : .4; z.dir = Math.atan2(dy, dx); } }
       else { const st = d > 1.3 ? flowStep(z) : null; if (st) { tx = st.x; ty = st.y; } else { tx = p.x; ty = p.y; } }
     } else if (z.state === "investigate") {
       tx = z.tx; ty = z.ty; sp *= .8;
@@ -1791,7 +1796,7 @@ function update(dt) {
       z.atkT -= dt;
       if (z.atkT <= 0) {
         z.cool = z.runner ? .9 : 1.15;
-        if (mode === "play" && d < 1.05 && los(z.x, z.y, p.x, p.y, true)) {
+        if (mode === "play" && d < .8 && los(z.x, z.y, p.x, p.y, true)) {
           const dmg = rand(8, 13) * (nf > .5 ? 1.15 : 1) * D.dmg;
           p.hp -= dmg; p.hurtT = .3; Wd.shake = 9; hurtFlash(); thud(.35); tone(180, .18, "square", .03, .6);
           p.search = null;
@@ -1813,7 +1818,7 @@ function update(dt) {
     const acc = 1 - Math.pow(z.runner ? .01 : .05, dt);
     z.vx = lerp(z.vx, tvx, acc); z.vy = lerp(z.vy, tvy, acc);
     if (Math.abs(z.vx) + Math.abs(z.vy) > .01) moveEnt(z, z.vx * dt, z.vy * dt);
-    z.ph += dt * Math.max(Math.hypot(z.vx, z.vy) * (z.runner ? 2.8 : 3.4), .6);
+    z.ph += dt * Math.max(Math.hypot(z.vx, z.vy) * (z.runner ? 6.5 : 8), .6);
     if (z.kx || z.ky) { moveEnt(z, z.kx * dt, z.ky * dt); z.kx *= Math.pow(.004, dt); z.ky *= Math.pow(.004, dt); if (Math.abs(z.kx) + Math.abs(z.ky) < .05) z.kx = z.ky = 0; }
     z.groanT -= dt;
     if (z.groanT <= 0) { z.groanT = rand(6, 16); if (mode === "play" && d < 7) groan(); }
@@ -1823,13 +1828,13 @@ function update(dt) {
   for (const z of Wd.zombies) z.active = false;
   for (let i = 0; i < zs.length; i++) for (let j = i + 1; j < zs.length; j++) {
     const a = zs[i], b = zs[j], dx = b.x - a.x, dy = b.y - a.y;
-    if (Math.abs(dx) > .6 || Math.abs(dy) > .6) continue;
+    if (Math.abs(dx) > .42 || Math.abs(dy) > .42) continue;
     const d2 = dx * dx + dy * dy;
-    if (d2 < .36 && d2 > 1e-6) { const d = Math.sqrt(d2), push = (.6 - d) * .5; a.x -= dx / d * push; a.y -= dy / d * push; b.x += dx / d * push; b.y += dy / d * push; collide(a, .24); collide(b, .24); }
+    if (d2 < .1764 && d2 > 1e-6) { const d = Math.sqrt(d2), push = (.42 - d) * .5; a.x -= dx / d * push; a.y -= dy / d * push; b.x += dx / d * push; b.y += dy / d * push; collide(a, .17); collide(b, .17); }
   }
   if (mode === "play") for (const z of zs) {
     const dx = p.x - z.x, dy = p.y - z.y, d = Math.hypot(dx, dy);
-    if (d < .5 && d > 1e-6) { z.x -= dx / d * (.5 - d); z.y -= dy / d * (.5 - d); collide(z, .24); }
+    if (d < .36 && d > 1e-6) { z.x -= dx / d * (.36 - d); z.y -= dy / d * (.36 - d); collide(z, .17); }
   }
   for (let i = Wd.parts.length - 1; i >= 0; i--) {
     const q = Wd.parts[i];
@@ -2026,16 +2031,16 @@ function drawFurn(c, f) {
     case "sofa": {
       box3(c, x0, y0, x1, y1, 0, 9, col);
       const bk = shade(col, -.1), s = f.side;
-      if (s === "W") box3(c, x0, y0, x0 + .24, y1, 9, 18, bk); else if (s === "E") box3(c, x1 - .24, y0, x1, y1, 9, 18, bk);
-      else if (s === "S") box3(c, x0, y1 - .24, x1, y1, 9, 18, bk); else box3(c, x0, y0, x1, y0 + .24, 9, 18, bk);
-      if (longX) { box3(c, x0, y0, x0 + .16, y1, 9, 14, bk); box3(c, x1 - .16, y0, x1, y1, 9, 14, bk); }
-      else { box3(c, x0, y0, x1, y0 + .16, 9, 14, bk); box3(c, x0, y1 - .16, x1, y1, 9, 14, bk); }
+      if (s === "W") box3(c, x0, y0, x0 + .14, y1, 9, 18, bk); else if (s === "E") box3(c, x1 - .14, y0, x1, y1, 9, 18, bk);
+      else if (s === "S") box3(c, x0, y1 - .14, x1, y1, 9, 18, bk); else box3(c, x0, y0, x1, y0 + .14, 9, 18, bk);
+      if (longX) { box3(c, x0, y0, x0 + .1, y1, 9, 14, bk); box3(c, x1 - .1, y0, x1, y1, 9, 14, bk); }
+      else { box3(c, x0, y0, x1, y0 + .1, 9, 14, bk); box3(c, x0, y1 - .1, x1, y1, 9, 14, bk); }
       break;
     }
     case "tv": {
       box3(c, x0, y0, x1, y1, 0, 10, col);
       const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
-      if (longX) isoBox(c, mx - .4, my - .04, mx + .4, my + .04, 11, 26, "#222", "#1b2633", "#111"); else isoBox(c, mx - .04, my - .4, mx + .04, my + .4, 11, 26, "#222", "#111", "#1b2633");
+      const hw = Math.max(x1 - x0, y1 - y0) * .42; if (longX) isoBox(c, mx - hw, my - .03, mx + hw, my + .03, 11, 24, "#222", "#1b2633", "#111"); else isoBox(c, mx - .03, my - hw, mx + .03, my + hw, 11, 24, "#222", "#111", "#1b2633");
       break;
     }
     case "table": {
@@ -2046,9 +2051,9 @@ function drawFurn(c, f) {
     }
     case "ctable": {
       const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-      box3(c, cx - .25, cy - .55, cx + .25, cy - .45, 0, 9, "#4a3a30"); box3(c, cx - .25, cy + .45, cx + .25, cy + .55, 0, 9, "#4a3a30");
+      const hw = (x1 - x0) * .4, off = (y1 - y0) * .85; box3(c, cx - hw, cy - off - .06, cx + hw, cy - off, 0, 9, "#4a3a30"); box3(c, cx - hw, cy + off, cx + hw, cy + off + .06, 0, 9, "#4a3a30");
       const p = P3(cx, cy, 0); c.strokeStyle = "#3a2e26"; c.lineWidth = 2.5; c.beginPath(); c.moveTo(p.X, p.Y); c.lineTo(p.X, p.Y - 13); c.stroke();
-      ell3(c, cx, cy, 14, 17, 8.5, shade(col, -.15)); ell3(c, cx, cy, 15, 16, 8, col);
+      ell3(c, cx, cy, 14, 11, 5.5, shade(col, -.15)); ell3(c, cx, cy, 15, 10, 5, col);
       dot3(c, cx + .1, cy, 16, 2.2, "#f0ece2");
       break;
     }
@@ -2077,7 +2082,7 @@ function drawFurn(c, f) {
       isoBox(c, x0 - .02, y0 - .02, x1 + .02, y1 + .02, 16, 18.5, f.kind === "stove" ? "#2b2b2e" : "#e8e2d6", "#bdb6a6", "#a49d8e");
       if (f.kind === "stove") for (const [a, b2] of [[.28, .3], [.72, .3], [.28, .7], [.72, .7]]) ell3(c, lerp(x0, x1, a), lerp(y0, y1, b2), 18.6, 3.6, 1.8, "#555a60");
       if (f.kind === "counter") { const sx = (x0 + x1) / 2, sy = (y0 + y1) / 2; ell3(c, sx, sy, 18.6, 5, 2.4, "#9aa3ab"); }
-      if (f.kind === "checkout") { box3(c, x0 + .1, y0 + .1, x0 + .45, y0 + .4, 18.5, 26, "#2f3238"); quad(c, P3(x0 + .6, y0 + .15, 18.7), P3(x1 - .1, y0 + .15, 18.7), P3(x1 - .1, y1 - .15, 18.7), P3(x0 + .6, y1 - .15, 18.7), "#2b2b2e"); }
+      if (f.kind === "checkout") { box3(c, x0 + .06, y0 + .06, x0 + .3, y0 + .28, 18.5, 25, "#2f3238"); quad(c, P3(x0 + .6, y0 + .15, 18.7), P3(x1 - .1, y0 + .15, 18.7), P3(x1 - .1, y1 - .15, 18.7), P3(x0 + .6, y1 - .15, 18.7), "#2b2b2e"); }
       break;
     }
     case "bath": {
@@ -2086,22 +2091,22 @@ function drawFurn(c, f) {
       break;
     }
     case "toilet": {
-      box3(c, x0 + .05, y0, x1 - .05, y0 + .2, 0, 20, col);
-      box3(c, x0 + .07, y0 + .2, x1 - .07, y1, 0, 10, col);
-      ell3(c, (x0 + x1) / 2, (y0 + y1) / 2 + .1, 10.5, 4, 2, "#cfd8dc");
+      box3(c, x0 + .02, y0, x1 - .02, y0 + (y1 - y0) * .35, 0, 20, col);
+      box3(c, x0 + .03, y0 + (y1 - y0) * .35, x1 - .03, y1, 0, 10, col);
+      ell3(c, (x0 + x1) / 2, (y0 + y1) / 2 + .05, 10.5, 3, 1.5, "#cfd8dc");
       break;
     }
     case "desk": case "workbench": {
       for (const [lx, ly] of [[x0 + .05, y0 + .05], [x1 - .12, y0 + .05], [x0 + .05, y1 - .12], [x1 - .12, y1 - .12]]) box3(c, lx, ly, lx + .07, ly + .07, 0, 14, shade(col, -.25));
       box3(c, x0, y0, x1, y1, 14, 17, col);
-      if (f.kind === "desk") { const mx = x0 + (x1 - x0) * .5, my = y0 + (y1 - y0) * .35; isoBox(c, mx - .2, my - .05, mx + .2, my + .05, 17, 27, "#222", "#2c3a48", "#151515"); }
-      else { box3(c, x0 + .2, y0 + .15, x0 + .6, y0 + .4, 17, 21, "#c0392b"); dot3(c, x1 - .4, y0 + .3, 18, 2.5, "#9aa0a6"); }
+      if (f.kind === "desk") { const mx = x0 + (x1 - x0) * .5, my = y0 + (y1 - y0) * .35; isoBox(c, mx - .14, my - .03, mx + .14, my + .03, 17, 25, "#222", "#2c3a48", "#151515"); }
+      else { box3(c, x0 + .12, y0 + .08, x0 + .38, y0 + .26, 17, 21, "#c0392b"); dot3(c, x1 - .25, (y0 + y1) / 2, 18, 2, "#9aa0a6"); }
       break;
     }
     case "plant": {
-      box3(c, x0 + .05, y0 + .05, x1 - .05, y1 - .05, 0, 9, col);
+      box3(c, x0 + .03, y0 + .03, x1 - .03, y1 - .03, 0, 8, col);
       const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-      dot3(c, cx - .08, cy, 15, 6, "#3f7a3f"); dot3(c, cx + .08, cy, 18, 5.5, "#4f8f4a"); dot3(c, cx, cy, 22, 4.5, "#6aa65e");
+      dot3(c, cx - .05, cy, 14, 4.5, "#3f7a3f"); dot3(c, cx + .05, cy, 17, 4, "#4f8f4a"); dot3(c, cx, cy, 20, 3.4, "#6aa65e");
       break;
     }
     case "shelf": {
@@ -2109,11 +2114,11 @@ function drawFurn(c, f) {
       const cols = f.b.type === "pharm" || f.b.type === "clinic" ? ["#e8f0f0", "#7fc0a0", "#d06060", "#a0c0e0"] : f.b.type === "hard" ? ["#c0392b", "#d08a2c", "#5e6b78", "#8a6a3a"] : f.b.type === "ware" ? ["#9a7a4c", "#8a6a3a", "#b09060"] : ["#c8473a", "#e0b040", "#4f8fc0", "#6fae5a", "#e8e0d0"];
       for (let s = 0; s < 3; s++) {
         const z = 4 + s * 9;
-        for (let k = 0; k < 6; k++) {
-          if (hash(f.var * 100 + k, s) < .2 && f.cont && f.cont.searched) continue;
-          const t0 = k / 6 + .02, t1 = (k + 1) / 6 - .02;
-          const bx0 = longX ? lerp(x0, x1, t0) : x0 + .08, bx1 = longX ? lerp(x0, x1, t1) : x1 - .08;
-          const by0 = longX ? y0 + .08 : lerp(y0, y1, t0), by1 = longX ? y1 - .08 : lerp(y0, y1, t1);
+        for (let k = 0; k < 5; k++) {
+          if (hash(f.var * 100 + k, s) < .35 && f.cont && (f.cont.searched || !f.cont.loot.length)) continue;
+          const t0 = k / 5 + .02, t1 = (k + 1) / 5 - .02;
+          const bx0 = longX ? lerp(x0, x1, t0) : x0 + .05, bx1 = longX ? lerp(x0, x1, t1) : x1 - .05;
+          const by0 = longX ? y0 + .05 : lerp(y0, y1, t0), by1 = longX ? y1 - .05 : lerp(y0, y1, t1);
           box3(c, bx0, by0, bx1, by1, z, z + 6, cols[(k + s + Math.floor(f.var * 7)) % cols.length]);
         }
         box3(c, x0, y0, x1, y1, z + 6.5, z + 8, "#9aa0a8");
@@ -2129,6 +2134,124 @@ function drawFurn(c, f) {
     }
     default: box3(c, x0, y0, x1, y1, 0, d.z, col);
   }
+}
+
+// ================= drawing: big objects at real scale =================
+function sliceObj(o, out) {
+  let x0, y0, x1, y1, H;
+  if (o.dt === "car") { x0 = o.x - o.L[0]; x1 = o.x + o.L[0]; y0 = o.y - o.L[1]; y1 = o.y + o.L[1]; H = 60; }
+  else { x0 = o.x0; y0 = o.y0; x1 = o.x1; y1 = o.y1; H = o.def.z + 36; }
+  const ax = x1 - x0 >= y1 - y0, len = ax ? x1 - x0 : y1 - y0, n = Math.max(1, Math.ceil(len / .5));
+  for (let k = 0; k < n; k++) {
+    const a = k / n, b = (k + 1) / n;
+    const r = ax ? [lerp(x0, x1, a), y0, lerp(x0, x1, b), y1] : [x0, lerp(y0, y1, a), x1, lerp(y0, y1, b)];
+    out.push({ dt: "slice", o, r, H, ax, first: k === 0, last: k === n - 1, key: (r[0] + r[2]) / 2 + (r[1] + r[3]) / 2 });
+  }
+}
+function drawSlice(c, sl, nf, time) {
+  const [a0, b0, a1, b1] = sl.r, e = .02, m = .35;
+  const X0 = a0 - (sl.ax ? (sl.first ? m : e) : m), X1 = a1 + (sl.ax ? (sl.last ? m : e) : m);
+  const Y0 = b0 - (sl.ax ? m : (sl.first ? m : e)), Y1 = b1 + (sl.ax ? m : (sl.last ? m : e));
+  const q = [P3(X0, Y1, -10), P3(X1, Y1, -10), P3(X1, Y0, -10), P3(X1, Y0, sl.H), P3(X0, Y0, sl.H), P3(X0, Y1, sl.H)];
+  c.save(); c.beginPath(); c.moveTo(q[0].X, q[0].Y); for (let k = 1; k < 6; k++) c.lineTo(q[k].X, q[k].Y); c.closePath(); c.clip();
+  if (sl.o.dt === "car") drawCar3(c, sl.o, nf, time); else drawFurn(c, sl.o);
+  c.restore();
+}
+function drawCar3(c, car, nf, time) {
+  const k = car.kind, big = k === "truck" || k === "amb" || k === "mtruck", ax = !car.alongY;
+  const [lx, ly] = car.L, x0 = car.x - lx, x1 = car.x + lx, y0 = car.y - ly, y1 = car.y + ly;
+  const W3 = (u, v, z) => ax ? P3(lerp(x0, x1, u), lerp(y0, y1, v), z) : P3(lerp(x0, x1, v), lerp(y0, y1, u), z);
+  // box in local coords: u along the car (1 = front), v across; south/east faces are the side or the front
+  const B = (u0, u1, v0, v1, z0, z1, top, side, end) => {
+    const r = ax ? [lerp(x0, x1, u0), lerp(y0, y1, v0), lerp(x0, x1, u1), lerp(y0, y1, v1)] : [lerp(x0, x1, v0), lerp(y0, y1, u0), lerp(x0, x1, v1), lerp(y0, y1, u1)];
+    isoBox(c, r[0], r[1], r[2], r[3], z0, z1, top, ax ? side : end, ax ? end : side);
+  };
+  const body = car.burnt ? "#2b2724" : car.wreck ? "#5e544c" : k === "police" || k === "amb" ? "#d8d7d2" : k === "truck" ? "#b9bcc0" : k === "mtruck" ? "#535737" : car.c;
+  const glass = car.burnt ? "#0d0d0d" : "#26313d", glassL = car.burnt ? "#141414" : "#3a4a5a";
+  const wheel = (u) => { const q = W3(u, 1.02, 6); c.fillStyle = "#101113"; c.beginPath(); c.ellipse(q.X, q.Y, 6.5, 6.2, 0, 0, 7); c.fill(); c.fillStyle = car.burnt ? "#3a2a20" : "#6d7176"; c.beginPath(); c.ellipse(q.X, q.Y, 2.6, 2.5, 0, 0, 7); c.fill(); };
+  if (big) {
+    const cab = k === "truck" ? "#3b5b7a" : k === "mtruck" ? "#454930" : body;
+    for (const u of [.14, .42, .86]) wheel(u);
+    B(0, .66, .02, .98, 7, 46, shade(body, .1), shade(body, -.08), shade(body, -.25));
+    if (k === "amb") { const m = W3(.33, 1, 28); c.fillStyle = "#b8302c"; c.fillRect(m.X - 2.5, m.Y - 8, 5, 16); c.fillRect(m.X - 8, m.Y - 2.5, 16, 5); B(0, .66, .98, 1, 14, 18, "#b8302c", "#b8302c", "#b8302c"); }
+    if (k === "mtruck") { const m = W3(.33, 1, 30); c.fillStyle = "rgba(240,240,220,.5)"; c.font = "700 8px sans-serif"; c.fillText("★", m.X - 3, m.Y); }
+    B(.68, 1, .04, .96, 6, 22, shade(cab, .1), shade(cab, -.1), shade(cab, -.25));
+    B(.7, .96, .08, .92, 22, 36, shade(cab, .12), glassL, glass);
+    B(.69, .97, .06, .94, 36, 38, shade(cab, .15), shade(cab, -.1), shade(cab, -.2));
+    if (k === "amb" && nf > .1) { const q = W3(.82, .5, 39); c.fillStyle = Math.sin(time * 8) > 0 ? "#ff4040" : "#4060ff"; c.beginPath(); c.arc(q.X, q.Y, 3, 0, 7); c.fill(); }
+    return;
+  }
+  wheel(.2); wheel(.8);
+  // chassis and body
+  B(0, 1, .03, .97, 5, 9, "#222", "#1c1c1e", "#1c1c1e");
+  B(.01, .99, .02, .98, 8, 17, shade(body, .1), shade(body, -.06), shade(body, -.24));
+  // door seams, handles, side stripe
+  c.strokeStyle = "rgba(0,0,0,.28)"; c.lineWidth = 1; c.beginPath();
+  for (const u of [.42, .64]) { const a = W3(u, 1, 9), b = W3(u, 1, 17); c.moveTo(a.X, a.Y); c.lineTo(b.X, b.Y); }
+  c.stroke();
+  if (k === "police") { const a = W3(.05, 1, 11), b = W3(.95, 1, 11), d = W3(.95, 1, 14), e2 = W3(.05, 1, 14); quad(c, a, b, d, e2, "#2b4a8a"); }
+  // front details: lights and bumper (front is visible when it faces south or east)
+  const hl = car.burnt ? "#333" : nf > .3 && !car.wreck ? "#fff3c0" : "#e8e4d0";
+  for (const v of [.18, .82]) { const a = W3(1.001, v - .1, 11), b = W3(1.001, v + .1, 11), d = W3(1.001, v + .1, 14), e2 = W3(1.001, v - .1, 14); quad(c, a, b, d, e2, hl); }
+  // cabin: windscreen slopes from the hood
+  const zc = 17, zr = 28;
+  const g1 = W3(.3, .1, zc), g2 = W3(.3, .9, zc), g3 = W3(.72, .9, zc), g4 = W3(.72, .1, zc);
+  const r1 = W3(.36, .14, zr), r2 = W3(.36, .86, zr), r3 = W3(.62, .86, zr), r4 = W3(.62, .14, zr);
+  if (ax) {
+    quad(c, g2, g3, r3, r2, glassL);          // side windows (south)
+    quad(c, g3, g4, r4, r3, glass);           // windscreen (east, front)
+  } else {
+    quad(c, g3, g4, r4, r3, glassL);          // side windows (east)
+    quad(c, g2, g3, r3, r2, glass);           // windscreen (south, front)
+  }
+  // pillars
+  c.strokeStyle = shade(body, -.2); c.lineWidth = 1.6; c.beginPath();
+  const pl = ax ? [[g2, r2], [W3(.52, .9, zc), W3(.5, .86, zr)], [g3, r3]] : [[g4, r4], [W3(.52, .9, zc), W3(.5, .86, zr)], [g3, r3]];
+  for (const [a, b] of pl) { c.moveTo(a.X, a.Y); c.lineTo(b.X, b.Y); }
+  c.stroke();
+  quad(c, r1, r2, r3, r4, car.burnt ? "#1e1b19" : shade(body, .14));
+  if (k === "police") { const blink = Math.sin(time * 7 + car.ph) > 0; B(.44, .5, .3, .7, zr, zr + 3, blink && nf > .1 ? "#ff5050" : "#a03030", "#802828", "#802828"); B(.5, .56, .3, .7, zr, zr + 3, !blink && nf > .1 ? "#5080ff" : "#303a80", "#283070", "#283070"); }
+  if (car.wreck || car.burnt) { c.fillStyle = car.burnt ? "rgba(140,70,30,.5)" : "rgba(30,20,15,.45)"; const q = W3(.2, .5, 17); c.beginPath(); c.ellipse(q.X, q.Y, 7, 3.5, 0, 0, 7); c.fill(); const q2 = W3(.85, .6, 17); c.beginPath(); c.ellipse(q2.X, q2.Y, 5, 2.5, 0, 0, 7); c.fill(); }
+}
+function drawTree2(c, t, time, fade) {
+  const p = iso(t.x, t.y), s = t.s, sw = Math.sin(time * 1.1 + t.ph) * 2;
+  c.globalAlpha = fade;
+  const [d, m, li] = t.p;
+  if (t.kind === "bush") {
+    const blob = (x, y, r, col) => { c.fillStyle = col; c.beginPath(); c.arc(p.X + x * s, p.Y + y * s, r * s, 0, 7); c.fill(); };
+    blob(-8, -9, 11, d); blob(8, -9, 11, d); blob(0, -15, 12, d); blob(-3, -17, 9, m); blob(6, -13, 7, m); blob(-6, -20, 5, li); blob(4, -18, 4, li);
+  } else if (t.kind === "pine") {
+    c.fillStyle = "#4a3828"; c.fillRect(p.X - 3 * s, p.Y - 26 * s, 6 * s, 26 * s);
+    for (let k2 = 0; k2 < 7; k2++) {
+      const y = -20 - k2 * 22, w = (42 - k2 * 5.2), hh = 34, ox = sw * (k2 / 6);
+      const top = { X: p.X + ox * s, Y: p.Y + (y - hh) * s };
+      c.fillStyle = PAL.pine[0]; c.beginPath(); c.moveTo(top.X, top.Y); c.lineTo(p.X + (w + ox) * s, p.Y + y * s); c.quadraticCurveTo(p.X + ox * s, p.Y + (y + 7) * s, p.X + (-w + ox) * s, p.Y + y * s); c.closePath(); c.fill();
+      c.fillStyle = PAL.pine[1]; c.beginPath(); c.moveTo(top.X, top.Y); c.lineTo(p.X + (ox - 3) * s, p.Y + (y + 4) * s); c.lineTo(p.X + (-w + ox) * s, p.Y + y * s); c.closePath(); c.fill();
+      c.fillStyle = PAL.pine[2]; c.globalAlpha = fade * .4; c.beginPath(); c.moveTo(top.X, top.Y); c.lineTo(p.X + (ox - w * .4) * s, p.Y + (y - hh * .35) * s); c.lineTo(p.X + (ox - w * .75) * s, p.Y + y * s); c.closePath(); c.fill(); c.globalAlpha = fade;
+    }
+  } else {
+    // trunk with branches
+    c.fillStyle = "#4e3a2a";
+    c.beginPath(); c.moveTo(p.X - 5 * s, p.Y); c.lineTo(p.X - 2.6 * s, p.Y - 80 * s); c.lineTo(p.X + 2.6 * s, p.Y - 80 * s); c.lineTo(p.X + 5 * s, p.Y); c.fill();
+    c.fillStyle = "rgba(0,0,0,.22)"; c.beginPath(); c.moveTo(p.X + 1 * s, p.Y); c.lineTo(p.X + 1 * s, p.Y - 80 * s); c.lineTo(p.X + 2.6 * s, p.Y - 80 * s); c.lineTo(p.X + 5 * s, p.Y); c.fill();
+    c.strokeStyle = "#4e3a2a"; c.lineCap = "round";
+    for (const [bx2, by2, w2] of [[-22, -92, 3], [20, -96, 3], [-8, -112, 2.4], [12, -118, 2.2]]) { c.lineWidth = w2 * s; c.beginPath(); c.moveTo(p.X, p.Y - 64 * s); c.lineTo(p.X + bx2 * s + sw * .5, p.Y + by2 * s); c.stroke(); }
+    c.lineCap = "butt";
+    const cx = p.X + sw, cy = p.Y - 118 * s;
+    for (const [bx2, by2, r] of t.blobs) { c.fillStyle = d; c.beginPath(); c.arc(cx + bx2 * s, cy + by2 * s, r * s, 0, 7); c.fill(); }
+    for (const [bx2, by2, r] of t.blobs) { c.fillStyle = m; c.beginPath(); c.arc(cx + (bx2 - 3) * s, cy + (by2 - 5) * s, r * .74 * s, 0, 7); c.fill(); }
+    for (const [bx2, by2, r] of t.blobs) if (bx2 + by2 < -8) { c.fillStyle = li; c.beginPath(); c.arc(cx + (bx2 - 5) * s, cy + (by2 - 8) * s, r * .42 * s, 0, 7); c.fill(); }
+    c.fillStyle = "rgba(10,20,10,.2)"; c.beginPath(); c.ellipse(cx + 10 * s, cy + 22 * s, 34 * s, 12 * s, 0, 0, 7); c.fill();
+  }
+  c.globalAlpha = 1;
+}
+function drawLamp2(c, L, nf) {
+  const p = iso(L.x, L.y);
+  c.fillStyle = "#23262d"; c.fillRect(p.X - 3.5, p.Y - 8, 7, 8);
+  c.strokeStyle = "#2a2e36"; c.lineWidth = 3.4; c.beginPath(); c.moveTo(p.X, p.Y); c.lineTo(p.X, p.Y - 120); c.quadraticCurveTo(p.X, p.Y - 129, p.X + 11, p.Y - 129); c.stroke();
+  const on = L.on && nf > .15;
+  c.fillStyle = "#30353e"; c.beginPath(); c.moveTo(p.X + 6, p.Y - 131); c.lineTo(p.X + 24, p.Y - 131); c.lineTo(p.X + 21, p.Y - 126); c.lineTo(p.X + 9, p.Y - 126); c.fill();
+  c.fillStyle = on ? "#ffe7b0" : "#59606b"; c.beginPath(); c.ellipse(p.X + 15, p.Y - 126, 6, 2.2, 0, 0, 7); c.fill();
 }
 
 // ================= drawing: street props & cars =================
@@ -2344,14 +2467,16 @@ function outfit(kind) {
   const hair = female ? pick(["long", "long", "pony", "short"]) : pick(["short", "short", "buzz", "bald", "long"]);
   return { top, bottom, hair, hairCol: pick(["#2a2420", "#3b3228", "#5a4632", "#7a6a50", "#8a8478", "#1c1a18", "#6a3a22"]), shoes: pick(["#2a2622", "#3a3a3a", "#4a3a2a", "#d8d4cc"]) };
 }
-function drawPerson(c, x, y, o, time) {
+const PS = .62; // people at real scale: about 1.75 m next to 3.5 m walls
+function drawPerson(c, x, y, o, time) { c.save(); c.translate(x, y); c.scale(PS, PS); drawPersonRaw(c, 0, 0, o, time); c.restore(); }
+function drawPersonRaw(c, x, y, o, time) {
   const cs = Math.cos(o.dir), sn = Math.sin(o.dir);
   const ux = (cs - sn) * HW, uy = (cs + sn) * HH, ul = Math.hypot(ux, uy) || 1, nx = ux / ul, ny = uy / ul;
   const f = Math.abs(nx) > .2 ? Math.sign(nx) : (o.sf || 1);
   o.sf = f;
   const back = ny < -.15, zombie = o.kind === "zombie";
-  const moving = o.spd > .15, run = o.spd > (zombie ? 1.4 : 3);
-  const amp = clamp(o.spd / (zombie ? 1 : 2.3), 0, 1.25), ph = o.ph;
+  const moving = o.spd > .1, run = o.spd > (zombie ? 1 : 2.1);
+  const amp = clamp(o.spd / (zombie ? .7 : 1.6), 0, 1.25), ph = o.ph;
   const stride = (run ? .42 : .3) * Math.min(1, amp), lift = run ? 7 : 4;
   const px = -ny, py = nx, sideNear = py > 0 ? 1 : -1;
   const breathe = moving ? 0 : Math.sin(time * 2 + (o.seed || 0)) * .5;
@@ -2539,7 +2664,7 @@ const RD_STICKS = [[0, 1], [1, 3], [1, 4], [3, 4], [3, 5], [4, 6], [5, 6], [3, 6
 const CUT = { head: [0, 12, 13], armL: [14], armR: [16], legL: [18], legR: [20] };
 function makeRagdoll(z, dx, dy, power) {
   const c = Math.cos(z.dir), s = Math.sin(z.dir), sx = -s, sy = c;
-  const P = (fw, side, h) => { const x = z.x + c * fw + sx * side, y = z.y + s * fw + sy * side, zz = h / ZS; return { x, y, z: zz, ox: x, oy: y, oz: zz }; };
+  const P = (fw, side, h) => { fw *= PS; side *= PS; h *= PS; const x = z.x + c * fw + sx * side, y = z.y + s * fw + sy * side, zz = h / ZS; return { x, y, z: zz, ox: x, oy: y, oz: zz }; };
   const arm = z.arms === 2 || z.runner ? [0, 30] : [.38, 44];
   const pts = [
     P(.05, 0, 56), P(.03, 0, 49), P(0, 0, 28), P(.03, .16, 47), P(.03, -.16, 47), P(0, .08, 27), P(0, -.08, 27),
@@ -2600,35 +2725,31 @@ function stepRagdoll(rd, dt) {
 }
 function drawRagdoll(c, rd) {
   const L = rd.look, Q = rd.pts.map(q => q.x < -900 ? null : P3(q.x, q.y, q.z * ZS));
-  const on = i => rd.sticks[i][3];
+  const on = i => rd.sticks[i][3], k = PS;
   c.lineCap = "round"; c.lineJoin = "round";
   const legC = B => B.style === "shorts" ? [B.col, L.skin] : B.style === "skirt" ? [L.skin, L.skin] : [B.col, B.col];
   const armC = T => T.style === "tank" ? [L.skin, L.skin] : T.style === "tee" ? [T.col, L.skin] : [T.col, T.col];
   const [lu, ll] = legC(L.bottom), [au, al] = armC(L.top);
-  const S = (a, b, w, col, si) => { if (!Q[a] || !Q[b] || (si !== undefined && !on(si))) return; seg(c, Q[a].X, Q[a].Y, Q[b].X, Q[b].Y, w, col); };
-  const stump = (k, col) => { if (!Q[k]) return; c.fillStyle = col || "#7a1a16"; c.beginPath(); c.arc(Q[k].X, Q[k].Y, 2.4, 0, 7); c.fill(); };
-  // legs (severed pieces keep their own segment)
+  const S = (a, b, w, col, si) => { if (!Q[a] || !Q[b] || (si !== undefined && !on(si))) return; seg(c, Q[a].X, Q[a].Y, Q[b].X, Q[b].Y, w * k, col); };
+  const stump = i => { if (!Q[i]) return; c.fillStyle = "#7a1a16"; c.beginPath(); c.arc(Q[i].X, Q[i].Y, 2.4 * k, 0, 7); c.fill(); };
   S(5, 11, 5, lu, 18); S(11, 12, 4.3, ll); S(6, 13, 5, lu, 20); S(13, 14, 4.3, ll);
   if (!on(18)) { stump(5); stump(11); } if (!on(20)) { stump(6); stump(13); }
-  for (const k of [12, 14]) if (Q[k]) { c.fillStyle = L.shoes; c.beginPath(); c.ellipse(Q[k].X, Q[k].Y, 3.6, 2, 0, 0, 7); c.fill(); }
-  // torso
+  for (const i of [12, 14]) if (Q[i]) { c.fillStyle = L.shoes; c.beginPath(); c.ellipse(Q[i].X, Q[i].Y, 3.6 * k, 2 * k, 0, 0, 7); c.fill(); }
   if (Q[3] && Q[4] && Q[5] && Q[6]) {
-    c.fillStyle = L.top.col; c.strokeStyle = OUT; c.lineWidth = 1.2;
+    c.fillStyle = L.top.col; c.strokeStyle = OUT; c.lineWidth = 1;
     c.beginPath(); c.moveTo(Q[3].X, Q[3].Y); c.lineTo(Q[4].X, Q[4].Y); c.lineTo(Q[6].X, Q[6].Y); c.lineTo(Q[5].X, Q[5].Y); c.closePath(); c.fill(); c.stroke();
     if (L.bottom.style === "skirt") { c.fillStyle = L.bottom.col; c.beginPath(); c.moveTo(Q[5].X, Q[5].Y); c.lineTo(Q[6].X, Q[6].Y); c.lineTo(lerp(Q[6].X, Q[13].X, .8), lerp(Q[6].Y, Q[13].Y, .8)); c.lineTo(lerp(Q[5].X, Q[11].X, .8), lerp(Q[5].Y, Q[11].Y, .8)); c.closePath(); c.fill(); }
-    if (L.stain) { c.fillStyle = "rgba(80,16,14,.6)"; c.beginPath(); c.arc((Q[3].X + Q[6].X) / 2, (Q[3].Y + Q[6].Y) / 2, 3.2, 0, 7); c.fill(); }
+    if (L.stain) { c.fillStyle = "rgba(80,16,14,.6)"; c.beginPath(); c.arc((Q[3].X + Q[6].X) / 2, (Q[3].Y + Q[6].Y) / 2, 3.2 * k, 0, 7); c.fill(); }
   }
   S(3, 7, 4.3, au, 14); S(7, 8, 3.7, al); S(4, 9, 4.3, au, 16); S(9, 10, 3.7, al);
   if (!on(14) && Q[7]) { stump(3); stump(7); } if (!on(16) && Q[9]) { stump(4); stump(9); }
-  for (const k of [8, 10]) if (Q[k]) { c.fillStyle = L.skin; c.beginPath(); c.arc(Q[k].X, Q[k].Y, 2.1, 0, 7); c.fill(); }
-  // head
-  if (on(0)) S(1, 0, 3.2, L.skin);
-  else stump(1);
+  for (const i of [8, 10]) if (Q[i]) { c.fillStyle = L.skin; c.beginPath(); c.arc(Q[i].X, Q[i].Y, 2.1 * k, 0, 7); c.fill(); }
+  if (on(0)) S(1, 0, 3.2, L.skin); else stump(1);
   if (Q[0]) {
     const h = Q[0];
-    c.fillStyle = OUT; c.beginPath(); c.arc(h.X, h.Y, 5.4, 0, 7); c.fill();
-    c.fillStyle = L.skin; c.beginPath(); c.arc(h.X, h.Y, 4.6, 0, 7); c.fill();
-    if (L.hair !== "bald") { c.fillStyle = L.hairCol; c.beginPath(); c.arc(h.X, h.Y, 4.7, Math.PI * .9, Math.PI * 2.05); c.fill(); }
+    c.fillStyle = OUT; c.beginPath(); c.arc(h.X, h.Y, 5.4 * k, 0, 7); c.fill();
+    c.fillStyle = L.skin; c.beginPath(); c.arc(h.X, h.Y, 4.6 * k, 0, 7); c.fill();
+    if (L.hair !== "bald") { c.fillStyle = L.hairCol; c.beginPath(); c.arc(h.X, h.Y, 4.7 * k, Math.PI * .9, Math.PI * 2.05); c.fill(); }
     if (!on(0)) stump(0);
   }
   c.lineCap = "butt"; c.lineJoin = "miter";
@@ -2683,8 +2804,11 @@ function draw(time) {
     if (o.dt === "roof") {
       const b = o, a = iso(b.x + b.w, b.y), b2 = iso(b.x + b.w + 1.1, b.y - .45), c2 = iso(b.x + b.w + 1.1, b.y + b.h - .25), d = iso(b.x + b.w, b.y + b.h);
       ctx.beginPath(); ctx.moveTo(a.X, a.Y); ctx.lineTo(b2.X, b2.Y); ctx.lineTo(c2.X, c2.Y); ctx.lineTo(d.X, d.Y); ctx.closePath(); ctx.fill();
-    } else if (o.dt === "tree") { const q = iso(o.x + .35 * o.s, o.y - .15), k = o.kind === "bush" ? .7 : 1; ctx.beginPath(); ctx.ellipse(q.X, q.Y, 22 * o.s * k, 10 * o.s * k, 0, 0, 7); ctx.fill(); }
-    else if (o.dt === "car") { const q = iso(o.x + .15, o.y - .05); ctx.beginPath(); ctx.ellipse(q.X, q.Y, o.kind === "truck" || o.kind === "amb" ? 50 : 34, o.kind === "truck" || o.kind === "amb" ? 22 : 15, 0, 0, 7); ctx.fill(); }
+    } else if (o.dt === "tree") {
+      if (o.kind === "bush") { const q = iso(o.x + .25, o.y - .1); ctx.beginPath(); ctx.ellipse(q.X, q.Y, 20 * o.s, 9 * o.s, 0, 0, 7); ctx.fill(); }
+      else { const q = iso(o.x + 1.3 * o.s, o.y - .7 * o.s); ctx.beginPath(); ctx.ellipse(q.X, q.Y, (o.kind === "pine" ? 40 : 58) * o.s, (o.kind === "pine" ? 20 : 27) * o.s, 0, 0, 7); ctx.fill(); }
+    }
+    else if (o.dt === "car") { const a = iso(o.x - o.L[0], o.y + o.L[1] + .15), b = iso(o.x + o.L[0] + .35, o.y + o.L[1]), c2 = iso(o.x + o.L[0] + .35, o.y - o.L[1] - .2), d = iso(o.x - o.L[0], o.y - o.L[1]); ctx.beginPath(); ctx.moveTo(a.X, a.Y); ctx.lineTo(b.X, b.Y); ctx.lineTo(c2.X, c2.Y); ctx.lineTo(d.X, d.Y); ctx.closePath(); ctx.fill(); }
   }
   // decals, dust, corpses
   ctx.fillStyle = PAL.blood; ctx.globalAlpha = .8;
@@ -2694,7 +2818,10 @@ function draw(time) {
   for (const rd of Wd.rags) if (rd.sleep && vis(rd.x, rd.y)) drawRagdoll(ctx, rd);
   // sortable
   const inside = Wd.mode === "play" ? Wd.inside : null;
-  const objs = visList.slice();
+  const objs = [];
+  for (const o of visList) {
+    if (o.dt === "car" || (o.dt === "furn" && Math.max(o.x1 - o.x0, o.y1 - o.y0) > .8)) sliceObj(o, objs); else objs.push(o);
+  }
   for (const z of Wd.zombies) if (vis(z.x, z.y)) objs.push({ dt: "z", key: z.x + z.y, z });
   for (const rd of Wd.rags) if (!rd.sleep && vis(rd.x, rd.y)) objs.push({ dt: "rag", key: rd.x + rd.y + .3, rd });
   if (Wd.mode === "play") objs.push({ dt: "p", key: p.x + p.y });
@@ -2706,9 +2833,13 @@ function draw(time) {
       case "roof": drawRoof(ctx, o); break;
       case "canopy": drawCanopy(ctx, o); break;
       case "furn": drawFurn(ctx, o); break;
-      case "tree": drawTree(ctx, o, time); break;
-      case "car": drawCar2(ctx, o, nf, time); break;
-      case "lamp": drawLampPost(ctx, o, nf); lights.push(o); break;
+      case "tree": {
+        const near = Wd.inside ? 4.5 : 2.8, fade = Wd.mode === "play" && o.kind !== "bush" && Math.abs(p.x - o.x) < near && Math.abs(p.y - o.y) < near && p.x + p.y < o.x + o.y + .3 ? .3 : 1;
+        drawTree2(ctx, o, time, fade); break;
+      }
+      case "car": drawCar3(ctx, o, nf, time); break;
+      case "slice": drawSlice(ctx, o, nf, time); break;
+      case "lamp": drawLamp2(ctx, o, nf); lights.push(o); break;
       case "prop": drawSP(ctx, o, nf, time); break;
       case "rag": drawRagdoll(ctx, o.rd); break;
       case "z": { const z = o.z, q = iso(z.x, z.y), look = zombieLook(z); drawPerson(ctx, q.X, q.Y, look, time); z.sf = look.sf; break; }
@@ -2718,7 +2849,7 @@ function draw(time) {
   if (Wd.mode === "play") {
     const q = iso(p.x, p.y);
     ctx.globalAlpha = .2; ctx.fillStyle = "#e0782f";
-    roundRect(ctx, q.X - 7, q.Y - 48, 14, 22, 5); ctx.fill(); ctx.beginPath(); ctx.arc(q.X, q.Y - 56, 6, 0, 7); ctx.fill();
+    roundRect(ctx, q.X - 4.5, q.Y - 30, 9, 14, 3); ctx.fill(); ctx.beginPath(); ctx.arc(q.X, q.Y - 35, 4, 0, 7); ctx.fill();
     ctx.globalAlpha = 1;
     // container hints
     const near = !p.search ? nearContainer() : null;
@@ -2733,13 +2864,13 @@ function draw(time) {
     }
     if (p.search) {
       const t = p.search.t / p.search.dur;
-      ctx.lineWidth = 4; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.arc(q.X, q.Y - 76, 10, 0, 7); ctx.stroke();
-      ctx.strokeStyle = "#f2a541"; ctx.beginPath(); ctx.arc(q.X, q.Y - 76, 10, -Math.PI / 2, -Math.PI / 2 + t * Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = 4; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.arc(q.X, q.Y - 52, 9, 0, 7); ctx.stroke();
+      ctx.strokeStyle = "#f2a541"; ctx.beginPath(); ctx.arc(q.X, q.Y - 52, 9, -Math.PI / 2, -Math.PI / 2 + t * Math.PI * 2); ctx.stroke();
     }
   }
   ctx.fillStyle = "#7e1a16";
   for (const q of Wd.parts) { const s = iso(q.x, q.y); ctx.beginPath(); ctx.arc(s.X, s.Y - q.z * 30, 1.8, 0, 7); ctx.fill(); }
-  for (const tr of Wd.tracers) { const a = P3(tr.x0, tr.y0, 36), b = P3(tr.x1, tr.y1, 32); ctx.strokeStyle = `rgba(255,228,160,${tr.t / .07 * .85})`; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(a.X, a.Y); ctx.lineTo(b.X, b.Y); ctx.stroke(); }
+  for (const tr of Wd.tracers) { const a = P3(tr.x0, tr.y0, 24), b = P3(tr.x1, tr.y1, 21); ctx.strokeStyle = `rgba(255,228,160,${tr.t / .07 * .85})`; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(a.X, a.Y); ctx.lineTo(b.X, b.Y); ctx.stroke(); }
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   const [gr, gg, gb, ga] = grade(Wd.time);
@@ -2778,7 +2909,7 @@ function draw(time) {
     for (const cp of M.canopies) if (vis(cp.x + 3, cp.y + 2)) { const s = scr(cp.x + cp.w / 2, cp.y + cp.h / 2); ellipseLight(s.x, s.y, R1 * 3.4, .9); }
     for (const fl of Wd.flies) { const s = scr(fl.x, fl.y, fl.z); ellipseLight(s.x, s.y, R1 * .25, .6); }
     if (Wd.mode === "play") {
-      const ps = scr(p.x, p.y, 14);
+      const ps = scr(p.x, p.y, 10);
       ellipseLight(ps.x, ps.y + 10 * K * sc, R1 * 1.7, .9);
       if (p.flash > 0) ellipseLight(ps.x, ps.y + 10 * K * sc, R1 * 4, 1);
       if (p.bat > 0) {
@@ -2796,9 +2927,9 @@ function draw(time) {
     ctx.globalCompositeOperation = "lighter";
     for (const o of lights) {
       if (o.dt !== "lamp" || !o.on) continue;
-      const q = iso(o.x, o.y), grd = ctx.createRadialGradient(q.X + 10, q.Y - 83, 0, q.X + 10, q.Y - 83, 28);
+      const q = iso(o.x, o.y), grd = ctx.createRadialGradient(q.X + 15, q.Y - 125, 0, q.X + 15, q.Y - 125, 34);
       grd.addColorStop(0, `rgba(255,214,140,${.6 * nf})`); grd.addColorStop(1, "rgba(255,214,140,0)");
-      ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(q.X + 10, q.Y - 83, 28, 0, 7); ctx.fill();
+      ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(q.X + 15, q.Y - 125, 34, 0, 7); ctx.fill();
     }
     for (const fl of Wd.flies) {
       const q = iso(fl.x, fl.y), a = Math.max(0, Math.sin(fl.t * 3 + fl.ph)) * Math.min(1, fl.life - fl.t) * nf;
@@ -2816,9 +2947,9 @@ function draw(time) {
       if (Math.abs(z.x - p.x) > 8 || Math.abs(z.y - p.y) > 8) continue;
       const d = Math.hypot(z.x - p.x, z.y - p.y);
       if (d > 8 || !vis(z.x, z.y)) continue;
-      const q = iso(z.x, z.y), hx = q.X + Math.cos(z.dir - Math.PI / 4) * 3, hy = q.Y - 54;
+      const q = iso(z.x, z.y), hx = q.X + Math.cos(z.dir - Math.PI / 4) * 2, hy = q.Y - 35;
       ctx.fillStyle = `rgba(230,240,190,${.7 * nf * (1 - d / 8)})`;
-      ctx.beginPath(); ctx.arc(hx - 2, hy, 1.1, 0, 7); ctx.arc(hx + 2, hy, 1.1, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(hx - 1.2, hy, .8, 0, 7); ctx.arc(hx + 1.2, hy, .8, 0, 7); ctx.fill();
     }
   }
   if (Wd.raining || Wd.rain.length) {
