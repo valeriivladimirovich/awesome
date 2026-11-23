@@ -76,7 +76,7 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
 .weapon svg { width: 15px; height: 15px; color: var(--amber); }
 .iconbtn { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; flex: none; }
 .iconbtn svg { width: 18px; height: 18px; }
-@media (max-width: 720px) { .meter { width: 38px; } .clock .kills, .weapon b { display: none; } }
+@media (max-width: 760px) { .meter { width: 34px; } .stats { gap: 9px; } .clock .kills, .weapon b { display: none; } }
 
 #toasts { position: absolute; left: 50%; transform: translateX(-50%); top: calc(var(--st) + 52px);
   display: grid; gap: 6px; justify-items: center; pointer-events: none; width: min(80vw, 420px); }
@@ -142,6 +142,16 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
 .menu button { padding: 14px; border-radius: 14px; background: rgba(255, 255, 255, .07); font-size: 16px; font-weight: 500; }
 .menu button.primary { background: var(--amber); color: #1b1408; }
 
+/* Map */
+.mappanel { width: 100%; height: 100%; max-width: 980px; grid-template-rows: auto 1fr auto; gap: 10px; padding: 12px 14px; }
+.maptools { display: flex; align-items: center; gap: 6px; }
+.maptools span { min-width: 34px; text-align: center; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mapwrap { position: relative; min-height: 0; border-radius: 14px; overflow: hidden; background: #0c0f1a; }
+#mapcv { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); }
+.legend span { display: flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
 /* Title / game over */
 .screen { position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
   padding: var(--st) var(--sr) var(--sb) var(--sl);
@@ -183,6 +193,7 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
 
   <div class="hud" id="hud" hidden>
     <button class="iconbtn glass" id="pause" aria-label="Пауза"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg></button>
+    <button class="iconbtn glass" id="mapBtn" aria-label="Карта"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg></button>
     <div class="clock glass">
       <div class="day" id="day">День 1</div>
       <div class="time"><span id="sunicon"></span><span id="time">07:00</span></div>
@@ -223,6 +234,25 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
         <button class="primary" id="resume">Продолжить</button>
         <button id="openSettings2">Настройки</button>
         <button id="toMenu">Выйти в главное меню</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="mapModal" hidden>
+    <div class="panel mappanel" role="dialog" aria-label="Карта">
+      <header><h2>Карта города</h2>
+        <div class="maptools">
+          <button class="close" id="mapOut" aria-label="Отдалить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 12h12"/></svg></button>
+          <span id="mapZoom">×1</span>
+          <button class="close" id="mapIn" aria-label="Приблизить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 12h12M12 6v12"/></svg></button>
+          <button class="close" id="mapMe" aria-label="Где я"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke-linecap="round"/></svg></button>
+          <button class="close" data-close aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+      </header>
+      <div class="mapwrap"><canvas id="mapcv" aria-label="Карта"></canvas></div>
+      <div class="legend">
+        <span><i style="background:#c9a77a"></i>Дома</span><span><i style="background:#d9584a"></i>Продукты</span><span><i style="background:#45b27a"></i>Аптека, больница</span>
+        <span><i style="background:#e0953a"></i>Хозтовары</span><span><i style="background:#4f6fc0"></i>Полиция, АЗС</span><span><i style="background:#8a8f98"></i>Склад</span><span><i style="background:#f2a541;border-radius:2px"></i>Ты</span>
       </div>
     </div>
   </div>
@@ -270,11 +300,14 @@ const vnoise = (x, y) => {
 };
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 function shade(hex, a) {
-  const n = parseInt(hex.slice(1), 16), r = n >> 16, gg = n >> 8 & 255, b = n & 255;
+  let r, gg, b;
+  if (hex[0] === "#") { const n = parseInt(hex.slice(1), 16); r = n >> 16; gg = n >> 8 & 255; b = n & 255; }
+  else { const m = hex.match(/\d+/g); r = +m[0]; gg = +m[1]; b = +m[2]; }
   const f = v => clamp(Math.round(a < 0 ? v * (1 + a) : v + (255 - v) * a), 0, 255);
   return `rgb(${f(r)},${f(gg)},${f(b)})`;
 }
 const angDiff = (a, b) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; };
+
 
 // ================= settings =================
 const DEF = { sound: true, volume: 70, difficulty: "normal", dayLen: 6, weather: "random", zoom: "mid", quality: "high", lefty: false };
@@ -287,37 +320,47 @@ const DIFF = {
 const ZOOM = { near: 1.25, mid: 1, far: .8 };
 const diff = () => DIFF[settings.difficulty] || DIFF.normal;
 
+
 // ================= constants =================
-const TW = 64, TH = 32, HW = 32, HH = 16, WALL = 70, N = 34;
-const ROADS = [6, 7, 17, 18, 28, 29];
-const isRoad = i => ROADS.includes(i);
+const TW = 64, TH = 32, HW = 32, HH = 16, WALL = 70, N = 100, CH = 8, NC = Math.ceil(N / CH), CELL = 4, NG = Math.ceil(N / CELL);
+const ROADS = [6, 22, 38, 54, 70, 86], BLOCKS = [9, 25, 41, 57, 73];
+const roadI = new Uint8Array(N); for (const r of ROADS) { roadI[r] = 1; roadI[r + 1] = 1; }
+const GR = 0, RD = 1, WK = 2, DT = 3, WD = 4, TL = 5, CN = 6, LT = 7, WA = 8, FO = 9, SA = 10;
+const START = { x: 46.5, y: 38.5 };
 const iso = (x, y) => ({ X: (x - y) * HW, Y: (x + y) * HH });
 const P3 = (x, y, z) => ({ X: (x - y) * HW, Y: (x + y) * HH - z });
+const DIRS8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
 
 const PAL = {
-  grassA: [104, 136, 72], grassB: [128, 150, 82],
+  grassA: [104, 136, 72], grassB: [128, 150, 82], forestA: [74, 104, 60], forestB: [92, 118, 66],
   tuft: "#56763a", tuft2: "#8aa862",
   road: "#3c414d", mark: "#d3c78f",
   walk: ["#a29c8f", "#9c9689", "#a7a194"], walkLine: "rgba(70,64,55,.35)", curb: "#c8c2b3",
-  dirt: ["#8b7454", "#86714f", "#917a59"],
+  dirt: ["#8b7454", "#86714f", "#917a59"], sand: ["#d8c79a", "#cfbd8f"],
   walls: [["#dccaa8", "#b4a385"], ["#a9bec2", "#879ca1"], ["#cf9670", "#a87553"], ["#ddd6c8", "#b6afa1"], ["#b9c49b", "#949f78"], ["#c7b8d0", "#a294ab"]],
+  inWalls: ["#e8dcc4", "#d6e0dc", "#e6d3cf", "#dfe6d0", "#ece6da", "#d9d4e6"],
   roofs: ["#6a3f36", "#3e5563", "#77503b", "#4b4c57", "#5d5d3c", "#7d4a3a"],
+  woodFloors: [["#9a7250", "#8a6546"], ["#b08a62", "#9f7b55"], ["#7d5a40", "#6f4f38"]],
+  tileFloors: [["#d9d6cc", "#c6c2b6"], ["#cfd8da", "#b9c5c8"], ["#e2dccd", "#cdc5b2"]],
   shutters: ["#3f5b4a", "#5b3b33", "#34495e", "#6b5a3a"],
   glass: "#2a3442", lit: "#ffd68a", door: "#4d3527",
-  cars: ["#8e3d34", "#3b5b7a", "#c8b17d", "#4f5f4a", "#cfcfcb", "#6b4a6e"],
+  cars: ["#8e3d34", "#3b5b7a", "#c8b17d", "#4f5f4a", "#cfcfcb", "#6b4a6e", "#2f3238"],
   leaves: [["#3c6733", "#4f7f3f", "#6a9853"], ["#466b30", "#5b843d", "#7ba457"], ["#355d3b", "#467350", "#5f9064"]],
   pine: ["#2f4f35", "#3b6042", "#4b7550"],
   trunk: "#5a4332",
   skinZ: ["#9aab89", "#8c9f82", "#a7b097", "#97a58f", "#a59f8a"],
   shirtZ: ["#6b6f5a", "#7b5a54", "#4f5d6e", "#8a7d64", "#5e4f63", "#6e6a72", "#7d6a4a", "#8c8c86"],
   pantsZ: ["#3b3f4a", "#4a4038", "#2f3a35", "#45424d", "#53493c"],
-  blood: "#6e1916"
+  blood: "#6e1916",
+  rugs: ["#8c3f3a", "#3f5a7a", "#6b7d4a", "#8a6a3a", "#5e4a6e"],
+  blankets: ["#4f6d8f", "#8f4f4f", "#5f7f5a", "#b08a4a", "#6a5a8a"]
 };
 
 const ICON = {
   food: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="6" y="5" width="12" height="15" rx="2"/><path d="M6 9.5h12M6 15.5h12"/></svg>',
   water: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M10 2.5h4v3l2.5 3.5v11a1.5 1.5 0 0 1-1.5 1.5H9A1.5 1.5 0 0 1 7.5 20V9L10 5.5z"/><path d="M7.5 13h9"/></svg>',
   bandage: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2.5" y="8" width="19" height="8" rx="4" transform="rotate(-40 12 12)"/><path d="M10.5 11.5h.01M13.5 12.5h.01M12 10h.01M12 14h.01" stroke-linecap="round" stroke-width="2.6"/></svg>',
+  medkit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2M12 10.5v6M9 13.5h6"/></svg>',
   battery: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="3" y="7" width="16" height="10" rx="2"/><path d="M21.5 10.5v3M7 10v4M10.5 10v4"/></svg>',
   bat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l2.5-.5L19.5 6.5a2.1 2.1 0 0 0-3-3L3.5 16.5z"/></svg>',
   axe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20L14.5 9.5"/><path d="M12 5.5c3-1.5 6.5 1.5 6.5 6.5l-2.5.5-5-5z"/></svg>',
@@ -332,26 +375,81 @@ const ITEMS = {
   food: { name: "Консервы", desc: "+35 сытости", c: "var(--amber)" },
   water: { name: "Вода", desc: "+40 воды", c: "var(--water)" },
   bandage: { name: "Бинт", desc: "+30 здоровья", c: "var(--blood)" },
+  medkit: { name: "Аптечка", desc: "+60 здоровья", c: "var(--blood)" },
   battery: { name: "Батарейка", desc: "Фонарик на 100%", c: "var(--volt)" }
 };
+const ITEM_GEN = { food: "консервы", water: "вода", bandage: "бинт", medkit: "аптечка", battery: "батарейка" };
 const WEAPONS = {
   fists: { name: "Кулаки", dmg: 1, range: 1.05, cd: .42, rank: 0 },
   bat: { name: "Бита", dmg: 2, range: 1.35, cd: .5, rank: 1 },
   axe: { name: "Топор", dmg: 3.2, range: 1.4, cd: .6, rank: 2 }
 };
-const LOOT = [["food", 30], ["water", 28], ["bandage", 14], ["battery", 12], ["bat", 8], ["axe", 5]];
-const rollLoot = (min, max) => {
-  const out = [], tot = LOOT.reduce((a, b) => a + b[1], 0);
-  for (let n = ri(min, max); n > 0; n--) { let r = Math.random() * tot; for (const [k, w] of LOOT) { r -= w; if (r <= 0) { out.push(k); break; } } }
+const LOOTS = {
+  fridge: [["food", 5], ["water", 5]],
+  counter: [["food", 4], ["water", 3], ["battery", 1]],
+  wardrobe: [["bandage", 2], ["battery", 2], ["food", 1], ["bat", .6]],
+  cabinet: [["bandage", 5], ["medkit", 1.5]],
+  desk: [["battery", 4], ["bandage", 1], ["food", 1]],
+  crate: [["food", 2], ["water", 2], ["battery", 2], ["bat", 1], ["axe", .6]],
+  workbench: [["bat", 3], ["axe", 2], ["battery", 2]],
+  locker: [["bat", 2], ["battery", 3], ["bandage", 2], ["axe", 1]],
+  shop: [["food", 6], ["water", 5]],
+  pharm: [["bandage", 5], ["medkit", 2]],
+  hard: [["battery", 4], ["bat", 2], ["axe", 1.5]],
+  cafe: [["food", 5], ["water", 4]]
+};
+function rollFrom(key, min, max) {
+  const t = LOOTS[key] || LOOTS.crate, tot = t.reduce((a, b) => a + b[1], 0), out = [];
+  for (let n = ri(min, max); n > 0; n--) { let r = Math.random() * tot; for (const [k, w] of t) { r -= w; if (r <= 0) { out.push(k); break; } } }
   return out;
+}
+// furniture: size (tiles), height, colour, container name, loot table
+const FD = {
+  bed: { w: 1.1, h: 2, z: 12, col: "#6a4b38" },
+  hbed: { w: 1, h: 2, z: 14, col: "#b8bcc4" },
+  sofa: { w: 2, h: .8, z: 18, col: "#5b6b8a" },
+  tv: { w: 1.1, h: .45, z: 24, col: "#4a3a2e" },
+  table: { w: 1, h: 1, z: 14, col: "#8a6040", center: 1 },
+  ctable: { w: .8, h: .8, z: 14, col: "#6e4a32", center: 1 },
+  wardrobe: { w: 1.2, h: .6, z: 46, col: "#7a5638", cont: "Шкаф", loot: "wardrobe" },
+  fridge: { w: .8, h: .75, z: 46, col: "#e3e3df", cont: "Холодильник", loot: "fridge" },
+  counter: { w: 1.2, h: .65, z: 18, col: "#cfc6b4", cont: "Кухонный шкаф", loot: "counter" },
+  stove: { w: .8, h: .65, z: 18, col: "#d8d8d4" },
+  bath: { w: 1.7, h: .85, z: 12, col: "#efefea" },
+  toilet: { w: .5, h: .6, z: 14, col: "#efefea" },
+  cabinet: { w: .9, h: .4, z: 30, col: "#e6e2d8", cont: "Шкафчик", loot: "cabinet" },
+  desk: { w: 1.3, h: .65, z: 16, col: "#7d5a3c", cont: "Стол", loot: "desk" },
+  bookshelf: { w: 1.2, h: .4, z: 44, col: "#6d4c33" },
+  plant: { w: .45, h: .45, z: 24, col: "#9a6040" },
+  shelf: { w: 2.2, h: .65, z: 30, col: "#8e959e", cont: "Полка", loot: "shop" },
+  checkout: { w: 1.6, h: .7, z: 18, col: "#b8b0a0", cont: "Касса", loot: "counter" },
+  crate: { w: .9, h: .9, z: 22, col: "#9a7a4c", cont: "Ящик", loot: "crate" },
+  workbench: { w: 1.8, h: .7, z: 18, col: "#7a5a3c", cont: "Верстак", loot: "workbench" },
+  locker: { w: 1.2, h: .5, z: 46, col: "#5e6b78", cont: "Шкафчик", loot: "locker" }
+};
+const ROOMSETS = {
+  living: ["sofa", "tv", "bookshelf", "plant", "table"],
+  livkit: ["sofa", "tv", "fridge", "counter", "stove", "plant"],
+  kitchen: ["fridge", "counter", "stove", "counter", "table"],
+  bedroom: ["bed", "wardrobe", "desk", "plant"],
+  bath: ["bath", "toilet", "cabinet"],
+  studio: ["bed", "fridge", "counter", "wardrobe", "sofa"]
+};
+// street props: footprint half-size and whether it blocks
+const SP = {
+  bin: [.2, .2, 1], hydrant: [.15, .15, 1], bench: [.7, .22, 1], busstop: [1, .3, 1], newsbox: [.2, .2, 1], stopsign: [.08, .08, 1],
+  barrier: [.8, .12, 1], barrel: [.25, .25, 1], tires: [.28, .28, 1], dumpster: [.7, .4, 1], bbq: [.2, .2, 1], chair: [.2, .2, 0],
+  bike: [.45, .12, 0], trashbags: [.3, .3, 0], slide: [.8, .3, 1], swings: [1, .15, 0], picnic: [.7, .5, 1], pump: [.3, .2, 1],
+  post: [.1, .1, 1], pricesign: [.1, .1, 1], fountain: [1, 1, 1], crateout: [.42, .42, 1], pallet: [.45, .45, 0], cone: [.12, .12, 0],
+  planter: [.5, .25, 1], mailbox: [.1, .1, 1], swingpost: [.08, .08, 1]
 };
 
 // ================= canvas & sizing =================
 const game = $("#game"), cv = $("#cv"), ctx = cv.getContext("2d");
-const gc = document.createElement("canvas"), g = gc.getContext("2d");
 const lc = document.createElement("canvas"), l = lc.getContext("2d");
-let W = 0, H = 0, dpr = 1, S = 1, K = 1, groundScale = 1;
-let world = null, paused = false, allowPortrait = false;
+let W = 0, H = 0, dpr = 1, S = 1, K = 1, gs = 1;
+let world = null, paused = false, allowPortrait = false, frameNo = 0;
+const chunkCache = new Map();
 
 function resize() {
   W = game.clientWidth; H = game.clientHeight;
@@ -360,7 +458,8 @@ function resize() {
   S = clamp(Math.min(W / (TW * 8), H / (TH * 9.5)), .7, 1.6) * (ZOOM[settings.zoom] || 1);
   K = S * dpr;
   lc.width = Math.ceil(cv.width / 2); lc.height = Math.ceil(cv.height / 2);
-  if (world) renderGround();
+  const ngs = Math.min(K, settings.quality === "high" ? 2 : 1.25);
+  if (Math.abs(ngs - gs) > .01) { gs = ngs; chunkCache.clear(); }
   checkOrientation();
 }
 
@@ -404,268 +503,696 @@ function thud(vol = .25, freq = 700) {
 const groan = () => tone(rand(70, 95), .9, "sawtooth", .025, .7);
 const footstep = () => thud(.05, 380);
 
-// ================= map =================
+
+// ================= map generation =================
 function genMap() {
-  const ground = Array.from({ length: N }, () => new Uint8Array(N)); // 0 grass 1 road 2 walk 3 dirt
-  const solid = Array.from({ length: N }, () => new Uint8Array(N));  // 1 house 2 tree/bush 3 car 4 prop
-  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (isRoad(i) || isRoad(j)) ground[i][j] = 1;
-  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-    if (ground[i][j]) continue;
-    for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) {
-      const x = i + a, y = j + b;
-      if (x >= 0 && y >= 0 && x < N && y < N && ground[x][y] === 1) ground[i][j] = 2;
-    }
-  }
-  const houses = [], trees = [], cars = [], lamps = [], props = [];
-  const free = (i, j) => i >= 0 && j >= 0 && i < N && j < N && !solid[i][j];
-  const addTree = (i, j, kind) => {
-    if (!free(i, j) || ground[i][j] === 1 || ground[i][j] === 2) return;
-    solid[i][j] = 2;
-    const k = kind || (Math.random() < .25 ? "pine" : Math.random() < .3 ? "bush" : "tree");
-    trees.push({ x: i + .5 + rand(-.08, .08), y: j + .5 + rand(-.08, .08), s: k === "bush" ? rand(.75, .95) : rand(.85, 1.2), kind: k, p: pick(PAL.leaves), ph: Math.random() * 6 });
+  const M = {
+    ground: new Uint8Array(N * N), bld: new Int16Array(N * N).fill(-1), nav: new Uint8Array(N * N),
+    vW: new Uint8Array((N + 1) * N), hW: new Uint8Array(N * (N + 1)),
+    boxes: [], grid: Array.from({ length: NG * NG }, () => []),
+    buildings: [], furn: [], trees: [], cars: [], lamps: [], props: [], decor: [], walls: [], canopies: [], parks: [],
+    chunks: Array.from({ length: NC * NC }, () => [])
   };
-  let id = 0;
-  for (const bx of [9, 20]) for (const by of [9, 20]) {
-    const quads = shuffle([[bx, by], [bx + 4, by], [bx, by + 4], [bx + 4, by + 4]]);
-    const nh = ri(2, 3);
-    quads.forEach(([qx, qy], k) => {
-      if (k < nh) {
-        const w = ri(2, 3), h = ri(2, 3), x = qx + ri(0, 3 - w), y = qy + ri(0, 3 - h);
-        for (let i = x; i < x + w; i++) for (let j = y; j < y + h; j++) solid[i][j] = 1;
-        const style = ri(0, PAL.walls.length - 1), dx = x + Math.floor(w / 2);
-        houses.push({
-          id: id++, x, y, w, h, wall: PAL.walls[style], roof: PAL.roofs[ri(0, PAL.roofs.length - 1)],
-          shutters: Math.random() < .55 ? pick(PAL.shutters) : null,
-          ridgeX: w > h || (w === h && Math.random() < .5), rh: 24 + Math.min(w, h) * 7,
-          doorTile: dx, door: { x: dx + .5, y: y + h + .35 },
-          looted: false, loot: rollLoot(2, 4),
-          lit: Array.from({ length: w + h }, () => Math.random() < .2)
-        });
-        if (ground[dx][y + h] === 0) ground[dx][y + h] = 3;
-        if (Math.random() < .5 && dx + 1 < N && ground[dx + 1][y + h] === 0 && free(dx + 1, y + h)) props.push({ x: dx + 1.25, y: y + h + .45, kind: "mailbox" });
-      } else if (Math.random() < .55) {
-        for (let n = ri(2, 4); n > 0; n--) addTree(qx + ri(0, 2), qy + ri(0, 2));
-      } else {
-        for (let i = qx; i < qx + 3; i++) for (let j = qy; j < qy + 3; j++) if (Math.random() < .7) ground[i][j] = 3;
-        addTree(qx + ri(0, 2), qy + ri(0, 2), "bush");
-        addTree(qx + ri(0, 2), qy + ri(0, 2));
-      }
+  const T = (i, j) => j * N + i;
+  const inb = (i, j) => i >= 0 && j >= 0 && i < N && j < N;
+  const occ = new Uint8Array(N * N);
+  const clear = new Set();
+  const setH = (i, j, c, force) => { if (i < 0 || i >= N || j < 0 || j > N) return; const k = j * N + i; if (force || !M.hW[k]) M.hW[k] = c; };
+  const setV = (i, j, c, force) => { if (i < 0 || i > N || j < 0 || j >= N) return; const k = j * (N + 1) + i; if (force || !M.vW[k]) M.vW[k] = c; };
+  const addBox = (x0, y0, x1, y1, ref) => {
+    const b = { x0, y0, x1, y1, ref, st: 0 };
+    M.boxes.push(b);
+    for (let gy = Math.max(0, Math.floor(y0 / CELL)); gy <= Math.min(NG - 1, Math.floor(y1 / CELL)); gy++)
+      for (let gx = Math.max(0, Math.floor(x0 / CELL)); gx <= Math.min(NG - 1, Math.floor(x1 / CELL)); gx++) M.grid[gy * NG + gx].push(b);
+    return b;
+  };
+  const navBox = (x0, y0, x1, y1) => {
+    for (let j = Math.floor(y0); j < Math.ceil(y1); j++) for (let i = Math.floor(x0); i < Math.ceil(x1); i++) {
+      if (!inb(i, j)) continue;
+      const a = Math.max(0, Math.min(x1, i + 1) - Math.max(x0, i)) * Math.max(0, Math.min(y1, j + 1) - Math.max(y0, j));
+      if (a > .4) M.nav[T(i, j)] = 1;
+    }
+  };
+  const reg = (o, x, y) => { o.ax = x; o.ay = y; M.chunks[clamp(Math.floor(y / CH), 0, NC - 1) * NC + clamp(Math.floor(x / CH), 0, NC - 1)].push(o); };
+  const regRect = (o, x0, y0, x1, y1) => {
+    for (let cy = Math.max(0, Math.floor(y0 / CH)); cy <= Math.min(NC - 1, Math.floor(y1 / CH)); cy++)
+      for (let cx = Math.max(0, Math.floor(x0 / CH)); cx <= Math.min(NC - 1, Math.floor(x1 / CH)); cx++) M.chunks[cy * NC + cx].push(o);
+  };
+  const isFree = (i, j) => inb(i, j) && !occ[T(i, j)];
+
+  // ---- terrain
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) if (roadI[i] || roadI[j]) M.ground[T(i, j)] = RD;
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    if (M.ground[T(i, j)]) continue;
+    let nearRoad = false;
+    for (const [a, b] of DIRS8) if (inb(i + a, j + b) && M.ground[T(i + a, j + b)] === RD) nearRoad = true;
+    if (nearRoad) M.ground[T(i, j)] = WK;
+    else if (i < 5 || j < 5 || i > 88 || j > 88) M.ground[T(i, j)] = FO;
+  }
+
+  // ---- objects
+  function addTree(x, y, kind, s) {
+    const i = Math.floor(x), j = Math.floor(y);
+    if (!inb(i, j) || occ[T(i, j)]) return;
+    occ[T(i, j)] = 1;
+    const k = kind || (Math.random() < .25 ? "pine" : Math.random() < .3 ? "bush" : "tree");
+    const t = { dt: "tree", x, y, s: s || (k === "bush" ? rand(.75, .95) : rand(.85, 1.2)), kind: k, p: pick(PAL.leaves), ph: Math.random() * 6 };
+    M.trees.push(t); t.key = x + y;
+    const r = k === "bush" ? .32 : .18;
+    addBox(x - r, y - r, x + r, y + r, null);
+    M.nav[T(i, j)] = 1;
+    reg(t, x, y);
+  }
+  function addCar(x, y, alongY, kind = "car") {
+    const big = kind === "truck" || kind === "amb";
+    const L = alongY ? [big ? .4 : .32, big ? .95 : .45] : [big ? .95 : .45, big ? .4 : .32];
+    const car = { dt: "car", x, y, alongY, kind, c: pick(PAL.cars), wreck: kind === "car" && Math.random() < .3, key: x + y, L, ph: Math.random() * 6 };
+    M.cars.push(car);
+    addBox(x - L[0], y - L[1], x + L[0], y + L[1], null);
+    navBox(x - L[0], y - L[1], x + L[0], y + L[1]);
+    for (let j = Math.floor(y - L[1]); j < Math.ceil(y + L[1]); j++) for (let i = Math.floor(x - L[0]); i < Math.ceil(x + L[0]); i++) if (inb(i, j)) occ[T(i, j)] = 1;
+    reg(car, x, y);
+    return car;
+  }
+  function addLamp(x, y) {
+    const L = { dt: "lamp", x, y, on: Math.random() < .72, ph: Math.random() * 10, key: x + y };
+    M.lamps.push(L); addBox(x - .08, y - .08, x + .08, y + .08, null); occ[T(Math.floor(x), Math.floor(y))] = 1; reg(L, x, y);
+  }
+  function addProp(kind, x, y, opts = {}) {
+    const d = SP[kind]; let [hx, hy, solid] = d;
+    if (opts.rot) [hx, hy] = [hy, hx];
+    const o = Object.assign({ dt: "prop", kind, x, y, hx, hy, key: x + y, var: Math.random() }, opts);
+    M.props.push(o);
+    if (solid) addBox(x - hx, y - hy, x + hx, y + hy, null);
+    if (solid && hx * hy > .1) navBox(x - hx, y - hy, x + hx, y + hy);
+    const i = Math.floor(x), j = Math.floor(y); if (inb(i, j)) occ[T(i, j)] = 1;
+    reg(o, x, y);
+    return o;
+  }
+
+  // ---- buildings
+  const BT = {
+    house: { floor: WD, roof: "gable" }, shed: { floor: CN, roof: "gable", name: "Сарай" },
+    shop: { floor: TL, roof: "flat", name: "Продукты", sign: "#c8473a" }, pharm: { floor: TL, roof: "flat", name: "Аптека", sign: "#3c9a5f" },
+    hard: { floor: CN, roof: "flat", name: "Хозтовары", sign: "#d08a2c" }, cafe: { floor: WD, roof: "flat", name: "Кафе", sign: "#8a5a9e" },
+    gasshop: { floor: TL, roof: "flat", name: "АЗС", sign: "#2f6fb0" }, ware: { floor: CN, roof: "flat", name: "Склад", sign: "#6b6f78" },
+    police: { floor: TL, roof: "flat", name: "Полиция", sign: "#2b4a8a" }, clinic: { floor: TL, roof: "flat", name: "Больница", sign: "#c23b3b" }
+  };
+  function building(x, y, w, h, type, doors, opts = {}) {
+    const d = BT[type], id = M.buildings.length, com = d.roof === "flat";
+    const b = {
+      dt: "roof", id, x, y, w, h, type, name: d.name || null, sign: d.sign || null,
+      wallC: com ? pick([["#cfc6b8", "#aca394"], ["#b9bfc6", "#969da5"], ["#d8cdb5", "#b3a88f"], ["#c4b29c", "#a08e78"]]) : pick(PAL.walls),
+      inC: pick(PAL.inWalls), roofC: com ? pick(["#5a5c60", "#4e5156", "#62625c"]) : pick(PAL.roofs), roofType: d.roof,
+      ridgeX: w >= h, rh: Math.min(56, 22 + Math.min(w, h) * 5),
+      floorC: d.floor === WD ? pick(PAL.woodFloors) : d.floor === TL ? pick(PAL.tileFloors) : ["#8f8d88", "#86847f"],
+      roofA: 1, conts: 0, searched: 0, lit: Math.random() < .35, shutters: !com && Math.random() < .55 ? pick(PAL.shutters) : null,
+      ac: com ? [[rand(.2, .5), rand(.2, .6)], [rand(.5, .8), rand(.3, .7)]] : null, key: x + w + y + h - .02
+    };
+    M.buildings.push(b);
+    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) { M.ground[T(i, j)] = d.floor; M.bld[T(i, j)] = id; occ[T(i, j)] = 1; }
+    const win = opts.win ?? .45;
+    for (let i = x; i < x + w; i++) { setH(i, y, Math.random() < win ? 2 : 1, true); setH(i, y + h, Math.random() < win ? 2 : 1, true); }
+    for (let j = y; j < y + h; j++) { setV(x, j, Math.random() < win ? 2 : 1, true); setV(x + w, j, Math.random() < win ? 2 : 1, true); }
+    if (opts.front === "S") for (let i = x; i < x + w; i++) setH(i, y + h, 2, true);
+    for (const [side, at] of doors) {
+      if (side === "S") setH(at, y + h, 4, true); else if (side === "N") setH(at, y, 4, true);
+      else if (side === "E") setV(x + w, at, 4, true); else setV(x, at, 4, true);
+      const [oi, oj] = side === "S" ? [at, y + h] : side === "N" ? [at, y - 1] : side === "E" ? [x + w, at] : [x - 1, at];
+      if (inb(oi, oj)) { if (M.ground[T(oi, oj)] === GR) M.ground[T(oi, oj)] = DT; occ[T(oi, oj)] = 1; }
+    }
+    b.cx = x + w / 2; b.cy = y + h / 2;
+    regRect(b, x - 1, y - 1, x + w + 1, y + h + 1);
+    b.ax = b.cx; b.ay = b.cy;
+    return b;
+  }
+  function splitRooms(b, depth) {
+    const rooms = [{ x: b.x, y: b.y, w: b.w, h: b.h }];
+    for (let d = 0; d < depth; d++) {
+      rooms.sort((a, c) => c.w * c.h - a.w * a.h);
+      const r = rooms[0];
+      if (r.w >= 6 && r.w >= r.h) {
+        const k = r.x + ri(3, r.w - 3), dj = r.y + ri(0, r.h - 1);
+        for (let j = r.y; j < r.y + r.h; j++) setV(k, j, j === dj ? 4 : 1, true);
+        rooms.splice(0, 1, { x: r.x, y: r.y, w: k - r.x, h: r.h }, { x: k, y: r.y, w: r.x + r.w - k, h: r.h });
+      } else if (r.h >= 6) {
+        const k = r.y + ri(3, r.h - 3), di = r.x + ri(0, r.w - 1);
+        for (let i = r.x; i < r.x + r.w; i++) setH(i, k, i === di ? 4 : 1, true);
+        rooms.splice(0, 1, { x: r.x, y: r.y, w: r.w, h: k - r.y }, { x: r.x, y: k, w: r.w, h: r.y + r.h - k });
+      } else break;
+    }
+    return rooms;
+  }
+  function prepClear(b) {
+    for (let j = b.y; j <= b.y + b.h; j++) for (let i = b.x; i < b.x + b.w; i++) if (M.hW[j * N + i] === 4) { clear.add(T(i, j)); clear.add(T(i, j - 1)); }
+    for (let j = b.y; j < b.y + b.h; j++) for (let i = b.x; i <= b.x + b.w; i++) if (M.vW[j * (N + 1) + i] === 4) { clear.add(T(i, j)); clear.add(T(i - 1, j)); }
+  }
+  function canPlace(b, x0, y0, x1, y1) {
+    if (x0 < b.x || y0 < b.y || x1 > b.x + b.w || y1 > b.y + b.h) return false;
+    for (const f of b.furn || []) if (x0 < f.x1 + .18 && x1 > f.x0 - .18 && y0 < f.y1 + .18 && y1 > f.y0 - .18) return false;
+    for (let j = Math.floor(y0); j < Math.ceil(y1 - 1e-6); j++) for (let i = Math.floor(x0); i < Math.ceil(x1 - 1e-6); i++) if (clear.has(T(i, j))) return false;
+    return true;
+  }
+  function addFurn(b, kind, x0, y0, x1, y1, side, loot) {
+    const def = FD[kind];
+    const f = { dt: "furn", kind, def, x0, y0, x1, y1, side, b, key: (x0 + x1) / 2 + (y0 + y1) / 2, blanket: pick(PAL.blankets), var: Math.random() };
+    if (def.cont) { f.cont = { name: def.cont, loot: rollFrom(loot || def.loot, kind === "shelf" ? 1 : 0, kind === "shelf" ? 3 : 2), searched: false }; b.conts++; }
+    (b.furn = b.furn || []).push(f);
+    M.furn.push(f);
+    addBox(x0, y0, x1, y1, f);
+    navBox(x0, y0, x1, y1);
+    reg(f, (x0 + x1) / 2, (y0 + y1) / 2);
+    return f;
+  }
+  function tryPlace(b, room, kind, opts = {}) {
+    const def = FD[kind];
+    for (let t = 0; t < 40; t++) {
+      let side = opts.side || (def.center ? "C" : pick(["N", "N", "W", "W", "S", "E"]));
+      let w = def.w, h = def.h;
+      if (side === "W" || side === "E") [w, h] = [h, w];
+      if (side === "C" && Math.random() < .5) [w, h] = [h, w];
+      const m = .08, fw = room.w - w - 2 * m, fh = room.h - h - 2 * m;
+      if (fw < 0 || fh < 0) continue;
+      let x0, y0;
+      if (side === "N") { y0 = room.y + m; x0 = room.x + m + Math.random() * fw; }
+      else if (side === "S") { y0 = room.y + room.h - h - m; x0 = room.x + m + Math.random() * fw; }
+      else if (side === "W") { x0 = room.x + m; y0 = room.y + m + Math.random() * fh; }
+      else if (side === "E") { x0 = room.x + room.w - w - m; y0 = room.y + m + Math.random() * fh; }
+      else { x0 = room.x + m + fw * rand(.25, .75); y0 = room.y + m + fh * rand(.25, .75); }
+      if (canPlace(b, x0, y0, x0 + w, y0 + h)) return addFurn(b, kind, x0, y0, x0 + w, y0 + h, side, opts.loot);
+    }
+    return null;
+  }
+  function rug(r) { if (r.w >= 3 && r.h >= 3) M.decor.push({ t: "rug", x0: r.x + .9, y0: r.y + .9, x1: r.x + r.w - .9, y1: r.y + r.h - .9, col: pick(PAL.rugs) }); }
+  function furnishHouse(b) {
+    const rooms = splitRooms(b, b.w * b.h >= 24 ? 2 : 1); prepClear(b);
+    rooms.sort((a, c) => c.w * c.h - a.w * a.h);
+    const sets = rooms.length === 1 ? ["studio"] : rooms.length === 2 ? ["livkit", "bedroom"] : ["living", "kitchen", "bedroom", "bath"];
+    rooms.forEach((r, k) => {
+      const name = sets[Math.min(k, sets.length - 1)];
+      if (name.startsWith("liv")) rug(r);
+      for (const f of ROOMSETS[name]) tryPlace(b, r, f);
     });
   }
-  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-    const edge = i === 0 || j === 0 || i === N - 1 || j === N - 1;
-    const outer = i < 5 || j < 5 || i > 30 || j > 30;
-    if (edge) {
-      if (!solid[i][j]) { solid[i][j] = 2; trees.push({ x: i + .5, y: j + .5, s: 1.15, kind: Math.random() < .5 ? "pine" : "tree", p: pick(PAL.leaves), ph: Math.random() * 6 }); }
-    } else if (outer && Math.random() < .32) addTree(i, j, Math.random() < .45 ? "pine" : null);
+  function shelfRows(b, loot, step = 3) {
+    for (let yy = b.y + 1.5; yy + .65 <= b.y + b.h - 1.2; yy += 1.75)
+      for (let xx = b.x + 1; xx + 2.2 <= b.x + b.w - .6; xx += step)
+        if (canPlace(b, xx, yy, xx + 2.2, yy + .65)) addFurn(b, "shelf", xx, yy, xx + 2.2, yy + .65, "C", loot);
   }
-  let tries = 0;
-  while (cars.length < 10 && tries++ < 400) {
-    const i = ri(1, N - 2), j = ri(1, N - 2);
-    if (ground[i][j] !== 1 || solid[i][j] || (isRoad(i) && isRoad(j))) continue;
-    if (Math.abs(i - 12) + Math.abs(j - 17) < 5) continue;
-    const alongY = isRoad(i);
-    const lane = alongY ? (ROADS.indexOf(i) % 2) : (ROADS.indexOf(j) % 2);
-    if (lane === 1) continue;
-    solid[i][j] = 3;
-    cars.push({ x: i + .5, y: j + .5, alongY, c: pick(PAL.cars), wreck: Math.random() < .35 });
+  function furnishCom(b) {
+    const room = { x: b.x, y: b.y, w: b.w, h: b.h };
+    if (b.type === "police" || b.type === "clinic") {
+      const rooms = splitRooms(b, 2); prepClear(b);
+      rooms.sort((a, c) => c.w * c.h - a.w * a.h);
+      rooms.forEach((r, k) => {
+        if (b.type === "police") {
+          if (k === 0) { tryPlace(b, r, "locker", { side: "N" }); tryPlace(b, r, "locker", { side: "N" }); tryPlace(b, r, "desk", { side: "W" }); tryPlace(b, r, "desk"); tryPlace(b, r, "plant"); }
+          else { tryPlace(b, r, "desk"); tryPlace(b, r, "bookshelf"); tryPlace(b, r, "crate"); tryPlace(b, r, "locker"); }
+        } else {
+          if (k < 2) { tryPlace(b, r, "hbed", { side: "N" }); tryPlace(b, r, "hbed", { side: "N" }); tryPlace(b, r, "cabinet", { side: "W", loot: "pharm" }); tryPlace(b, r, "plant"); }
+          else { tryPlace(b, r, "desk"); tryPlace(b, r, "cabinet", { loot: "pharm" }); tryPlace(b, r, "cabinet", { loot: "pharm" }); }
+        }
+      });
+      return;
+    }
+    prepClear(b);
+    if (b.type === "shop" || b.type === "gasshop") {
+      tryPlace(b, room, "fridge", { side: "N" }); tryPlace(b, room, "fridge", { side: "N" }); tryPlace(b, room, "fridge", { side: "N" });
+      shelfRows(b, "shop"); tryPlace(b, room, "checkout", { side: "S", loot: "counter" });
+    } else if (b.type === "hard") {
+      tryPlace(b, room, "workbench", { side: "N" }); shelfRows(b, "hard"); tryPlace(b, room, "crate", { side: "N" }); tryPlace(b, room, "crate", { side: "E" });
+    } else if (b.type === "pharm") {
+      tryPlace(b, room, "cabinet", { side: "N", loot: "pharm" }); tryPlace(b, room, "cabinet", { side: "N", loot: "pharm" }); tryPlace(b, room, "cabinet", { side: "W", loot: "pharm" });
+      shelfRows(b, "pharm", 3.2); tryPlace(b, room, "checkout", { side: "S", loot: "pharm" });
+    } else if (b.type === "cafe") {
+      tryPlace(b, room, "counter", { side: "N", loot: "cafe" }); tryPlace(b, room, "counter", { side: "N", loot: "cafe" }); tryPlace(b, room, "fridge", { side: "N" });
+      for (let k = 0; k < 5; k++) tryPlace(b, room, "ctable");
+      tryPlace(b, room, "plant");
+    } else if (b.type === "ware") {
+      shelfRows(b, "crate", 3.4);
+      for (let k = 0; k < 8; k++) tryPlace(b, room, "crate", { side: pick(["N", "W", "E", "S"]) });
+    } else if (b.type === "shed") {
+      tryPlace(b, room, "workbench", { side: "N" }); tryPlace(b, room, "crate");
+    }
   }
-  for (const a of [8, 16, 19, 27]) for (const b of [8, 16, 19, 27]) lamps.push({ x: a + .5, y: b + .5, on: Math.random() < .7, ph: Math.random() * 10 });
-  tries = 0; let np = 0;
-  while (np < 14 && tries++ < 400) {
-    const i = ri(1, N - 2), j = ri(1, N - 2);
-    if (ground[i][j] !== 2 || solid[i][j] || lamps.some(L => Math.floor(L.x) === i && Math.floor(L.y) === j)) continue;
-    if (Math.abs(i - 12) + Math.abs(j - 17) < 3) continue;
-    solid[i][j] = 4; np++;
-    props.push({ x: i + .5, y: j + .5, kind: Math.random() < .55 ? "bin" : "hydrant", tip: Math.random() < .3 });
+  function yardDeco(lx, ly, n) {
+    for (let k = 0; k < n; k++) {
+      const i = lx + ri(0, 5), j = ly + ri(0, 5);
+      if (!isFree(i, j) || M.ground[T(i, j)] !== GR) continue;
+      const r = Math.random();
+      if (r < .45) addTree(i + .5 + rand(-.15, .15), j + .5 + rand(-.15, .15), Math.random() < .35 ? "bush" : null);
+      else addProp(pick(["bbq", "chair", "chair", "trashbags", "bike", "barrel", "tires"]), i + .5 + rand(-.2, .2), j + .5 + rand(-.2, .2));
+    }
   }
-  return { ground, solid, houses, trees, cars, lamps, props };
+
+  // ---- block generators
+  const GEN = {
+    res(bx, by) {
+      const lots = [[bx, by], [bx + 6, by], [bx, by + 6], [bx + 6, by + 6]];
+      for (const [lx, ly] of lots) {
+        const sides = [];
+        if (ly === by) sides.push("N"); if (ly === by + 6) sides.push("S"); if (lx === bx) sides.push("W"); if (lx === bx + 6) sides.push("E");
+        if (Math.random() < .8) {
+          const side = pick(sides), w = ri(4, 5), h = ri(4, 5);
+          let x, y;
+          if (side === "S") { y = ly + 5 - h; x = lx + ri(0, 6 - w); }
+          else if (side === "N") { y = ly + 1; x = lx + ri(0, 6 - w); }
+          else if (side === "E") { x = lx + 5 - w; y = ly + ri(0, 6 - h); }
+          else { x = lx + 1; y = ly + ri(0, 6 - h); }
+          const at = side === "S" || side === "N" ? x + ri(1, w - 2) : y + ri(1, h - 2);
+          const b = building(x, y, w, h, "house", [[side, at]]);
+          furnishHouse(b);
+          if (Math.random() < .5) { const [mi, mj] = side === "S" ? [at + 1, ly + 5] : side === "N" ? [at + 1, ly] : side === "E" ? [lx + 5, at + 1] : [lx, at + 1]; if (isFree(mi, mj)) addProp("mailbox", mi + .5, mj + .5); }
+          yardDeco(lx, ly, ri(2, 4));
+        } else {
+          const sx = lx + ri(0, 3), sy = ly + ri(0, 3), side = pick(["S", "E"]);
+          const b = building(sx, sy, 3, 3, "shed", [[side, side === "S" ? sx + 1 : sy + 1]], { win: .15 });
+          furnishCom(b);
+          for (let k = 0; k < 3; k++) {
+            const gx = lx + ri(0, 4), gy = ly + ri(0, 5);
+            if (isFree(gx, gy) && isFree(gx + 1, gy) && M.ground[T(gx, gy)] === GR && M.ground[T(gx + 1, gy)] === GR) { M.decor.push({ t: "garden", x0: gx + .1, y0: gy + .2, x1: gx + 1.9, y1: gy + .8 }); occ[T(gx, gy)] = occ[T(gx + 1, gy)] = 1; }
+          }
+          yardDeco(lx, ly, 3);
+        }
+        if (!sides.includes("N")) { const gap = lx + ri(1, 4); for (let i = lx; i < lx + 6; i++) if (i !== gap) setH(i, ly, 3); }
+        if (!sides.includes("W")) { const gap = ly + ri(1, 4); for (let j = ly; j < ly + 6; j++) if (j !== gap) setV(lx, j, 3); }
+      }
+    },
+    shop(bx, by) {
+      const b1 = building(bx + 1, by + 1, 10, 5, pick(["shop", "hard", "shop"]), [["S", bx + 3], ["S", bx + 8]], { front: "S" });
+      for (let i = bx; i < bx + 12; i++) { M.ground[T(i, by + 6)] = CN; occ[T(i, by + 6)] = 1; }
+      const b2 = building(bx + 1, by + 7, 6, 5, pick(["pharm", "cafe", "pharm"]), [["S", bx + 3]], { front: "S" });
+      for (let j = by + 7; j < by + 12; j++) { M.ground[T(bx, j)] = CN; M.ground[T(bx + 7, j)] = CN; occ[T(bx + 7, j)] = 1; }
+      for (let i = bx + 8; i < bx + 12; i++) for (let j = by + 7; j < by + 12; j++) M.ground[T(i, j)] = LT;
+      for (let j = by + 7; j <= by + 12; j++) { M.decor.push({ t: "pline", x0: bx + 8.15, x1: bx + 9.7, y: j }); M.decor.push({ t: "pline", x0: bx + 10.3, x1: bx + 11.85, y: j }); }
+      for (let j = by + 7; j < by + 12; j++) for (const cx of [bx + 9, bx + 11]) if (Math.random() < .45) addCar(cx, j + .5, false);
+      furnishCom(b1); furnishCom(b2);
+      for (let i = bx + 1; i < bx + 11; i += 3) if (Math.random() < .6) addProp(pick(["planter", "bench", "bin"]), i + .5, by + .5);
+      addProp("dumpster", bx + 8.2, by + .55);
+    },
+    gas(bx, by) {
+      for (let j = by; j < by + 12; j++) for (let i = bx; i < bx + 12; i++) M.ground[T(i, j)] = CN;
+      const b = building(bx + 6, by + 1, 6, 4, "gasshop", [["S", bx + 8]], { front: "S" });
+      furnishCom(b);
+      const cp = { dt: "canopy", x: bx + 1, y: by + 6, w: 6, h: 4, roofA: 1, key: bx + 7 + by + 10 - .02 };
+      M.canopies.push(cp); regRect(cp, cp.x - 1, cp.y - 1, cp.x + cp.w + 1, cp.y + cp.h + 1); cp.ax = cp.x + 3; cp.ay = cp.y + 2;
+      for (const [px, py] of [[bx + 1.4, by + 6.4], [bx + 6.6, by + 6.4], [bx + 1.4, by + 9.6], [bx + 6.6, by + 9.6]]) addProp("post", px, py);
+      for (const px of [bx + 2.8, bx + 5.2]) addProp("pump", px, by + 8);
+      if (Math.random() < .7) addCar(bx + 4, by + 9, false);
+      addProp("pricesign", bx + .5, by + 11.4);
+      addProp("tires", bx + 11.3, by + 6.6); addProp("barrel", bx + 11.4, by + 7.5); addProp("barrel", bx + 10.7, by + 7.4);
+      addProp("dumpster", bx + 10.6, by + 10.9); addProp("bin", bx + 6.5, by + 5.6); addProp("cone", bx + 8.5, by + 10.5);
+    },
+    park(bx, by) {
+      for (let k = 0; k < 12; k++) { M.ground[T(bx + 5, by + k)] = DT; M.ground[T(bx + 6, by + k)] = DT; M.ground[T(bx + k, by + 5)] = DT; M.ground[T(bx + k, by + 6)] = DT; }
+      for (let k = 0; k < 12; k++) for (const [i, j] of [[bx + 5, by + k], [bx + 6, by + k], [bx + k, by + 5], [bx + k, by + 6]]) occ[T(i, j)] = 1;
+      addProp("fountain", bx + 6, by + 6);
+      M.parks.push({ x: bx, y: by });
+      const q = pick([[bx, by], [bx + 7, by], [bx, by + 7], [bx + 7, by + 7]]);
+      for (let j = q[1] + 1; j < q[1] + 4; j++) for (let i = q[0] + .0; i < q[0] + 4; i++) { M.ground[T(i, j)] = SA; occ[T(i, j)] = 1; }
+      addProp("slide", q[0] + 1.2, q[1] + 2); addProp("swings", q[0] + 3, q[1] + 3);
+      addProp("swingpost", q[0] + 2, q[1] + 3); addProp("swingpost", q[0] + 4, q[1] + 3);
+      for (const [x, y, rot] of [[bx + 3, by + 4.6, 0], [bx + 9, by + 4.6, 0], [bx + 4.6, by + 9, 1], [bx + 7.4, by + 2.5, 1]]) addProp("bench", x, y, { rot: !!rot });
+      addProp("picnic", bx + 9.5, by + 9.5); addProp("bin", bx + 4.6, by + 7.4); addProp("bin", bx + 7.4, by + 4.6);
+      for (let k = 0; k < 22; k++) { const i = bx + ri(0, 11), j = by + ri(0, 11); if (isFree(i, j) && M.ground[T(i, j)] === GR) addTree(i + .5 + rand(-.2, .2), j + .5 + rand(-.2, .2), Math.random() < .25 ? "bush" : Math.random() < .3 ? "pine" : "tree"); }
+    },
+    ware(bx, by) {
+      const b = building(bx + 1, by + 1, 10, 7, "ware", [["S", bx + 4], ["S", bx + 5], ["E", by + 3]], { win: .15 });
+      furnishCom(b);
+      for (let j = by + 8; j < by + 12; j++) for (let i = bx; i < bx + 12; i++) M.ground[T(i, j)] = CN;
+      addCar(bx + 8, by + 10.5, false, "truck");
+      for (let k = 0; k < 6; k++) { const i = bx + ri(0, 5), j = by + ri(8, 11); if (isFree(i, j)) addProp(pick(["crateout", "crateout", "pallet", "barrel"]), i + .5, j + .5); }
+      addProp("dumpster", bx + 11.2, by + 9);
+    },
+    police(bx, by) {
+      const b = building(bx + 1, by + 1, 10, 6, "police", [["S", bx + 5]], { win: .5 });
+      furnishCom(b);
+      for (let j = by + 8; j < by + 12; j++) for (let i = bx; i < bx + 12; i++) M.ground[T(i, j)] = LT;
+      for (let i = bx; i <= bx + 12; i++) M.decor.push({ t: "pline", x0: i + .1, x1: i + .1, y0: by + 8.2, y1: by + 9.8, v: 1 });
+      addCar(bx + 2.5, by + 9, true, "police"); addCar(bx + 4.5, by + 9, true, "police"); if (Math.random() < .6) addCar(bx + 8.5, by + 9, true);
+      addProp("barrier", bx + 6, by + 11.3); addProp("cone", bx + 7.5, by + 11); addProp("cone", bx + 9, by + 11.2);
+    },
+    clinic(bx, by) {
+      const b = building(bx + 1, by + 1, 10, 7, "clinic", [["S", bx + 5], ["E", by + 3]], { win: .5 });
+      furnishCom(b);
+      for (let j = by + 9; j < by + 12; j++) for (let i = bx; i < bx + 12; i++) M.ground[T(i, j)] = CN;
+      addCar(bx + 8, by + 10, false, "amb");
+      addProp("bench", bx + 3, by + 9.5); addProp("bin", bx + 1, by + 9.5); addProp("planter", bx + 5.5, by + 11.3);
+    }
+  };
+  GEN.res2 = GEN.res;
+  const kinds = shuffle(["res", "res", "res", "res", "res", "res", "res", "res", "res", "res", "res", "shop", "shop", "shop", "shop", "gas", "gas", "park", "park", "park", "ware", "ware", "police", "clinic", "res"]);
+  let bi = 0;
+  for (const by of BLOCKS) for (const bx of BLOCKS) GEN[kinds[bi++]](bx, by);
+
+  // ---- forest
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    if (M.ground[T(i, j)] !== FO || occ[T(i, j)]) continue;
+    const edge = i < 1 || j < 1 || i > N - 2 || j > N - 2;
+    if (edge || Math.random() < .42) addTree(i + .5 + rand(-.2, .2), j + .5 + rand(-.2, .2), Math.random() < .6 ? "pine" : Math.random() < .25 ? "bush" : "tree", rand(.95, 1.3));
+  }
+  // road ends: barricades and wrecks
+  for (const r of ROADS) for (const e of [2, N - 3]) {
+    addProp("barrier", r + 1, e + .5); addProp("barrier", e + .5, r + 1, { rot: true });
+  }
+  // ---- cars on roads
+  let n = 0, tries = 0;
+  while (n < 40 && tries++ < 3000) {
+    const i = ri(3, N - 4), j = ri(3, N - 4);
+    if (M.ground[T(i, j)] !== RD || occ[T(i, j)] || (roadI[i] && roadI[j])) continue;
+    if (Math.hypot(i - START.x, j - START.y) < 7) continue;
+    const alongY = !!roadI[i];
+    if (alongY ? (roadI[j - 1] || roadI[j + 1] || roadI[j - 2] || roadI[j + 2]) : (roadI[i - 1] || roadI[i + 1] || roadI[i - 2] || roadI[i + 2])) continue;
+    addCar(i + .5, j + .5, alongY, Math.random() < .05 ? "police" : "car"); n++;
+  }
+  // ---- street lamps
+  for (const r of ROADS) for (let k = 3; k < N - 3; k += 7) {
+    if (roadI[k]) continue;
+    if (M.ground[T(k, r - 1)] === WK && isFree(k, r - 1)) addLamp(k + .5, r - .55);
+    if (M.ground[T(r - 1, k)] === WK && isFree(r - 1, k)) addLamp(r - .55, k + .5);
+  }
+  // stop signs at junction corners
+  for (const r of ROADS) for (const c of ROADS) { if (isFree(r - 1, c - 1)) addProp("stopsign", r - .7, c - .7); if (isFree(r + 2, c + 2)) addProp("stopsign", r + 2.7, c + 2.7); }
+  // sidewalk props
+  n = 0; tries = 0;
+  while (n < 110 && tries++ < 4000) {
+    const i = ri(5, N - 6), j = ri(5, N - 6);
+    if (M.ground[T(i, j)] !== WK || !isFree(i, j)) continue;
+    const alongX = M.ground[T(i, j - 1)] === RD || M.ground[T(i, j + 1)] === RD;
+    const r = Math.random();
+    const kind = r < .28 ? "bin" : r < .45 ? "hydrant" : r < .6 ? "bench" : r < .68 ? "newsbox" : r < .76 ? "busstop" : r < .86 ? "trashbags" : r < .93 ? "bike" : "cone";
+    addProp(kind, i + .5, j + .5, { rot: !alongX });
+    n++;
+  }
+
+  // ---- walls from edges
+  const bAt = (i, j) => (i >= 0 && j >= 0 && i < N && j < N) ? M.bld[T(i, j)] : -1;
+  for (let j = 0; j <= N; j++) for (let i = 0; i < N; i++) {
+    const c = M.hW[j * N + i]; if (!c) continue;
+    const bS = bAt(i, j), bN = bAt(i, j - 1), bid = bS >= 0 ? bS : bN;
+    const t = c === 3 ? .04 : .07;
+    if (c !== 4) addBox(i, j - t, i + 1, j + t, null);
+    if (c === 4 && bid < 0) continue;
+    for (const hh of [0, 1]) {
+      const w = { dt: "wall", axis: "x", i, j, t0: hh * .5, c, b: bid >= 0 ? M.buildings[bid] : null, inFace: bS >= 0, backOuter: bS >= 0 && bN < 0, key: i + hh * .5 + .25 + j };
+      w.lit = c === 2 && w.b && w.b.lit && hash(i, j) > .45;
+      M.walls.push(w); reg(w, i + hh * .5 + .25, j);
+    }
+  }
+  for (let j = 0; j < N; j++) for (let i = 0; i <= N; i++) {
+    const c = M.vW[j * (N + 1) + i]; if (!c) continue;
+    const bE = bAt(i, j), bW = bAt(i - 1, j), bid = bE >= 0 ? bE : bW;
+    const t = c === 3 ? .04 : .07;
+    if (c !== 4) addBox(i - t, j, i + t, j + 1, null);
+    if (c === 4 && bid < 0) continue;
+    for (const hh of [0, 1]) {
+      const w = { dt: "wall", axis: "y", i, j, t0: hh * .5, c, b: bid >= 0 ? M.buildings[bid] : null, inFace: bE >= 0, backOuter: bE >= 0 && bW < 0, key: i + j + hh * .5 + .25 };
+      w.lit = c === 2 && w.b && w.b.lit && hash(j, i) > .45;
+      M.walls.push(w); reg(w, i, j + hh * .5 + .25);
+    }
+  }
+  return M;
 }
 
-// ================= ground cache =================
-function diamond(c, i, j, w = 1, h = 1) {
-  const a = iso(i, j), b = iso(i + w, j), d = iso(i + w, j + h), e = iso(i, j + h);
-  c.beginPath(); c.moveTo(a.X, a.Y); c.lineTo(b.X, b.Y); c.lineTo(d.X, d.Y); c.lineTo(e.X, e.Y); c.closePath();
-}
+// ================= ground chunks =================
 let grainCanvas = null;
 function makeGrain() {
   const n = document.createElement("canvas"); n.width = n.height = 96;
   const c = n.getContext("2d"), img = c.createImageData(96, 96);
-  for (let i = 0; i < img.data.length; i += 4) { const v = Math.random() * 255; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = Math.random() * 38; }
+  for (let i = 0; i < img.data.length; i += 4) { const v = Math.random() < .5 ? 0 : 255; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = Math.random() * 22; }
   c.putImageData(img, 0, 0);
   return n;
 }
-function renderGround() {
-  const { ground, houses, trees, cars } = world.map;
-  groundScale = Math.min(K, 2.4);
-  gc.width = Math.ceil(N * TW * groundScale); gc.height = Math.ceil(N * TH * groundScale);
-  g.setTransform(groundScale, 0, 0, groundScale, N * HW * groundScale, 0);
-  g.fillStyle = "#5d7a41"; g.fillRect(-N * HW, 0, N * TW, N * TH);
-  const mix = (a, b, t) => `rgb(${a.map((v, k) => Math.round(lerp(v, b[k], t))).join(",")})`;
-  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-    const t = ground[i][j], hv = hash(i, j);
-    let col;
-    if (t === 1) col = shade(PAL.road, (vnoise(i / 3, j / 3) - .5) * .12);
-    else if (t === 2) col = PAL.walk[Math.floor(hv * 3)];
-    else if (t === 3) col = PAL.dirt[Math.floor(hv * 3)];
-    else col = mix(PAL.grassA, PAL.grassB, clamp(vnoise(i / 4.5, j / 4.5) * .9 + hv * .15, 0, 1));
-    diamond(g, i, j); g.fillStyle = col; g.fill();
-    g.strokeStyle = col; g.lineWidth = .6; g.stroke();
-    if (t === 2) {
-      g.strokeStyle = PAL.walkLine; g.lineWidth = .7;
-      const a = iso(i + .5, j), b = iso(i + .5, j + 1), c2 = iso(i, j + .5), d = iso(i + 1, j + .5);
-      g.beginPath(); g.moveTo(a.X, a.Y); g.lineTo(b.X, b.Y); g.moveTo(c2.X, c2.Y); g.lineTo(d.X, d.Y); g.stroke();
-      diamond(g, i, j); g.stroke();
+function diamond(c, i, j, w = 1, h = 1) {
+  const a = iso(i, j), b = iso(i + w, j), d = iso(i + w, j + h), e = iso(i, j + h);
+  c.beginPath(); c.moveTo(a.X, a.Y); c.lineTo(b.X, b.Y); c.lineTo(d.X, d.Y); c.lineTo(e.X, e.Y); c.closePath();
+}
+const line2 = (c, x1, y1, x2, y2) => { const a = iso(x1, y1), b = iso(x2, y2); c.beginPath(); c.moveTo(a.X, a.Y); c.lineTo(b.X, b.Y); c.stroke(); };
+const mixC = (a, b, t) => `rgb(${a.map((v, k) => Math.round(lerp(v, b[k], t))).join(",")})`;
+function tileColor(M, i, j) {
+  const t = M.ground[j * N + i], hv = hash(i, j);
+  switch (t) {
+    case RD: return shade(PAL.road, (vnoise(i / 3, j / 3) - .5) * .12);
+    case LT: return shade("#454a55", (hv - .5) * .06);
+    case WK: return PAL.walk[Math.floor(hv * 3)];
+    case DT: return PAL.dirt[Math.floor(hv * 3)];
+    case SA: return PAL.sand[Math.floor(hv * 2)];
+    case WA: return "#4f7f9a";
+    case FO: return mixC(PAL.forestA, PAL.forestB, clamp(vnoise(i / 4, j / 4) * .9 + hv * .15, 0, 1));
+    case WD: case TL: case CN: {
+      const b = M.buildings[M.bld[j * N + i]];
+      if (!b) return "#8f8d88";
+      if (t === TL) return (i + j) % 2 ? b.floorC[0] : b.floorC[1];
+      if (t === CN) return shade("#8f8d88", (vnoise(i / 2, j / 2) - .5) * .12);
+      return b.floorC[0];
     }
+    default: return mixC(PAL.grassA, PAL.grassB, clamp(vnoise(i / 4.5, j / 4.5) * .9 + hv * .15, 0, 1));
+  }
+}
+function renderChunk(cvs, cx, cy) {
+  const M = world.map, x0 = cx * CH, y0 = cy * CH;
+  const X0 = (x0 - y0 - CH) * HW, Y0 = (x0 + y0) * HH - 10, Wd = 2 * CH * HW, Hd = 2 * CH * HH + 14;
+  cvs.width = Math.ceil(Wd * gs); cvs.height = Math.ceil(Hd * gs);
+  const g = cvs.getContext("2d");
+  g.setTransform(gs, 0, 0, gs, -X0 * gs, -Y0 * gs);
+  for (let j = y0; j < y0 + CH; j++) for (let i = x0; i < x0 + CH; i++) {
+    const col = tileColor(M, i, j);
+    diamond(g, i, j); g.fillStyle = col; g.fill(); g.strokeStyle = col; g.lineWidth = .7; g.stroke();
   }
   if (!grainCanvas) grainCanvas = makeGrain();
-  g.save(); g.fillStyle = g.createPattern(grainCanvas, "repeat"); g.globalCompositeOperation = "overlay"; g.fillRect(-N * HW, 0, N * TW, N * TH); g.restore();
-  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-    const t = ground[i][j];
+  g.save(); g.globalCompositeOperation = "source-atop"; g.fillStyle = g.createPattern(grainCanvas, "repeat"); g.fillRect(X0, Y0, Wd, Hd); g.restore();
+  for (let j = y0; j < y0 + CH; j++) for (let i = x0; i < x0 + CH; i++) tileDetail(g, M, i, j);
+  for (const d of M.decor) {
+    const dx0 = d.x0 ?? d.x, dy0 = d.y0 ?? d.y, dx1 = d.x1 ?? dx0, dy1 = d.y1 ?? dy0;
+    if (dx1 < x0 - 1 || dx0 > x0 + CH + 1 || dy1 < y0 - 1 || dy0 > y0 + CH + 1) continue;
+    drawDecor(g, d);
+  }
+  return { X0, Y0, Wd, Hd };
+}
+function tileDetail(g, M, i, j) {
+  const t = M.ground[j * N + i];
+  const nb = (a, b) => (i + a >= 0 && j + b >= 0 && i + a < N && j + b < N) ? M.ground[(j + b) * N + i + a] : -1;
+  if (t === GR || t === FO) {
     for (let n = 0; n < 6; n++) {
-      const hx = hash(i * 7 + n, j * 3 - n), hy = hash(i * 3 - n, j * 7 + n);
-      const p = iso(i + hx, j + hy);
-      if (t === 0) {
-        g.strokeStyle = n % 2 ? PAL.tuft : PAL.tuft2; g.lineWidth = 1.1;
-        g.beginPath(); g.moveTo(p.X - 2, p.Y); g.lineTo(p.X - 1.2, p.Y - 4.5); g.moveTo(p.X, p.Y); g.lineTo(p.X + .3, p.Y - 5.5); g.moveTo(p.X + 2, p.Y); g.lineTo(p.X + 2.6, p.Y - 3.8); g.stroke();
-        if (n === 0 && hx > .82) { g.fillStyle = ["#e8d77a", "#f0efe6", "#d98bb0"][Math.floor(hy * 3)]; g.beginPath(); g.arc(p.X + 4, p.Y - 2, 1.3, 0, 7); g.fill(); }
-      } else if (t === 3 && n < 3) { g.fillStyle = "rgba(60,45,30,.35)"; g.beginPath(); g.ellipse(p.X, p.Y, 2, 1, 0, 0, 7); g.fill(); }
-      else if (t === 1) {
-        if (n === 0 && hx > .7) { g.fillStyle = "rgba(0,0,0,.2)"; g.beginPath(); g.ellipse(p.X, p.Y, 7 * hy + 3, 3 * hy + 1.5, 0, 0, 7); g.fill(); }
-        if (n === 1 && hx > .78) {
-          g.strokeStyle = "rgba(20,22,28,.55)"; g.lineWidth = .9; g.beginPath(); g.moveTo(p.X, p.Y);
-          let cx = p.X, cy = p.Y; for (let s = 0; s < 4; s++) { cx += (hash(i + s, j) - .5) * 14; cy += (hash(i, j + s) - .3) * 5; g.lineTo(cx, cy); } g.stroke();
-        }
-        if (n === 2 && hx > .93) { g.fillStyle = "#2a2e36"; g.beginPath(); g.ellipse(p.X, p.Y, 7, 3.5, 0, 0, 7); g.fill(); g.strokeStyle = "rgba(255,255,255,.12)"; g.lineWidth = .8; g.stroke(); g.beginPath(); g.moveTo(p.X - 5, p.Y); g.lineTo(p.X + 5, p.Y); g.stroke(); }
-      }
+      const hx = hash(i * 7 + n, j * 3 - n), hy = hash(i * 3 - n, j * 7 + n), p = iso(i + hx, j + hy);
+      g.strokeStyle = n % 2 ? PAL.tuft : PAL.tuft2; g.lineWidth = 1.1;
+      g.beginPath(); g.moveTo(p.X - 2, p.Y); g.lineTo(p.X - 1.2, p.Y - 4.5); g.moveTo(p.X, p.Y); g.lineTo(p.X + .3, p.Y - 5.5); g.moveTo(p.X + 2, p.Y); g.lineTo(p.X + 2.6, p.Y - 3.8); g.stroke();
+      if (t === GR && n === 0 && hx > .82) { g.fillStyle = ["#e8d77a", "#f0efe6", "#d98bb0"][Math.floor(hy * 3)]; g.beginPath(); g.arc(p.X + 4, p.Y - 2, 1.3, 0, 7); g.fill(); }
+      if (t === FO && n < 3) { g.fillStyle = ["#8a6a3a", "#6f5a2e", "#9a7a3e"][n]; g.beginPath(); g.ellipse(p.X + 3, p.Y + 1, 2.2, 1, hx * 3, 0, 7); g.fill(); }
     }
-  }
-  g.lineWidth = 2;
-  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-    if (ground[i][j] !== 2) continue;
-    const edge = (x1, y1, x2, y2) => { const a = iso(x1, y1), b = iso(x2, y2); g.strokeStyle = "rgba(0,0,0,.28)"; g.beginPath(); g.moveTo(a.X, a.Y + 1.5); g.lineTo(b.X, b.Y + 1.5); g.stroke(); g.strokeStyle = PAL.curb; g.beginPath(); g.moveTo(a.X, a.Y); g.lineTo(b.X, b.Y); g.stroke(); };
-    if (i + 1 < N && ground[i + 1][j] === 1) edge(i + 1, j, i + 1, j + 1);
-    if (i > 0 && ground[i - 1][j] === 1) edge(i, j, i, j + 1);
-    if (j + 1 < N && ground[i][j + 1] === 1) edge(i, j + 1, i + 1, j + 1);
-    if (j > 0 && ground[i][j - 1] === 1) edge(i, j, i + 1, j);
-  }
-  g.strokeStyle = PAL.mark; g.lineWidth = 1.5; g.globalAlpha = .7;
-  for (let k = 0; k < ROADS.length; k += 2) {
-    const r = ROADS[k] + 1;
-    for (let t = 0; t < N; t++) {
-      if (isRoad(t)) continue;
-      const a = iso(r, t + .2), b = iso(r, t + .7); g.beginPath(); g.moveTo(a.X, a.Y); g.lineTo(b.X, b.Y); g.stroke();
-      const c = iso(t + .2, r), d = iso(t + .7, r); g.beginPath(); g.moveTo(c.X, c.Y); g.lineTo(d.X, d.Y); g.stroke();
+  } else if (t === DT || t === SA) {
+    for (let n = 0; n < 3; n++) { const p = iso(i + hash(i + n, j), j + hash(i, j + n)); g.fillStyle = t === SA ? "rgba(255,255,240,.35)" : "rgba(60,45,30,.35)"; g.beginPath(); g.ellipse(p.X, p.Y, 2, 1, 0, 0, 7); g.fill(); }
+  } else if (t === RD || t === LT) {
+    const hx = hash(i, j), hy = hash(j, i), p = iso(i + hx * .8 + .1, j + hy * .8 + .1);
+    if (hx > .72) { g.fillStyle = "rgba(0,0,0,.2)"; g.beginPath(); g.ellipse(p.X, p.Y, 7 * hy + 3, 3 * hy + 1.5, 0, 0, 7); g.fill(); }
+    if (hy > .8) { g.strokeStyle = "rgba(20,22,28,.55)"; g.lineWidth = .9; g.beginPath(); g.moveTo(p.X, p.Y); let cx = p.X, cy = p.Y; for (let s = 0; s < 4; s++) { cx += (hash(i + s, j) - .5) * 14; cy += (hash(i, j + s) - .3) * 5; g.lineTo(cx, cy); } g.stroke(); }
+    if (t === RD && hx < .025) { g.fillStyle = "#2a2e36"; g.beginPath(); g.ellipse(p.X, p.Y, 7, 3.5, 0, 0, 7); g.fill(); g.strokeStyle = "rgba(255,255,255,.12)"; g.lineWidth = .8; g.stroke(); }
+    if (t === RD) {
+      g.strokeStyle = PAL.mark; g.lineWidth = 1.5; g.globalAlpha = .7;
+      if (roadI[i] && !roadI[j] && !roadI[i - 1]) line2(g, i + 1, j + .2, i + 1, j + .7);
+      if (roadI[j] && !roadI[i] && !roadI[j - 1]) line2(g, i + .2, j + 1, i + .7, j + 1);
+      g.globalAlpha = .55; g.fillStyle = "#e6e1d2";
+      if (roadI[i] && !roadI[j] && (roadI[j - 1] || roadI[j + 1])) for (let s = 0; s < 3; s++) { diamond(g, i + .08 + s * .33, j + .2, .18, .6); g.fill(); }
+      if (roadI[j] && !roadI[i] && (roadI[i - 1] || roadI[i + 1])) for (let s = 0; s < 3; s++) { diamond(g, i + .2, j + .08 + s * .33, .6, .18); g.fill(); }
+      g.globalAlpha = 1;
     }
+  } else if (t === WK) {
+    g.strokeStyle = PAL.walkLine; g.lineWidth = .7;
+    line2(g, i + .5, j, i + .5, j + 1); line2(g, i, j + .5, i + 1, j + .5); diamond(g, i, j); g.stroke();
+    g.lineWidth = 2;
+    const edge = (x1, y1, x2, y2) => { g.strokeStyle = "rgba(0,0,0,.28)"; const a = iso(x1, y1), b = iso(x2, y2); g.beginPath(); g.moveTo(a.X, a.Y + 1.5); g.lineTo(b.X, b.Y + 1.5); g.stroke(); g.strokeStyle = PAL.curb; line2(g, x1, y1, x2, y2); };
+    if (nb(1, 0) === RD) edge(i + 1, j, i + 1, j + 1);
+    if (nb(-1, 0) === RD) edge(i, j, i, j + 1);
+    if (nb(0, 1) === RD) edge(i, j + 1, i + 1, j + 1);
+    if (nb(0, -1) === RD) edge(i, j, i + 1, j);
+  } else if (t === WD) {
+    const b = M.buildings[M.bld[j * N + i]]; g.strokeStyle = b ? b.floorC[1] : "#6a4a30"; g.lineWidth = .8;
+    for (let k = 1; k < 4; k++) line2(g, i, j + k / 4, i + 1, j + k / 4);
+    g.strokeStyle = "rgba(0,0,0,.12)"; const o = hash(i, j) * .8 + .1; line2(g, i + o, j + .25 * Math.floor(hash(j, i) * 4), i + o, j + .25 * Math.floor(hash(j, i) * 4) + .25);
+  } else if (t === TL) {
+    g.strokeStyle = "rgba(0,0,0,.1)"; g.lineWidth = .6; diamond(g, i, j); g.stroke(); line2(g, i + .5, j, i + .5, j + 1); line2(g, i, j + .5, i + 1, j + .5);
+  } else if (t === CN) {
+    g.strokeStyle = "rgba(0,0,0,.12)"; g.lineWidth = .7; if (i % 3 === 0) line2(g, i, j, i, j + 1); if (j % 3 === 0) line2(g, i, j, i + 1, j);
+    if (hash(i, j) > .85) { const p = iso(i + .5, j + .5); g.fillStyle = "rgba(40,30,20,.15)"; g.beginPath(); g.ellipse(p.X, p.Y, 9, 4, 0, 0, 7); g.fill(); }
   }
-  g.globalAlpha = .55; g.fillStyle = "#e6e1d2";
-  for (let k = 0; k < ROADS.length; k += 2) for (let m = 0; m < ROADS.length; m += 2) {
-    const r = ROADS[k], c = ROADS[m];
-    for (const side of [-1, 2]) for (let s = 0; s < 4; s++) {
-      diamond(g, r + s * .5 + .05, c + side + .25, .3, .5); g.fill();
-      diamond(g, c + side + .25, r + s * .5 + .05, .5, .3); g.fill();
-    }
+}
+function drawDecor(g, d) {
+  if (d.t === "rug") {
+    diamond(g, d.x0, d.y0, d.x1 - d.x0, d.y1 - d.y0); g.fillStyle = d.col; g.fill();
+    diamond(g, d.x0 + .12, d.y0 + .12, d.x1 - d.x0 - .24, d.y1 - d.y0 - .24); g.strokeStyle = "rgba(255,240,210,.45)"; g.lineWidth = 1.4; g.stroke();
+    diamond(g, d.x0 + .3, d.y0 + .3, d.x1 - d.x0 - .6, d.y1 - d.y0 - .6); g.strokeStyle = "rgba(0,0,0,.2)"; g.stroke();
+  } else if (d.t === "garden") {
+    diamond(g, d.x0, d.y0, d.x1 - d.x0, d.y1 - d.y0); g.fillStyle = "#6e573d"; g.fill();
+    g.fillStyle = "#6f9a48";
+    for (let k = 0; k < 7; k++) { const p = iso(d.x0 + .15 + k * .25, (d.y0 + d.y1) / 2); g.beginPath(); g.arc(p.X, p.Y - 2, 2.3, 0, 7); g.fill(); }
+  } else if (d.t === "pline") {
+    g.strokeStyle = "rgba(235,232,220,.75)"; g.lineWidth = 1.4;
+    if (d.v) line2(g, d.x0, d.y0, d.x0, d.y1); else line2(g, d.x0, d.y, d.x1, d.y);
   }
-  g.globalAlpha = 1;
-  for (const h of houses) for (let s = 0; s < 3; s++) {
-    const e = .45 + s * .35;
-    g.fillStyle = `rgba(10,14,20,${.13 - s * .03})`;
-    const a = iso(h.x + h.w, h.y), b = iso(h.x + h.w + e + .3, h.y - e * .4), c = iso(h.x + h.w + e + .3, h.y + h.h - e * .2), d = iso(h.x + h.w, h.y + h.h);
-    g.beginPath(); g.moveTo(a.X, a.Y); g.lineTo(b.X, b.Y); g.lineTo(c.X, c.Y); g.lineTo(d.X, d.Y); g.closePath(); g.fill();
-    g.fillStyle = "rgba(10,14,20,.08)"; diamond(g, h.x - .12, h.y - .12, h.w + .24 + s * .06, h.h + .24 + s * .06); g.fill();
+}
+let chunkBudget = 0;
+function getChunk(cx, cy) {
+  const key = cy * NC + cx;
+  let ch = chunkCache.get(key);
+  if (ch) { ch.used = frameNo; return ch; }
+  if (chunkBudget <= 0) return null;
+  chunkBudget--;
+  let cvs = null;
+  if (chunkCache.size >= 30) {
+    let oldK = -1, old = null;
+    for (const [k, v] of chunkCache) if (!old || v.used < old.used) { old = v; oldK = k; }
+    chunkCache.delete(oldK); cvs = old.cv;
   }
-  for (const t of trees) { const p = iso(t.x + .35 * t.s, t.y - .15), k = t.kind === "bush" ? .7 : 1; for (let s = 0; s < 2; s++) { g.fillStyle = `rgba(10,14,20,${.14 - s * .05})`; g.beginPath(); g.ellipse(p.X, p.Y, (20 + s * 6) * t.s * k, (9 + s * 3) * t.s * k, 0, 0, 7); g.fill(); } }
-  for (const c of cars) { const p = iso(c.x + .15, c.y - .05); g.fillStyle = "rgba(10,14,20,.25)"; g.beginPath(); g.ellipse(p.X, p.Y, 34, 15, 0, 0, 7); g.fill(); }
+  cvs = cvs || document.createElement("canvas");
+  const geo = renderChunk(cvs, cx, cy);
+  ch = Object.assign({ cv: cvs, used: frameNo }, geo);
+  chunkCache.set(key, ch);
+  return ch;
 }
 
 // ================= world =================
-function spawnZombie(minDist, maxDist = 99, runnerChance = 0) {
-  const { solid } = world.map, p = world.player;
-  for (let t = 0; t < 200; t++) {
-    const x = rand(1.5, N - 1.5), y = rand(1.5, N - 1.5);
-    if (solid[Math.floor(x)][Math.floor(y)]) continue;
+function freeSpot(minD, maxD, inside) {
+  const M = world.map, p = world.player;
+  for (let t = 0; t < 400; t++) {
+    let x, y;
+    if (inside && Math.random() < .35 && M.buildings.length) { const b = pick(M.buildings); x = b.x + rand(.4, b.w - .4); y = b.y + rand(.4, b.h - .4); }
+    else { x = rand(3, N - 3); y = rand(3, N - 3); }
+    const i = Math.floor(x), j = Math.floor(y), gt = M.ground[j * N + i];
+    if (gt === WA || M.nav[j * N + i]) continue;
     const d = Math.hypot(x - p.x, y - p.y);
-    if (d < minDist || d > maxDist) continue;
-    const runner = Math.random() < runnerChance;
-    world.zombies.push({
-      x, y, vx: 0, vy: 0, hp: runner ? 2.5 : 3 + Math.random() * 1.5, runner,
-      spd: runner ? rand(1.55, 1.85) : rand(.7, 1.0), state: "wander", tx: x, ty: y, think: Math.random(), atkT: 0, cool: 0,
-      ph: Math.random() * 6, dir: Math.random() * 6.28, sf: 1, hit: 0, kx: 0, ky: 0, wanderT: 0,
-      limp: Math.random() < .6 ? rand(.25, .55) : 0, arms: ri(0, 2), tilt: rand(-.25, .25),
-      skin: pick(PAL.skinZ), shirt: runner ? pick(["#6e2f2a", "#5a3d3a", "#4b3b3b"]) : pick(PAL.shirtZ), pants: pick(PAL.pantsZ),
-      stain: Math.random() < .7, bald: Math.random() < .4, hair: pick(["#3b3228", "#55483a", "#6f6a60", "#2a2622"]), groanT: rand(3, 12)
-    });
-    return true;
+    if (d < minD || d > maxD) continue;
+    if (overlaps(x, y, .26)) continue;
+    return { x, y };
   }
-  return false;
+  return null;
+}
+function spawnZombie(minDist, maxDist = 999, runnerChance = 0, inside = true) {
+  const s = freeSpot(minDist, maxDist, inside);
+  if (!s) return false;
+  const runner = Math.random() < runnerChance;
+  world.zombies.push({
+    x: s.x, y: s.y, vx: 0, vy: 0, hp: runner ? 2.5 : 3 + Math.random() * 1.5, runner,
+    spd: runner ? rand(1.55, 1.85) : rand(.7, 1.0), state: "wander", tx: s.x, ty: s.y, think: Math.random(), atkT: 0, cool: 0,
+    ph: Math.random() * 6, dir: Math.random() * 6.28, sf: 1, hit: 0, kx: 0, ky: 0, wanderT: 0, lastX: s.x, lastY: s.y, stuckT: 0, side: 0,
+    limp: Math.random() < .6 ? rand(.25, .55) : 0, arms: ri(0, 2), tilt: rand(-.25, .25),
+    skin: pick(PAL.skinZ), shirt: runner ? pick(["#6e2f2a", "#5a3d3a", "#4b3b3b"]) : pick(PAL.shirtZ), pants: pick(PAL.pantsZ),
+    stain: Math.random() < .7, bald: Math.random() < .4, hair: pick(["#3b3228", "#55483a", "#6f6a60", "#2a2622"]), groanT: rand(3, 12)
+  });
+  return true;
 }
 function newWorld(mode) {
-  const map = genMap();
+  chunkCache.clear();
   world = {
-    mode, map, zombies: [], corpses: [], decals: [], parts: [], dust: [], flies: [], rain: [], flow: new Int16Array(N * N), flowT: 0,
+    mode, map: null, zombies: [], corpses: [], decals: [], parts: [], dust: [], flies: [], rain: [],
+    flow: new Int16Array(N * N), flowQ: new Int16Array(N * N * 2), flowT: 0, explored: new Uint8Array(N * N), exT: 0,
     time: mode === "title" ? 20 * 60 + 30 : 7 * 60, day: 1, elapsed: 0, kills: 0, searched: 0, shake: 0, camX: 0, camY: 0,
-    raining: settings.weather === "rain", wet: 0,
+    raining: settings.weather === "rain", wet: 0, inside: null, focusX: START.x, focusY: START.y,
     player: {
-      x: 12.5, y: 17.5, vx: 0, vy: 0, dir: Math.PI * .25, sf: 1, hp: 100, food: 85, water: 80, bat: 100, ph: 0, spd: 0,
-      weapon: "fists", inv: { food: 1, water: 1, bandage: 0, battery: 0 }, swing: 0, cool: 0, noiseT: 0, search: null, hurtT: 0
+      x: START.x, y: START.y, vx: 0, vy: 0, dir: Math.PI * .25, sf: 1, hp: 100, food: 85, water: 80, bat: 100, ph: 0, spd: 0,
+      weapon: "fists", inv: { food: 1, water: 1, bandage: 0, medkit: 0, battery: 0 }, swing: 0, cool: 0, noiseT: 0, search: null, hurtT: 0
     },
     events: new Set()
   };
+  world.map = genMap();
   world.wet = world.raining ? 1 : 0;
-  const n = Math.round((mode === "title" ? 20 : 12) * diff().zombies);
-  for (let i = 0; i < n; i++) spawnZombie(mode === "title" ? 0 : 8);
-  const c = iso(world.player.x, world.player.y); world.camX = c.X; world.camY = c.Y;
-  renderGround();
+  const n = Math.round((mode === "title" ? 120 : 150) * diff().zombies);
+  for (let i = 0; i < n; i++) spawnZombie(mode === "title" ? 0 : 9);
+  const c = iso(world.player.x, world.player.y); world.camX = c.X; world.camY = c.Y - 14;
 }
 
 // ================= collision / nav =================
-const solidAt = (x, y) => { const i = Math.floor(x), j = Math.floor(y); return i < 0 || j < 0 || i >= N || j >= N || world.map.solid[i][j] > 0; };
-const blocked = (x, y, r) => solidAt(x - r, y - r) || solidAt(x + r, y - r) || solidAt(x - r, y + r) || solidAt(x + r, y + r);
-function moveEnt(e, dx, dy, r = .26) {
-  if (!blocked(e.x + dx, e.y, r)) e.x += dx;
-  if (!blocked(e.x, e.y + dy, r)) e.y += dy;
+let boxStamp = 1;
+function overlaps(x, y, r) {
+  const g = world.map.grid;
+  for (let gy = Math.max(0, Math.floor((y - r) / CELL)); gy <= Math.min(NG - 1, Math.floor((y + r) / CELL)); gy++)
+    for (let gx = Math.max(0, Math.floor((x - r) / CELL)); gx <= Math.min(NG - 1, Math.floor((x + r) / CELL)); gx++)
+      for (const b of g[gy * NG + gx]) { const nx = clamp(x, b.x0, b.x1), ny = clamp(y, b.y0, b.y1); if ((x - nx) ** 2 + (y - ny) ** 2 < r * r) return true; }
+  return false;
 }
+function collide(e, r) {
+  const g = world.map.grid;
+  for (let it = 0; it < 3; it++) {
+    let moved = false; boxStamp++;
+    for (let gy = Math.max(0, Math.floor((e.y - r) / CELL)); gy <= Math.min(NG - 1, Math.floor((e.y + r) / CELL)); gy++)
+      for (let gx = Math.max(0, Math.floor((e.x - r) / CELL)); gx <= Math.min(NG - 1, Math.floor((e.x + r) / CELL)); gx++)
+        for (const b of g[gy * NG + gx]) {
+          if (b.st === boxStamp) continue; b.st = boxStamp;
+          if (e.x + r <= b.x0 || e.x - r >= b.x1 || e.y + r <= b.y0 || e.y - r >= b.y1) continue;
+          const nx = clamp(e.x, b.x0, b.x1), ny = clamp(e.y, b.y0, b.y1), dx = e.x - nx, dy = e.y - ny, d2 = dx * dx + dy * dy;
+          if (d2 >= r * r) continue;
+          if (d2 > 1e-9) { const d = Math.sqrt(d2), p = r - d + 1e-4; e.x += dx / d * p; e.y += dy / d * p; }
+          else {
+            const lft = e.x - b.x0, rgt = b.x1 - e.x, top = e.y - b.y0, bot = b.y1 - e.y, m = Math.min(lft, rgt, top, bot);
+            if (m === lft) e.x = b.x0 - r; else if (m === rgt) e.x = b.x1 + r; else if (m === top) e.y = b.y0 - r; else e.y = b.y1 + r;
+          }
+          moved = true;
+        }
+    if (!moved) break;
+  }
+  e.x = clamp(e.x, .7, N - .7); e.y = clamp(e.y, .7, N - .7);
+}
+function moveEnt(e, dx, dy, r = .24) {
+  const n = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / .12));
+  for (let k = 0; k < n; k++) { e.x += dx / n; e.y += dy / n; collide(e, r); }
+}
+const eH = (i, j) => (i < 0 || i >= N || j < 0 || j > N) ? 1 : world.map.hW[j * N + i];
+const eV = (i, j) => (i < 0 || i > N || j < 0 || j >= N) ? 1 : world.map.vW[j * (N + 1) + i];
+const blockE = c => c > 0 && c < 4;
+function step4(i, j, a, b) {
+  const ni = i + a, nj = j + b;
+  if (ni < 0 || nj < 0 || ni >= N || nj >= N || world.map.nav[nj * N + ni]) return false;
+  if (a === 1) return !blockE(eV(i + 1, j));
+  if (a === -1) return !blockE(eV(i, j));
+  if (b === 1) return !blockE(eH(i, j + 1));
+  return !blockE(eH(i, j));
+}
+const canMove = (i, j, a, b) => (a && b) ? step4(i, j, a, 0) && step4(i + a, j, 0, b) && step4(i, j, 0, b) && step4(i, j + b, a, 0) : step4(i, j, a, b);
 function los(ax, ay, bx, by) {
-  const d = Math.hypot(bx - ax, by - ay), n = Math.ceil(d / .3);
-  for (let k = 1; k < n; k++) { const x = lerp(ax, bx, k / n), y = lerp(ay, by, k / n); if (world.map.solid[Math.floor(x)]?.[Math.floor(y)] === 1) return false; }
+  const d = Math.hypot(bx - ax, by - ay), n = Math.ceil(d / .2);
+  let pi = Math.floor(ax), pj = Math.floor(ay);
+  for (let k = 1; k <= n; k++) {
+    const x = lerp(ax, bx, k / n), y = lerp(ay, by, k / n), ni = Math.floor(x), nj = Math.floor(y);
+    if (ni !== pi) { if (eV(Math.max(pi, ni), pj) === 1) return false; pi = ni; }
+    if (nj !== pj) { if (eH(pi, Math.max(pj, nj)) === 1) return false; pj = nj; }
+  }
   return true;
 }
 function buildFlow() {
-  const f = world.flow, s = world.map.solid, p = world.player;
+  const f = world.flow, q = world.flowQ, p = world.player;
   f.fill(-1);
-  const q = new Int16Array(N * N * 2); let h = 0, t = 0;
+  let h = 0, t = 0;
   const pi = Math.floor(p.x), pj = Math.floor(p.y);
-  f[pi * N + pj] = 0; q[t++] = pi; q[t++] = pj;
+  f[pj * N + pi] = 0; q[t++] = pi; q[t++] = pj;
   while (h < t) {
-    const i = q[h++], j = q[h++], d = f[i * N + j];
-    if (d > 40) continue;
-    for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) {
-      if (!a && !b) continue;
-      const x = i + a, y = j + b;
-      if (x < 0 || y < 0 || x >= N || y >= N || s[x][y] || f[x * N + y] >= 0) continue;
-      if (a && b && (s[i + a][j] || s[i][j + b])) continue;
-      f[x * N + y] = d + 1; q[t++] = x; q[t++] = y;
+    const i = q[h++], j = q[h++], d = f[j * N + i];
+    if (d >= 40) continue;
+    for (const [a, b] of DIRS8) {
+      const ni = i + a, nj = j + b;
+      if (ni < 0 || nj < 0 || ni >= N || nj >= N || f[nj * N + ni] >= 0) continue;
+      if (!canMove(i, j, a, b)) continue;
+      f[nj * N + ni] = d + 1; q[t++] = ni; q[t++] = nj;
     }
   }
 }
 function flowStep(z) {
-  const f = world.flow, i = Math.floor(z.x), j = Math.floor(z.y), here = f[i * N + j];
+  const f = world.flow, i = Math.floor(z.x), j = Math.floor(z.y), here = f[j * N + i];
   if (here <= 0) return null;
   let best = here, bx = 0, by = 0;
-  for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) {
+  for (const [a, b] of DIRS8) {
     const x = i + a, y = j + b;
     if (x < 0 || y < 0 || x >= N || y >= N) continue;
-    const v = f[x * N + y];
-    if (v >= 0 && v < best) { best = v; bx = x; by = y; }
+    const v = f[y * N + x];
+    if (v >= 0 && v < best && canMove(i, j, a, b)) { best = v; bx = x; by = y; }
   }
   return best < here ? { x: bx + .5, y: by + .5 } : null;
 }
 function noise(x, y, r) {
   for (const z of world.zombies) {
     if (z.state === "chase") continue;
-    if (Math.hypot(z.x - x, z.y - y) < r) { z.state = "investigate"; z.tx = x + rand(-.6, .6); z.ty = y + rand(-.6, .6); }
+    if (Math.abs(z.x - x) < r && Math.abs(z.y - y) < r && Math.hypot(z.x - x, z.y - y) < r) { z.state = "investigate"; z.tx = x + rand(-.6, .6); z.ty = y + rand(-.6, .6); }
   }
 }
+const buildingAt = (x, y) => { const i = Math.floor(x), j = Math.floor(y); if (i < 0 || j < 0 || i >= N || j >= N) return null; const b = world.map.bld[j * N + i]; return b >= 0 ? world.map.buildings[b] : null; };
 
 // ================= time =================
 const nightF = m => {
@@ -683,6 +1210,7 @@ function grade(m) {
   if (gold > dawn) return [255, 175, 85, .14 * gold];
   return [255, 170, 150, .14 * dawn];
 }
+
 
 // ================= input =================
 const input = { jx: 0, jy: 0, id: null, ox: 0, oy: 0, keys: new Set() };
@@ -722,6 +1250,7 @@ window.addEventListener("keydown", e => {
     if (k === " " || k === "j") { e.preventDefault(); attack(); }
     if (k === "e" || k === "enter") { e.preventDefault(); doAction(); }
     if (k === "i" || k === "tab") { e.preventDefault(); openBag(); }
+    if (k === "m") { e.preventDefault(); openMap(); }
   }
 });
 window.addEventListener("keyup", e => input.keys.delete(e.key.toLowerCase()));
@@ -757,12 +1286,15 @@ document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click
 document.querySelectorAll(".modal").forEach(m => m.addEventListener("pointerdown", e => { if (e.target === m && m.id !== "pauseModal") closeModals(); }));
 $("#portraitAnyway").addEventListener("click", () => { allowPortrait = true; checkOrientation(); });
 
+
+press($("#mapBtn"), () => openMap());
 // ================= modals & settings =================
 const anyModal = () => [...document.querySelectorAll(".modal")].some(m => !m.hidden);
 function openModal(id) {
   document.querySelectorAll(".modal").forEach(m => m.hidden = m.id !== id);
   paused = true;
   if (id === "setModal") renderSettings();
+  if (id === "mapModal") renderMap();
 }
 function closeModals(all) {
   const backToPause = !all && !$("#setModal").hidden && world && world.mode === "play";
@@ -817,6 +1349,8 @@ function saveSettings(key) {
   if (key === "weather" && world) world.raining = settings.weather === "rain" ? true : settings.weather === "clear" ? false : world.raining;
 }
 
+
+
 // ================= UI =================
 function toast(text, warn) {
   const t = document.createElement("div");
@@ -829,7 +1363,6 @@ function toast(text, warn) {
 }
 let hurtTimer = 0;
 function hurtFlash() { const h = $("#hurt"); h.style.transition = "none"; h.style.opacity = "1"; clearTimeout(hurtTimer); hurtTimer = setTimeout(() => { h.style.transition = ""; h.style.opacity = "0"; }, 60); }
-
 function renderBag() {
   const p = world.player, box = $("#items");
   box.innerHTML = "";
@@ -844,7 +1377,7 @@ function renderBag() {
   const w = WEAPONS[p.weapon];
   const wb = document.createElement("div");
   wb.className = "item"; wb.style.setProperty("--c", "var(--amber)");
-  wb.innerHTML = `<span class="ic">${ICON[p.weapon]}</span><b>${w.name}<span>в руках</span></b><small>Урон ${w.dmg} · ${p.weapon === "fists" ? "найди биту или топор" : "лучшее, что есть"}</small>`;
+  wb.innerHTML = `<span class="ic">${ICON[p.weapon]}</span><b>${w.name}<span>в руках</span></b><small>Урон ${w.dmg} · ${p.weapon === "fists" ? "ищи в хозтоварах и сараях" : "лучшее, что есть"}</small>`;
   box.append(wb);
 }
 function useItem(k) {
@@ -854,11 +1387,11 @@ function useItem(k) {
   if (k === "food") p.food = Math.min(100, p.food + 35);
   if (k === "water") p.water = Math.min(100, p.water + 40);
   if (k === "bandage") p.hp = Math.min(100, p.hp + 30);
+  if (k === "medkit") p.hp = Math.min(100, p.hp + 60);
   if (k === "battery") p.bat = 100;
   tone(660, .12, "triangle", .05, 1.3);
   updateHud();
 }
-
 let hudT = 0;
 const setMeter = (id, v) => { const e = $(id); e.querySelector("i").style.width = clamp(v, 0, 100) + "%"; e.classList.toggle("low", v < 22); };
 function updateHud() {
@@ -868,44 +1401,52 @@ function updateHud() {
   $("#time").textContent = fmtTime(world.time);
   const night = nightF(world.time) > .5, icon = world.raining ? "rain" : night ? "moon" : "sun";
   if ($("#sunicon").dataset.n !== icon) { $("#sunicon").innerHTML = ICON[icon]; $("#sunicon").dataset.n = icon; }
-  $("#kills").textContent = "Упокоено: " + world.kills;
+  const where = world.inside ? (world.inside.name || "Дом") : "Улица";
+  $("#kills").textContent = where + " · упокоено: " + world.kills;
   const wk = p.weapon;
   if ($("#weapon").dataset.w !== wk) { $("#weapon").innerHTML = ICON[wk] + "<b>" + WEAPONS[wk].name + "</b>"; $("#weapon").dataset.w = wk; }
-  const h = nearDoor(), act = $("#act");
+  const f = nearContainer(), act = $("#act");
   if (p.search) { act.hidden = false; act.innerHTML = ICON.search + "Обыскиваю…"; }
-  else if (h) { act.hidden = false; act.innerHTML = ICON.search + "Обыскать дом"; }
+  else if (f) { act.hidden = false; act.innerHTML = ICON.search + "Обыскать: " + f.cont.name.toLowerCase(); }
   else act.hidden = true;
 }
 
 // ================= actions =================
-function nearDoor() {
-  const p = world.player;
-  for (const h of world.map.houses) if (!h.looted && Math.hypot(h.door.x - p.x, h.door.y - p.y) < 1.15) return h;
-  return null;
+function nearContainer() {
+  const p = world.player, g = world.map.grid, r = 1;
+  let best = null, bd = .75;
+  for (let gy = Math.max(0, Math.floor((p.y - r) / CELL)); gy <= Math.min(NG - 1, Math.floor((p.y + r) / CELL)); gy++)
+    for (let gx = Math.max(0, Math.floor((p.x - r) / CELL)); gx <= Math.min(NG - 1, Math.floor((p.x + r) / CELL)); gx++)
+      for (const b of g[gy * NG + gx]) {
+        const f = b.ref; if (!f || !f.cont || f.cont.searched) continue;
+        const d = Math.hypot(p.x - clamp(p.x, b.x0, b.x1), p.y - clamp(p.y, b.y0, b.y1));
+        if (d < bd) { bd = d; best = f; }
+      }
+  return best;
 }
 function doAction() {
   const p = world.player;
   if (p.search || paused) return;
-  const h = nearDoor();
-  if (!h) return;
-  p.search = { h, t: 0, dur: 1.8, x: p.x, y: p.y };
-  p.dir = Math.atan2(h.door.y - .5 - p.y, h.door.x - p.x);
-  noise(p.x, p.y, 4.5);
-  thud(.12);
+  const f = nearContainer();
+  if (!f) return;
+  p.search = { f, t: 0, dur: f.kind === "shelf" ? 1.2 : 1.5 };
+  p.dir = Math.atan2((f.y0 + f.y1) / 2 - p.y, (f.x0 + f.x1) / 2 - p.x);
+  noise(p.x, p.y, 3.5);
+  thud(.1, 500);
   updateHud();
 }
 function finishSearch() {
-  const p = world.player, h = p.search.h;
-  p.search = null; h.looted = true; world.searched++;
-  if (!h.loot.length) { toast("Пусто. Кто-то успел раньше"); updateHud(); return; }
+  const p = world.player, f = p.search.f;
+  p.search = null; f.cont.searched = true; f.b.searched++; world.searched++;
+  if (!f.cont.loot.length) { toast(`${f.cont.name}: пусто`); updateHud(); return; }
   const got = {};
-  for (const k of h.loot) {
+  for (const k of f.cont.loot) {
     if (WEAPONS[k]) { if (WEAPONS[k].rank > WEAPONS[p.weapon].rank) { p.weapon = k; toast(`Нашёл: ${WEAPONS[k].name.toLowerCase()}. Теперь бьёшь сильнее`); } }
     else { p.inv[k] = (p.inv[k] || 0) + 1; got[k] = (got[k] || 0) + 1; }
   }
-  const parts = Object.entries(got).map(([k, n]) => ITEMS[k].name.toLowerCase() + (n > 1 ? " ×" + n : ""));
-  if (parts.length) toast("В рюкзаке: " + parts.join(", "));
-  h.loot = [];
+  const parts = Object.entries(got).map(([k, n]) => ITEM_GEN[k] + (n > 1 ? " ×" + n : ""));
+  if (parts.length) toast(`${f.cont.name}: ${parts.join(", ")}`);
+  f.cont.loot = [];
   tone(520, .1, "triangle", .05, 1.5); setTimeout(() => tone(780, .14, "triangle", .05, 1.2), 90);
   updateHud();
 }
@@ -916,13 +1457,14 @@ function attack() {
   p.cool = w.cd; p.swing = .3;
   if (p.search) p.search = null;
   let near = null, nd = w.range + .7;
-  for (const z of world.zombies) { const d = Math.hypot(z.x - p.x, z.y - p.y); if (d < nd) { nd = d; near = z; } }
+  for (const z of world.zombies) { if (Math.abs(z.x - p.x) > 3 || Math.abs(z.y - p.y) > 3) continue; const d = Math.hypot(z.x - p.x, z.y - p.y); if (d < nd && los(p.x, p.y, z.x, z.y)) { nd = d; near = z; } }
   if (near) p.dir = Math.atan2(near.y - p.y, near.x - p.x);
   let hitAny = false;
   for (const z of [...world.zombies]) {
     const dx = z.x - p.x, dy = z.y - p.y, d = Math.hypot(dx, dy);
     if (d > w.range + .25) continue;
     if (Math.abs(angDiff(p.dir, Math.atan2(dy, dx))) > 1.15 && d > .55) continue;
+    if (!los(p.x, p.y, z.x, z.y)) continue;
     hitAny = true;
     const ux = dx / (d || 1), uy = dy / (d || 1);
     z.hp -= w.dmg; z.hit = .22; z.state = "chase";
@@ -958,13 +1500,12 @@ function update(dt) {
     if (crossed(19.5)) toast("Темнеет. Ночью зомби злее, а среди них есть бегуны", true);
     if (crossed(21)) {
       toast("Ночь. Фонарик включён, но он светит и для них тоже", true);
-      const n = Math.min(70 - Wd.zombies.length, Math.round((5 + Wd.day * 3) * D.wave));
-      for (let i = 0; i < n; i++) spawnZombie(11, 99, Math.min(.35, .12 + Wd.day * .04));
+      const n = Math.min(230 - Wd.zombies.length, Math.round((8 + Wd.day * 4) * D.wave));
+      for (let i = 0; i < n; i++) spawnZombie(12, 26, Math.min(.35, .12 + Wd.day * .04), false);
     }
     if (crossed(6.5)) {
       toast("Рассвет. Ночь позади");
-      for (const h of Wd.map.houses) if (h.looted && Math.random() < .35) { h.looted = false; h.loot = rollLoot(1, 2); }
-      for (let i = 0; i < 3; i++) spawnZombie(10);
+      for (const f of Wd.map.furn) if (f.cont && f.cont.searched && Math.random() < .12) { f.cont.searched = false; f.b.searched--; f.cont.loot = rollFrom(f.kind === "shelf" ? (f.b.type === "pharm" ? "pharm" : f.b.type === "hard" ? "hard" : "shop") : f.def.loot, 1, 1); }
       if (settings.weather === "random") Wd.raining = Math.random() < .3;
     }
   }
@@ -979,8 +1520,25 @@ function update(dt) {
     if (p.search) target = 0;
     const acc = 1 - Math.pow(.0008, dt);
     p.vx = lerp(p.vx, mv.dx * target, acc); p.vy = lerp(p.vy, mv.dy * target, acc);
-    p.spd = Math.hypot(p.vx, p.vy);
-    if (p.spd > .05) moveEnt(p, p.vx * dt, p.vy * dt);
+    const ox = p.x, oy = p.y;
+    if (Math.hypot(p.vx, p.vy) > .05) {
+      const want = Math.hypot(p.vx, p.vy) * dt;
+      moveEnt(p, p.vx * dt, p.vy * dt);
+      const got = Math.hypot(p.x - ox, p.y - oy);
+      if (mv.m > 0 && got < want * .35) {
+        // blocked head-on (a corner or a wall end): slide along the best deflected direction
+        const base = Math.atan2(p.vy, p.vx);
+        let best = null, bd = got;
+        for (const da of [.55, -.55, 1.05, -1.05, 1.45, -1.45]) {
+          const t = { x: ox, y: oy };
+          moveEnt(t, Math.cos(base + da) * want, Math.sin(base + da) * want);
+          const d = Math.hypot(t.x - ox, t.y - oy) * Math.cos(da * .5);
+          if (d > bd + .001) { bd = d; best = t; }
+        }
+        if (best) { p.x = best.x; p.y = best.y; }
+      }
+    }
+    p.spd = dt > 0 ? Math.min(Math.hypot(p.x - ox, p.y - oy) / dt, 4) : 0;
     if (mv.m > 0 && !p.search) p.dir += angDiff(p.dir, Math.atan2(mv.dy, mv.dx)) * Math.min(1, dt * 14);
     const prevPh = p.ph;
     p.ph += dt * p.spd * 2.9;
@@ -988,10 +1546,7 @@ function update(dt) {
       footstep();
       if (p.spd > 3) for (let k = 0; k < 2; k++) Wd.dust.push({ x: p.x - p.vx * .05, y: p.y - p.vy * .05, t: 0, r: rand(.08, .16), vx: rand(-.3, .3), vy: rand(-.3, .3) });
     }
-    if (p.spd > .3) {
-      p.noiseT -= dt;
-      if (p.noiseT <= 0) { p.noiseT = .5; noise(p.x, p.y, p.spd > 3 ? 4.5 : 1.6); }
-    }
+    if (p.spd > .3) { p.noiseT -= dt; if (p.noiseT <= 0) { p.noiseT = .5; noise(p.x, p.y, p.spd > 3 ? 4.5 : 1.6); } }
     if (p.search && mv.m > .4) { p.search = null; toast("Обыск прерван"); }
     if (p.search) { p.search.t += dt; if (p.search.t >= p.search.dur) finishSearch(); }
     p.cool -= dt; p.swing = Math.max(0, p.swing - dt); p.hurtT = Math.max(0, p.hurtT - dt);
@@ -1003,14 +1558,34 @@ function update(dt) {
     if (p.food > 45 && p.water > 45 && p.hp < 100) p.hp = Math.min(100, p.hp + dt * .45);
     if (nf > .5 && p.bat > 0) { p.bat = Math.max(0, p.bat - dt * .42 * k6); if (p.bat === 0) toast("Фонарик сел. Батарейка в рюкзаке?", true); }
     if (p.hp <= 0) return gameOver();
+    // inside / explored
+    const inB = buildingAt(p.x, p.y);
+    if (inB !== Wd.inside) { Wd.inside = inB; if (inB && inB.name && !inB.seen) { inB.seen = true; toast(inB.name); } }
+    Wd.exT -= dt;
+    if (Wd.exT <= 0) {
+      Wd.exT = .4;
+      const R = 10, ci = Math.floor(p.x), cj = Math.floor(p.y);
+      for (let j = cj - R; j <= cj + R; j++) for (let i = ci - R; i <= ci + R; i++) if (i >= 0 && j >= 0 && i < N && j < N && (i - ci) ** 2 + (j - cj) ** 2 <= R * R) Wd.explored[j * N + i] = 1;
+    }
+  }
+  for (const b of Wd.map.buildings) {
+    const want = b === Wd.inside && mode === "play" ? 0 : 1;
+    if (b.roofA !== want) b.roofA = clamp(b.roofA + (want ? dt : -dt) * 5, 0, 1);
+  }
+  for (const cp of Wd.map.canopies) {
+    const under = mode === "play" && p.x > cp.x - .2 && p.x < cp.x + cp.w + .2 && p.y > cp.y - .2 && p.y < cp.y + cp.h + .2;
+    cp.roofA = clamp(cp.roofA + (under ? -dt : dt) * 5, .25, 1);
   }
   const flash = mode === "play" && nf > .5 && p.bat > 0;
-  const lamplit = Wd.map.lamps.some(L => L.on && Math.hypot(L.x - p.x, L.y - p.y) < 3.2);
+  const lamplit = Wd.map.lamps.some(L => L.on && Math.abs(L.x - p.x) < 3.2 && Math.abs(L.y - p.y) < 3.2);
 
   Wd.flowT -= dt;
-  if (Wd.flowT <= 0 && mode === "play") { Wd.flowT = .3; buildFlow(); }
+  if (Wd.flowT <= 0 && mode === "play") { Wd.flowT = .35; buildFlow(); }
 
+  const fx = mode === "play" ? p.x : Wd.focusX, fy = mode === "play" ? p.y : Wd.focusY;
   for (const z of Wd.zombies) {
+    if (Math.abs(z.x - fx) > 30 || Math.abs(z.y - fy) > 30) continue;
+    z.active = true;
     z.think -= dt; z.hit = Math.max(0, z.hit - dt); z.cool -= dt;
     const dx = p.x - z.x, dy = p.y - z.y, d = Math.hypot(dx, dy);
     if (mode === "play" && z.think <= 0) {
@@ -1021,13 +1596,18 @@ function update(dt) {
         z.state = "chase"; z.lx = p.x; z.ly = p.y; z.lost = 0;
       } else if (z.state === "chase") {
         z.lost = (z.lost || 0) + .3;
-        if (z.lost > 3.5) { z.state = "investigate"; z.tx = z.lx; z.ty = z.ly; }
+        if (z.lost > 4) { z.state = "investigate"; z.tx = z.lx; z.ty = z.ly; }
       }
+      // stuck check
+      const mv = Math.hypot(z.x - z.lastX, z.y - z.lastY);
+      if ((z.state === "chase" || z.state === "investigate") && mv < .03) z.stuckT += .3; else z.stuckT = 0;
+      z.lastX = z.x; z.lastY = z.y;
+      if (z.stuckT > 1.2) { z.side = rand(.6, 1.2) * (Math.random() < .5 ? -1 : 1); z.stuckT = 0; }
     }
     let tx = null, ty = null, sp = z.spd * (nf > .5 ? 1.2 : 1);
     if (z.state === "chase" && mode === "play") {
       if (d < .82) { if (z.atkT <= 0 && z.cool <= 0) { z.atkT = z.runner ? .3 : .4; z.dir = Math.atan2(dy, dx); } }
-      else { const st = d > 1.4 ? flowStep(z) : null; if (st) { tx = st.x; ty = st.y; } else { tx = p.x; ty = p.y; } }
+      else { const st = d > 1.3 ? flowStep(z) : null; if (st) { tx = st.x; ty = st.y; } else { tx = p.x; ty = p.y; } }
     } else if (z.state === "investigate") {
       tx = z.tx; ty = z.ty; sp *= .8;
       if (Math.hypot(z.tx - z.x, z.ty - z.y) < .4) z.state = "wander";
@@ -1040,7 +1620,7 @@ function update(dt) {
       z.atkT -= dt;
       if (z.atkT <= 0) {
         z.cool = z.runner ? .9 : 1.15;
-        if (mode === "play" && d < 1.05) {
+        if (mode === "play" && d < 1.05 && los(z.x, z.y, p.x, p.y)) {
           const dmg = rand(8, 13) * (nf > .5 ? 1.15 : 1) * D.dmg;
           p.hp -= dmg; p.hurtT = .3; Wd.shake = 9; hurtFlash(); thud(.35); tone(180, .18, "square", .03, .6);
           p.search = null;
@@ -1052,124 +1632,168 @@ function update(dt) {
     const gait = z.runner ? 1 : (.65 + .55 * Math.max(0, Math.sin(z.ph))) * (1 - (Math.sin(z.ph) < 0 ? z.limp * .35 : 0));
     let tvx = 0, tvy = 0;
     if (tx !== null && z.atkT <= 0 && z.hit <= 0) {
-      const ddx = tx - z.x, ddy = ty - z.y, dd = Math.hypot(ddx, ddy) || 1;
-      tvx = ddx / dd * sp * gait; tvy = ddy / dd * sp * gait;
+      let ddx = tx - z.x, ddy = ty - z.y;
+      const dd = Math.hypot(ddx, ddy) || 1;
+      ddx /= dd; ddy /= dd;
+      if (z.side) { const sx = -ddy * z.side, sy = ddx * z.side; ddx = ddx * .4 + sx; ddy = ddy * .4 + sy; z.side *= Math.pow(.2, dt); if (Math.abs(z.side) < .1) z.side = 0; const n2 = Math.hypot(ddx, ddy) || 1; ddx /= n2; ddy /= n2; }
+      tvx = ddx * sp * gait; tvy = ddy * sp * gait;
       z.dir += angDiff(z.dir, Math.atan2(ddy, ddx)) * Math.min(1, dt * (z.runner ? 10 : 4));
     }
     const acc = 1 - Math.pow(z.runner ? .01 : .05, dt);
     z.vx = lerp(z.vx, tvx, acc); z.vy = lerp(z.vy, tvy, acc);
-    moveEnt(z, z.vx * dt, z.vy * dt);
+    if (Math.abs(z.vx) + Math.abs(z.vy) > .01) moveEnt(z, z.vx * dt, z.vy * dt);
     z.ph += dt * Math.max(Math.hypot(z.vx, z.vy) * (z.runner ? 2.8 : 3.4), .6);
     if (z.kx || z.ky) { moveEnt(z, z.kx * dt, z.ky * dt); z.kx *= Math.pow(.004, dt); z.ky *= Math.pow(.004, dt); if (Math.abs(z.kx) + Math.abs(z.ky) < .05) z.kx = z.ky = 0; }
     z.groanT -= dt;
     if (z.groanT <= 0) { z.groanT = rand(6, 16); if (mode === "play" && d < 7) groan(); }
   }
-  const zs = Wd.zombies;
+  const zs = Wd.zombies.filter(z => z.active);
+  for (const z of Wd.zombies) z.active = false;
   for (let i = 0; i < zs.length; i++) for (let j = i + 1; j < zs.length; j++) {
-    const a = zs[i], b = zs[j], dx = b.x - a.x, dy = b.y - a.y, d2 = dx * dx + dy * dy;
-    if (d2 < .36 && d2 > 1e-6) { const d = Math.sqrt(d2), push = (.6 - d) * .5; moveEnt(a, -dx / d * push, -dy / d * push); moveEnt(b, dx / d * push, dy / d * push); }
+    const a = zs[i], b = zs[j], dx = b.x - a.x, dy = b.y - a.y;
+    if (Math.abs(dx) > .6 || Math.abs(dy) > .6) continue;
+    const d2 = dx * dx + dy * dy;
+    if (d2 < .36 && d2 > 1e-6) { const d = Math.sqrt(d2), push = (.6 - d) * .5; a.x -= dx / d * push; a.y -= dy / d * push; b.x += dx / d * push; b.y += dy / d * push; collide(a, .24); collide(b, .24); }
   }
   if (mode === "play") for (const z of zs) {
     const dx = p.x - z.x, dy = p.y - z.y, d = Math.hypot(dx, dy);
-    if (d < .5 && d > 1e-6) moveEnt(z, -dx / d * (.5 - d), -dy / d * (.5 - d));
+    if (d < .5 && d > 1e-6) { z.x -= dx / d * (.5 - d); z.y -= dy / d * (.5 - d); collide(z, .24); }
   }
   for (let i = Wd.parts.length - 1; i >= 0; i--) {
     const q = Wd.parts[i];
     q.x += q.vx * dt; q.y += q.vy * dt; q.vz -= 9 * dt; q.z += q.vz * dt;
-    if (q.z <= 0) { if (Wd.decals.length < 240 && Math.random() < .5) Wd.decals.push({ x: q.x, y: q.y, r: rand(.05, .12) }); Wd.parts.splice(i, 1); }
+    if (q.z <= 0) { if (Wd.decals.length < 300 && Math.random() < .5) Wd.decals.push({ x: q.x, y: q.y, r: rand(.05, .12) }); Wd.parts.splice(i, 1); }
   }
   for (let i = Wd.dust.length - 1; i >= 0; i--) { const q = Wd.dust[i]; q.t += dt; q.x += q.vx * dt; q.y += q.vy * dt; if (q.t > .6) Wd.dust.splice(i, 1); }
   for (const c of Wd.corpses) {
     c.t = Math.min(1, c.t + dt / .45); c.age += dt;
-    if (c.t >= 1 && !c.pooled) { c.pooled = true; if (Wd.decals.length < 240) Wd.decals.push({ x: c.x + c.dx * .3, y: c.y + c.dy * .3, r: rand(.4, .6) }); }
+    if (c.t >= 1 && !c.pooled) { c.pooled = true; if (Wd.decals.length < 300) Wd.decals.push({ x: c.x + c.dx * .3, y: c.y + c.dy * .3, r: rand(.4, .6) }); }
   }
   Wd.shake = Math.max(0, Wd.shake - dt * 30);
-  if (settings.quality === "high" && nf > .6 && Wd.flies.length < 26 && Math.random() < dt * 6 && Wd.map.trees.length) {
-    const t = pick(Wd.map.trees); Wd.flies.push({ x: t.x + rand(-1, 1), y: t.y + rand(-1, 1), z: rand(8, 30), t: 0, life: rand(3, 7), ph: Math.random() * 6 });
+  if (settings.quality === "high" && nf > .6 && Wd.flies.length < 26 && Math.random() < dt * 6) {
+    const a = Math.random() * 6.28, r = rand(2, 9), x = fx + Math.cos(a) * r, y = fy + Math.sin(a) * r;
+    if (!buildingAt(x, y)) Wd.flies.push({ x, y, z: rand(8, 30), t: 0, life: rand(3, 7), ph: Math.random() * 6 });
   }
   for (let i = Wd.flies.length - 1; i >= 0; i--) { const f = Wd.flies[i]; f.t += dt; f.x += Math.sin(f.t * 1.3 + f.ph) * dt * .3; f.y += Math.cos(f.t * 1.1 + f.ph) * dt * .3; if (f.t > f.life || nf < .4) Wd.flies.splice(i, 1); }
 
   let target;
-  if (mode !== "play") { Wd.panT = (Wd.panT || 0) + dt * .04; target = iso(N / 2 + Math.cos(Wd.panT) * 7, N / 2 + Math.sin(Wd.panT * 1.3) * 7); }
-  else target = iso(p.x + p.vx * .35, p.y + p.vy * .35);
+  if (mode !== "play") {
+    Wd.panT = (Wd.panT || 0) + dt * .03;
+    Wd.focusX = START.x + Math.cos(Wd.panT) * 9; Wd.focusY = START.y + 4 + Math.sin(Wd.panT * 1.3) * 9;
+    target = iso(Wd.focusX, Wd.focusY);
+  } else target = iso(p.x + p.vx * .35, p.y + p.vy * .35);
   const k = 1 - Math.pow(.002, dt);
   Wd.camX = lerp(Wd.camX, target.X, k); Wd.camY = lerp(Wd.camY, target.Y - 14, k);
-
   if (mode === "play") { hudT -= dt; if (hudT <= 0) { hudT = .2; updateHud(); } }
 }
 
-// ================= drawing: buildings =================
+// ================= drawing helpers =================
 const quad = (c, a, b, d, e, fill) => { c.beginPath(); c.moveTo(a.X, a.Y); c.lineTo(b.X, b.Y); c.lineTo(d.X, d.Y); c.lineTo(e.X, e.Y); c.closePath(); c.fillStyle = fill; c.fill(); };
 const tri = (c, a, b, d, fill) => { c.beginPath(); c.moveTo(a.X, a.Y); c.lineTo(b.X, b.Y); c.lineTo(d.X, d.Y); c.closePath(); c.fillStyle = fill; c.fill(); };
+function isoBox(c, x0, y0, x1, y1, z0, z1, top, south, east) {
+  quad(c, P3(x0, y1, z0), P3(x1, y1, z0), P3(x1, y1, z1), P3(x0, y1, z1), south);
+  quad(c, P3(x1, y1, z0), P3(x1, y0, z0), P3(x1, y0, z1), P3(x1, y1, z1), east);
+  quad(c, P3(x0, y0, z1), P3(x1, y0, z1), P3(x1, y1, z1), P3(x0, y1, z1), top);
+}
+const box3 = (c, x0, y0, x1, y1, z0, z1, col) => isoBox(c, x0, y0, x1, y1, z0, z1, shade(col, .12), col, shade(col, -.25));
+const dot3 = (c, x, y, z, r, col) => { const q = P3(x, y, z); c.fillStyle = col; c.beginPath(); c.arc(q.X, q.Y, r, 0, 7); c.fill(); };
+const ell3 = (c, x, y, z, rx, ry, col) => { const q = P3(x, y, z); c.fillStyle = col; c.beginPath(); c.ellipse(q.X, q.Y, rx, ry, 0, 0, 7); c.fill(); };
 
-function drawWindow(c, P, lit, h, dark) {
-  quad(c, P(.24, 22), P(.76, 22), P(.76, 50), P(.24, 50), dark ? "rgba(215,210,198,.85)" : "rgba(245,240,228,.9)");
-  quad(c, P(.28, 25), P(.72, 25), P(.72, 47), P(.28, 47), lit ? PAL.lit : dark ? "#222a35" : PAL.glass);
-  if (!lit) quad(c, P(.3, 36), P(.42, 36), P(.42, 46), P(.3, 46), "rgba(255,255,255,.1)");
-  c.strokeStyle = dark ? "rgba(215,210,198,.85)" : "rgba(245,240,228,.9)"; c.lineWidth = 1.4;
-  const a = P(.5, 25), b = P(.5, 47), e = P(.28, 36), f = P(.72, 36);
-  c.beginPath(); c.moveTo(a.X, a.Y); c.lineTo(b.X, b.Y); c.moveTo(e.X, e.Y); c.lineTo(f.X, f.Y); c.stroke();
-  quad(c, P(.2, 19.5), P(.8, 19.5), P(.8, 22.5), P(.2, 22.5), "rgba(235,228,212,.95)");
-  if (h.shutters) { const s = dark ? shade(h.shutters, -.2) : h.shutters; quad(c, P(.12, 22), P(.22, 22), P(.22, 50), P(.12, 50), s); quad(c, P(.78, 22), P(.88, 22), P(.88, 50), P(.78, 50), s); }
-}
-function drawWallFace(c, h, L, R, colr, segIdx, isDoor, nf, dark) {
-  quad(c, L, R, { X: R.X, Y: R.Y - WALL }, { X: L.X, Y: L.Y - WALL }, colr);
-  c.strokeStyle = "rgba(0,0,0,.07)"; c.lineWidth = 1;
-  for (let v = 14; v < WALL; v += 8) { c.beginPath(); c.moveTo(L.X, L.Y - v); c.lineTo(R.X, R.Y - v); c.stroke(); }
-  const P = (t, v) => ({ X: lerp(L.X, R.X, t), Y: lerp(L.Y, R.Y, t) - v });
-  if (isDoor) {
-    quad(c, P(.26, 0), P(.74, 0), P(.74, 44), P(.26, 44), "rgba(245,240,228,.9)");
-    quad(c, P(.31, 0), P(.69, 0), P(.69, 41), P(.31, 41), PAL.door);
-    quad(c, P(.36, 25), P(.64, 25), P(.64, 36), P(.36, 36), "rgba(255,255,255,.08)");
-    c.fillStyle = "#d9b45a"; const kn = P(.62, 19); c.beginPath(); c.arc(kn.X, kn.Y, 1.4, 0, 7); c.fill();
-    if (h.looted) {
-      c.strokeStyle = "rgba(240,235,220,.85)"; c.lineWidth = 2; c.lineCap = "round";
-      const a = P(.38, 34), b = P(.62, 10), a2 = P(.62, 34), b2 = P(.38, 10);
-      c.beginPath(); c.moveTo(a.X, a.Y); c.lineTo(b.X, b.Y); c.moveTo(a2.X, a2.Y); c.lineTo(b2.X, b2.Y); c.stroke(); c.lineCap = "butt";
+// ================= drawing: walls & roofs =================
+function drawWall(c, w, cut) {
+  const fence = w.c === 3, door = w.c === 4;
+  const Hh = fence ? 18 : cut ? 12 : WALL;
+  const off = fence ? .04 : .07, t0 = w.t0;
+  let A, B;
+  if (w.axis === "x") { A = [w.i + t0, w.j + off]; B = [w.i + t0 + .5, w.j + off]; }
+  else { A = [w.i + off, w.j + t0 + .5]; B = [w.i + off, w.j + t0]; }
+  const F = (t, z) => P3(lerp(A[0], B[0], t), lerp(A[1], B[1], t), z);
+  if (fence) {
+    c.strokeStyle = "#6e5236"; c.lineWidth = 1.6;
+    const r1a = F(0, 6), r1b = F(1, 6), r2a = F(0, 13), r2b = F(1, 13);
+    c.beginPath(); c.moveTo(r1a.X, r1a.Y); c.lineTo(r1b.X, r1b.Y); c.moveTo(r2a.X, r2a.Y); c.lineTo(r2b.X, r2b.Y); c.stroke();
+    c.strokeStyle = "#a3825a"; c.lineWidth = 2.4;
+    c.beginPath();
+    for (let k = 0; k < 4; k++) { const t = (k + .5) / 4, a = F(t, 0), b = F(t, 17); c.moveTo(a.X, a.Y); c.lineTo(b.X, b.Y); }
+    c.stroke();
+    return;
+  }
+  const b = w.b, outerFace = !w.inFace;
+  const face = w.inFace ? b.inC : (w.axis === "x" ? b.wallC[0] : b.wallC[1]);
+  if (door) {
+    if (cut) return;
+    quad(c, F(0, 46), F(1, 46), F(1, WALL), F(0, WALL), face);
+    quad(c, F(0, 44), F(1, 44), F(1, 47), F(0, 47), "rgba(245,240,228,.9)");
+  } else {
+    quad(c, F(0, 0), F(1, 0), F(1, Hh), F(0, Hh), face);
+    if (!cut) {
+      c.strokeStyle = outerFace ? "rgba(0,0,0,.07)" : "rgba(0,0,0,.035)"; c.lineWidth = 1;
+      c.beginPath();
+      if (outerFace && b.roofType === "gable") for (let v = 14; v < WALL; v += 9) { const a = F(0, v), e = F(1, v); c.moveTo(a.X, a.Y); c.lineTo(e.X, e.Y); }
+      else if (!outerFace) for (let k = 1; k < 4; k++) { const a = F(k / 4, 4), e = F(k / 4, Hh); c.moveTo(a.X, a.Y); c.lineTo(e.X, e.Y); }
+      c.stroke();
     }
-    const lamp = P(.82, 40); c.fillStyle = nf > .3 && !h.looted ? "#ffe0a0" : "#4a4a4a"; c.fillRect(lamp.X - 1.5, lamp.Y - 3, 3, 4);
-  } else drawWindow(c, P, h.lit[segIdx % h.lit.length] && nf > .3, h, dark);
-  quad(c, L, R, { X: R.X, Y: R.Y - 6 }, { X: L.X, Y: L.Y - 6 }, "rgba(40,36,32,.45)");
+    quad(c, F(0, 0), F(1, 0), F(1, 5), F(0, 5), w.inFace ? "rgba(90,70,50,.55)" : "rgba(40,36,32,.45)");
+    if (w.c === 2 && !cut) {
+      // window spans tile fraction [.16, .84]; this half covers [t0, t0 + .5]
+      const a0 = Math.max(.16, t0), a1 = Math.min(.84, t0 + .5);
+      if (a1 > a0) {
+        const L = t => (t - t0) / .5;
+        const frame = w.inFace ? "rgba(250,246,236,.95)" : "rgba(245,240,228,.92)";
+        quad(c, F(L(a0), 20), F(L(a1), 20), F(L(a1), 52), F(L(a0), 52), frame);
+        const g0 = Math.max(.2, t0), g1 = Math.min(.8, t0 + .5);
+        const glass = w.lit && nightF(world.time) > .3 ? PAL.lit : w.inFace ? (nightF(world.time) > .5 ? "#1c2333" : "#9fb8c9") : PAL.glass;
+        quad(c, F(L(g0), 24), F(L(g1), 24), F(L(g1), 48), F(L(g0), 48), glass);
+        if (!w.inFace) quad(c, F(L(g0), 37), F(L(Math.min(g1, g0 + .1)), 37), F(L(Math.min(g1, g0 + .1)), 47), F(L(g0), 47), "rgba(255,255,255,.1)");
+        quad(c, F(L(g0), 35.5), F(L(g1), 35.5), F(L(g1), 37), F(L(g0), 37), frame);
+        quad(c, F(L(a0) - .04, 18), F(L(a1) + .04, 18), F(L(a1) + .04, 21), F(L(a0) - .04, 21), "rgba(235,228,212,.95)");
+        if (outerFace && b.shutters) {
+          if (t0 === 0) quad(c, F(L(.06), 20), F(L(.15), 20), F(L(.15), 52), F(L(.06), 52), w.axis === "x" ? b.shutters : shade(b.shutters, -.2));
+          else quad(c, F(L(.85), 20), F(L(.94), 20), F(L(.94), 52), F(L(.85), 52), w.axis === "x" ? b.shutters : shade(b.shutters, -.2));
+        }
+      }
+    }
+  }
+  // top cap
+  let a, e, f2, g2;
+  if (w.axis === "x") { a = P3(w.i + t0, w.j - off, Hh); e = P3(w.i + t0 + .5, w.j - off, Hh); f2 = P3(w.i + t0 + .5, w.j + off, Hh); g2 = P3(w.i + t0, w.j + off, Hh); }
+  else { a = P3(w.i - off, w.j + t0, Hh); e = P3(w.i + off, w.j + t0, Hh); f2 = P3(w.i + off, w.j + t0 + .5, Hh); g2 = P3(w.i - off, w.j + t0 + .5, Hh); }
+  if (!(door && cut)) quad(c, a, e, f2, g2, cut ? "#3b3631" : shade(b.wallC[1], -.3));
 }
-function drawHouseTile(c, h, i, j, nf) {
-  if (j === h.y + h.h - 1) drawWallFace(c, h, iso(i, j + 1), iso(i + 1, j + 1), h.wall[0], i - h.x, i === h.doorTile, nf, false);
-  if (i === h.x + h.w - 1) drawWallFace(c, h, iso(i + 1, j + 1), iso(i + 1, j), h.wall[1], h.w + j - h.y, false, nf, true);
-  if (i === h.x + h.w - 1 && j === h.y + h.h - 1) drawRoof(c, h);
-}
-function drawRoof(c, h) {
-  const o = .18, ez = WALL - 4, rz = WALL + h.rh;
-  const x0 = h.x - o, x1 = h.x + h.w + o, y0 = h.y - o, y1 = h.y + h.h + o;
-  const base = h.roof;
+function drawGable(c, b) {
+  const o = .18, ez = WALL - 4, rz = WALL + b.rh;
+  const x0 = b.x - o, x1 = b.x + b.w + o, y0 = b.y - o, y1 = b.y + b.h + o, base = b.roofC;
   const shingles = (A, B, C, D, n) => {
-    c.strokeStyle = "rgba(0,0,0,.16)"; c.lineWidth = 1;
-    for (let k = 1; k < n; k++) { const t = k / n; c.beginPath(); c.moveTo(lerp(A.X, D.X, t), lerp(A.Y, D.Y, t)); c.lineTo(lerp(B.X, C.X, t), lerp(B.Y, C.Y, t)); c.stroke(); }
+    c.strokeStyle = "rgba(0,0,0,.16)"; c.lineWidth = 1; c.beginPath();
+    for (let k = 1; k < n; k++) { const t = k / n; c.moveTo(lerp(A.X, D.X, t), lerp(A.Y, D.Y, t)); c.lineTo(lerp(B.X, C.X, t), lerp(B.Y, C.Y, t)); }
+    c.stroke();
   };
-  if (h.ridgeX) {
-    const ym = h.y + h.h / 2;
+  if (b.ridgeX) {
+    const ym = b.y + b.h / 2;
     quad(c, P3(x0, y0, ez), P3(x1, y0, ez), P3(x1, ym, rz), P3(x0, ym, rz), shade(base, -.22));
-    tri(c, P3(h.x + h.w, h.y, WALL), P3(h.x + h.w, h.y + h.h, WALL), P3(h.x + h.w, ym, rz - 5), h.wall[1]);
-    const v = P3(h.x + h.w, ym, WALL + h.rh * .4); c.fillStyle = "#2b2f38"; c.beginPath(); c.ellipse(v.X, v.Y, 3.5, 4.5, -.45, 0, 7); c.fill();
+    tri(c, P3(b.x + b.w, b.y, WALL), P3(b.x + b.w, b.y + b.h, WALL), P3(b.x + b.w, ym, rz - 5), b.wallC[1]);
+    const v = P3(b.x + b.w, ym, WALL + b.rh * .4); c.fillStyle = "#2b2f38"; c.beginPath(); c.ellipse(v.X, v.Y, 3.5, 4.5, -.45, 0, 7); c.fill();
     const A = P3(x0, y1, ez), B = P3(x1, y1, ez), C = P3(x1, ym, rz), D = P3(x0, ym, rz);
-    quad(c, A, B, C, D, shade(base, .06)); shingles(A, B, C, D, 6);
+    quad(c, A, B, C, D, shade(base, .06)); shingles(A, B, C, D, 7);
     quad(c, P3(x1, y0, ez), P3(x1, ym, rz), P3(x1, ym, rz - 3), P3(x1, y0, ez - 3), shade(base, -.35));
     quad(c, P3(x1, ym, rz), P3(x1, y1, ez), P3(x1, y1, ez - 3), P3(x1, ym, rz - 3), shade(base, -.3));
     quad(c, A, B, { X: B.X, Y: B.Y + 3 }, { X: A.X, Y: A.Y + 3 }, shade(base, -.4));
     c.strokeStyle = shade(base, .25); c.lineWidth = 2; c.beginPath(); c.moveTo(D.X, D.Y); c.lineTo(C.X, C.Y); c.stroke();
-    const cy = h.y + h.h * .3;
-    drawChimney(c, h.x + h.w * .7, cy, ez + (rz - ez) * (1 - Math.abs(cy - ym) / (h.h / 2 + o)));
+    const cy = b.y + b.h * .3;
+    drawChimney(c, b.x + b.w * .7, cy, ez + (rz - ez) * (1 - Math.abs(cy - ym) / (b.h / 2 + o)));
   } else {
-    const xm = h.x + h.w / 2;
+    const xm = b.x + b.w / 2;
     quad(c, P3(x0, y0, ez), P3(x0, y1, ez), P3(xm, y1, rz), P3(xm, y0, rz), shade(base, -.22));
-    tri(c, P3(h.x, h.y + h.h, WALL), P3(h.x + h.w, h.y + h.h, WALL), P3(xm, h.y + h.h, rz - 5), h.wall[0]);
-    const v = P3(xm, h.y + h.h, WALL + h.rh * .4); c.fillStyle = "#2b2f38"; c.beginPath(); c.ellipse(v.X, v.Y, 3.5, 4.5, .45, 0, 7); c.fill();
+    tri(c, P3(b.x, b.y + b.h, WALL), P3(b.x + b.w, b.y + b.h, WALL), P3(xm, b.y + b.h, rz - 5), b.wallC[0]);
+    const v = P3(xm, b.y + b.h, WALL + b.rh * .4); c.fillStyle = "#2b2f38"; c.beginPath(); c.ellipse(v.X, v.Y, 3.5, 4.5, .45, 0, 7); c.fill();
     const A = P3(x1, y1, ez), B = P3(x1, y0, ez), C = P3(xm, y0, rz), D = P3(xm, y1, rz);
-    quad(c, A, B, C, D, shade(base, -.06)); shingles(A, B, C, D, 6);
+    quad(c, A, B, C, D, shade(base, -.06)); shingles(A, B, C, D, 7);
     quad(c, P3(x0, y1, ez), P3(xm, y1, rz), P3(xm, y1, rz - 3), P3(x0, y1, ez - 3), shade(base, -.3));
     quad(c, P3(xm, y1, rz), P3(x1, y1, ez), P3(x1, y1, ez - 3), P3(xm, y1, rz - 3), shade(base, -.38));
     quad(c, A, B, { X: B.X, Y: B.Y + 3 }, { X: A.X, Y: A.Y + 3 }, shade(base, -.45));
     c.strokeStyle = shade(base, .25); c.lineWidth = 2; c.beginPath(); c.moveTo(D.X, D.Y); c.lineTo(C.X, C.Y); c.stroke();
-    const cx = h.x + h.w * .3;
-    drawChimney(c, cx, h.y + h.h * .3, ez + (rz - ez) * (1 - Math.abs(cx + .17 - xm) / (h.w / 2 + o)));
+    const cx = b.x + b.w * .3;
+    drawChimney(c, cx, b.y + b.h * .3, ez + (rz - ez) * (1 - Math.abs(cx + .17 - xm) / (b.w / 2 + o)));
   }
 }
 function drawChimney(c, x, y, z) {
@@ -1177,8 +1801,277 @@ function drawChimney(c, x, y, z) {
   quad(c, P3(x, y + s, zb), P3(x + s, y + s, zb), P3(x + s, y + s, z + hgt), P3(x, y + s, z + hgt), "#8a5442");
   quad(c, P3(x + s, y + s, zb), P3(x + s, y, zb), P3(x + s, y, z + hgt), P3(x + s, y + s, z + hgt), "#6b4033");
   quad(c, P3(x - .04, y - .04, z + hgt), P3(x + s + .04, y - .04, z + hgt), P3(x + s + .04, y + s + .04, z + hgt), P3(x - .04, y + s + .04, z + hgt), "#4a3029");
-  c.strokeStyle = "rgba(0,0,0,.18)"; c.lineWidth = 1;
-  for (let v = 4; v < hgt + 6; v += 5) { const a = P3(x, y + s, zb + v), b = P3(x + s, y + s, zb + v), d = P3(x + s, y, zb + v); c.beginPath(); c.moveTo(a.X, a.Y); c.lineTo(b.X, b.Y); c.lineTo(d.X, d.Y); c.stroke(); }
+}
+function drawFlatRoof(c, b) {
+  const z = WALL + 6, x0 = b.x - .06, y0 = b.y - .06, x1 = b.x + b.w + .06, y1 = b.y + b.h + .06;
+  quad(c, P3(x0, y1, WALL - 3), P3(x1, y1, WALL - 3), P3(x1, y1, z), P3(x0, y1, z), shade(b.wallC[0], -.12));
+  quad(c, P3(x1, y1, WALL - 3), P3(x1, y0, WALL - 3), P3(x1, y0, z), P3(x1, y1, z), shade(b.wallC[1], -.12));
+  quad(c, P3(x0, y0, z), P3(x1, y0, z), P3(x1, y1, z), P3(x0, y1, z), shade(b.wallC[0], .1));
+  const ins = .16;
+  quad(c, P3(x0 + ins, y0 + ins, z), P3(x1 - ins, y0 + ins, z), P3(x1 - ins, y1 - ins, z), P3(x0 + ins, y1 - ins, z), b.roofC);
+  quad(c, P3(x0 + ins, y0 + ins, z), P3(x1 - ins, y0 + ins, z), P3(x1 - ins, y0 + ins, z - 4), P3(x0 + ins, y0 + ins, z - 4), "rgba(0,0,0,.18)");
+  c.fillStyle = "rgba(255,255,255,.06)";
+  for (let k = 0; k < 14; k++) { const q = P3(b.x + hash(b.id, k) * b.w, b.y + hash(k, b.id) * b.h, z); c.fillRect(q.X, q.Y, 2, 1); }
+  for (const [fx, fy] of b.ac) { const ax = b.x + fx * (b.w - 1), ay = b.y + fy * (b.h - 1); box3(c, ax, ay, ax + .7, ay + .55, z, z + 12, "#9aa0a6"); ell3(c, ax + .35, ay + .27, z + 12, 7, 3.5, "#5d636a"); }
+  if (b.name) {
+    const xa = b.x + .8, xb = b.x + b.w - .8, yy = y1 - .25, O = P3(xa, yy, z), len = (xb - xa) * HW;
+    c.save(); c.transform(1, .5, 0, 1, O.X, O.Y);
+    c.fillStyle = "#2a2a2a"; c.fillRect(len * .2, -4, 2, 4); c.fillRect(len * .8, -4, 2, 4);
+    c.fillStyle = b.sign; c.fillRect(0, -26, len, 22);
+    c.fillStyle = "rgba(255,255,255,.18)"; c.fillRect(0, -26, len, 3);
+    c.fillStyle = "#fff"; c.font = "700 13px Rubik, system-ui, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillText(b.name.toUpperCase(), len / 2, -14.5);
+    c.restore();
+  }
+}
+function drawRoof(c, b) {
+  if (b.roofA < .02) return;
+  c.globalAlpha = b.roofA;
+  if (b.roofType === "gable") drawGable(c, b); else drawFlatRoof(c, b);
+  c.globalAlpha = 1;
+}
+function drawCanopy(c, cp) {
+  c.globalAlpha = cp.roofA;
+  const z0 = 58, z1 = 66, x0 = cp.x, y0 = cp.y, x1 = cp.x + cp.w, y1 = cp.y + cp.h;
+  isoBox(c, x0, y0, x1, y1, z0, z1, "#e9ecef", "#2f6fb0", "#25588c");
+  quad(c, P3(x0, y1, z0 + 1), P3(x1, y1, z0 + 1), P3(x1, y1, z0 + 3), P3(x0, y1, z0 + 3), "#c8473a");
+  quad(c, P3(x1, y1, z0 + 1), P3(x1, y0, z0 + 1), P3(x1, y0, z0 + 3), P3(x1, y1, z0 + 3), "#a83c31");
+  c.globalAlpha = 1;
+}
+
+// ================= drawing: furniture =================
+function drawFurn(c, f) {
+  const { x0, y0, x1, y1 } = f, d = f.def, col = d.col, longX = (x1 - x0) >= (y1 - y0);
+  switch (f.kind) {
+    case "bed": case "hbed": {
+      box3(c, x0, y0, x1, y1, 0, 6, f.kind === "hbed" ? "#b8bcc4" : col);
+      box3(c, x0 + .04, y0 + .04, x1 - .04, y1 - .04, 6, 11, f.kind === "hbed" ? "#eef1f4" : "#e6dfd2");
+      const bl = f.kind === "hbed" ? "#7aa0c4" : f.blanket;
+      if (longX) box3(c, x0 + (x1 - x0) * .36, y0 + .03, x1 - .03, y1 - .03, 6, 12, bl); else box3(c, x0 + .03, y0 + (y1 - y0) * .36, x1 - .03, y1 - .03, 6, 12, bl);
+      if (longX) box3(c, x0 + .08, y0 + .14, x0 + .32, y1 - .14, 11, 14, "#f4f1ea"); else box3(c, x0 + .14, y0 + .08, x1 - .14, y0 + .32, 11, 14, "#f4f1ea");
+      if (f.kind === "bed") { if (longX) box3(c, x0, y0, x0 + .07, y1, 6, 22, col); else box3(c, x0, y0, x1, y0 + .07, 6, 22, col); }
+      break;
+    }
+    case "sofa": {
+      box3(c, x0, y0, x1, y1, 0, 9, col);
+      const bk = shade(col, -.1), s = f.side;
+      if (s === "W") box3(c, x0, y0, x0 + .24, y1, 9, 18, bk); else if (s === "E") box3(c, x1 - .24, y0, x1, y1, 9, 18, bk);
+      else if (s === "S") box3(c, x0, y1 - .24, x1, y1, 9, 18, bk); else box3(c, x0, y0, x1, y0 + .24, 9, 18, bk);
+      if (longX) { box3(c, x0, y0, x0 + .16, y1, 9, 14, bk); box3(c, x1 - .16, y0, x1, y1, 9, 14, bk); }
+      else { box3(c, x0, y0, x1, y0 + .16, 9, 14, bk); box3(c, x0, y1 - .16, x1, y1, 9, 14, bk); }
+      break;
+    }
+    case "tv": {
+      box3(c, x0, y0, x1, y1, 0, 10, col);
+      const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+      if (longX) isoBox(c, mx - .4, my - .04, mx + .4, my + .04, 11, 26, "#222", "#1b2633", "#111"); else isoBox(c, mx - .04, my - .4, mx + .04, my + .4, 11, 26, "#222", "#111", "#1b2633");
+      break;
+    }
+    case "table": {
+      for (const [lx, ly] of [[x0 + .08, y0 + .08], [x1 - .14, y0 + .08], [x0 + .08, y1 - .14], [x1 - .14, y1 - .14]]) box3(c, lx, ly, lx + .06, ly + .06, 0, 12, shade(col, -.2));
+      box3(c, x0, y0, x1, y1, 12, 14.5, col);
+      dot3(c, (x0 + x1) / 2, (y0 + y1) / 2, 15, 3, "#e8e4da");
+      break;
+    }
+    case "ctable": {
+      const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+      box3(c, cx - .25, cy - .55, cx + .25, cy - .45, 0, 9, "#4a3a30"); box3(c, cx - .25, cy + .45, cx + .25, cy + .55, 0, 9, "#4a3a30");
+      const p = P3(cx, cy, 0); c.strokeStyle = "#3a2e26"; c.lineWidth = 2.5; c.beginPath(); c.moveTo(p.X, p.Y); c.lineTo(p.X, p.Y - 13); c.stroke();
+      ell3(c, cx, cy, 14, 17, 8.5, shade(col, -.15)); ell3(c, cx, cy, 15, 16, 8, col);
+      dot3(c, cx + .1, cy, 16, 2.2, "#f0ece2");
+      break;
+    }
+    case "wardrobe": case "bookshelf": case "locker": case "fridge": case "cabinet": {
+      box3(c, x0, y0, x1, y1, d.z > 40 ? 0 : 14, d.z > 40 ? d.z : 14 + d.z, col);
+      const zb = d.z > 40 ? 0 : 14, zt = zb + (d.z > 40 ? d.z : d.z);
+      const front = longX ? (t, z) => P3(lerp(x0, x1, t), y1, z) : (t, z) => P3(x1, lerp(y1, y0, t), z);
+      c.strokeStyle = "rgba(0,0,0,.28)"; c.lineWidth = 1;
+      if (f.kind === "bookshelf") {
+        for (let s = 1; s < 4; s++) { const z = zb + s * (zt - zb) / 4, a = front(0, z), e = front(1, z); c.beginPath(); c.moveTo(a.X, a.Y); c.lineTo(e.X, e.Y); c.stroke();
+          for (let k = 0; k < 6; k++) { const t = .06 + k * .15, a1 = front(t, z + 1), a2 = front(t + .1, z + 1); c.fillStyle = ["#8c3f3a", "#3f5a7a", "#6b7d4a", "#c9a24a", "#e8e0d0"][(k + s + Math.floor(f.var * 5)) % 5]; c.beginPath(); c.moveTo(a1.X, a1.Y); c.lineTo(a2.X, a2.Y); c.lineTo(a2.X, a2.Y - 8); c.lineTo(a1.X, a1.Y - 8); c.fill(); } }
+      } else {
+        const n = f.kind === "locker" ? 3 : f.kind === "fridge" ? 1 : 2;
+        c.beginPath();
+        for (let k = 1; k < n + (f.kind === "fridge" ? 0 : 0); k++) { const a = front(k / n, zb + 2), e = front(k / n, zt - 2); c.moveTo(a.X, a.Y); c.lineTo(e.X, e.Y); }
+        if (f.kind === "fridge") { const a = front(0, zt * .62), e = front(1, zt * .62); c.moveTo(a.X, a.Y); c.lineTo(e.X, e.Y); }
+        c.stroke();
+        c.fillStyle = f.kind === "fridge" ? "#9aa0a8" : "#d9b45a";
+        for (let k = 0; k < n; k++) { const h = front((k + .5) / n + (f.kind === "fridge" ? .3 : .12), zb + (zt - zb) * .55); c.fillRect(h.X - 1, h.Y - 3, 2, 6); }
+        if (f.kind === "cabinet" && (f.b.type === "pharm" || f.b.type === "clinic")) { const m = front(.5, (zb + zt) / 2); c.fillStyle = "#c23b3b"; c.fillRect(m.X - 1.5, m.Y - 5, 3, 10); c.fillRect(m.X - 5, m.Y - 1.5, 10, 3); }
+      }
+      break;
+    }
+    case "counter": case "stove": case "checkout": {
+      box3(c, x0, y0, x1, y1, 0, 16, col);
+      isoBox(c, x0 - .02, y0 - .02, x1 + .02, y1 + .02, 16, 18.5, f.kind === "stove" ? "#2b2b2e" : "#e8e2d6", "#bdb6a6", "#a49d8e");
+      if (f.kind === "stove") for (const [a, b2] of [[.28, .3], [.72, .3], [.28, .7], [.72, .7]]) ell3(c, lerp(x0, x1, a), lerp(y0, y1, b2), 18.6, 3.6, 1.8, "#555a60");
+      if (f.kind === "counter") { const sx = (x0 + x1) / 2, sy = (y0 + y1) / 2; ell3(c, sx, sy, 18.6, 5, 2.4, "#9aa3ab"); }
+      if (f.kind === "checkout") { box3(c, x0 + .1, y0 + .1, x0 + .45, y0 + .4, 18.5, 26, "#2f3238"); quad(c, P3(x0 + .6, y0 + .15, 18.7), P3(x1 - .1, y0 + .15, 18.7), P3(x1 - .1, y1 - .15, 18.7), P3(x0 + .6, y1 - .15, 18.7), "#2b2b2e"); }
+      break;
+    }
+    case "bath": {
+      box3(c, x0, y0, x1, y1, 0, 12, col);
+      quad(c, P3(x0 + .1, y0 + .1, 12.2), P3(x1 - .1, y0 + .1, 12.2), P3(x1 - .1, y1 - .1, 12.2), P3(x0 + .1, y1 - .1, 12.2), "#bcd3dc");
+      break;
+    }
+    case "toilet": {
+      box3(c, x0 + .05, y0, x1 - .05, y0 + .2, 0, 20, col);
+      box3(c, x0 + .07, y0 + .2, x1 - .07, y1, 0, 10, col);
+      ell3(c, (x0 + x1) / 2, (y0 + y1) / 2 + .1, 10.5, 4, 2, "#cfd8dc");
+      break;
+    }
+    case "desk": case "workbench": {
+      for (const [lx, ly] of [[x0 + .05, y0 + .05], [x1 - .12, y0 + .05], [x0 + .05, y1 - .12], [x1 - .12, y1 - .12]]) box3(c, lx, ly, lx + .07, ly + .07, 0, 14, shade(col, -.25));
+      box3(c, x0, y0, x1, y1, 14, 17, col);
+      if (f.kind === "desk") { const mx = x0 + (x1 - x0) * .5, my = y0 + (y1 - y0) * .35; isoBox(c, mx - .2, my - .05, mx + .2, my + .05, 17, 27, "#222", "#2c3a48", "#151515"); }
+      else { box3(c, x0 + .2, y0 + .15, x0 + .6, y0 + .4, 17, 21, "#c0392b"); dot3(c, x1 - .4, y0 + .3, 18, 2.5, "#9aa0a6"); }
+      break;
+    }
+    case "plant": {
+      box3(c, x0 + .05, y0 + .05, x1 - .05, y1 - .05, 0, 9, col);
+      const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+      dot3(c, cx - .08, cy, 15, 6, "#3f7a3f"); dot3(c, cx + .08, cy, 18, 5.5, "#4f8f4a"); dot3(c, cx, cy, 22, 4.5, "#6aa65e");
+      break;
+    }
+    case "shelf": {
+      box3(c, x0, y0, x1, y1, 0, 3, "#6e747c");
+      const cols = f.b.type === "pharm" || f.b.type === "clinic" ? ["#e8f0f0", "#7fc0a0", "#d06060", "#a0c0e0"] : f.b.type === "hard" ? ["#c0392b", "#d08a2c", "#5e6b78", "#8a6a3a"] : f.b.type === "ware" ? ["#9a7a4c", "#8a6a3a", "#b09060"] : ["#c8473a", "#e0b040", "#4f8fc0", "#6fae5a", "#e8e0d0"];
+      for (let s = 0; s < 3; s++) {
+        const z = 4 + s * 9;
+        for (let k = 0; k < 6; k++) {
+          if (hash(f.var * 100 + k, s) < .2 && f.cont && f.cont.searched) continue;
+          const t0 = k / 6 + .02, t1 = (k + 1) / 6 - .02;
+          const bx0 = longX ? lerp(x0, x1, t0) : x0 + .08, bx1 = longX ? lerp(x0, x1, t1) : x1 - .08;
+          const by0 = longX ? y0 + .08 : lerp(y0, y1, t0), by1 = longX ? y1 - .08 : lerp(y0, y1, t1);
+          box3(c, bx0, by0, bx1, by1, z, z + 6, cols[(k + s + Math.floor(f.var * 7)) % cols.length]);
+        }
+        box3(c, x0, y0, x1, y1, z + 6.5, z + 8, "#9aa0a8");
+      }
+      break;
+    }
+    case "crate": {
+      box3(c, x0, y0, x1, y1, 0, 22, col);
+      c.strokeStyle = "rgba(60,40,20,.5)"; c.lineWidth = 1;
+      const a = P3(x0, y1, 0), b2 = P3(x1, y1, 22), e = P3(x1, y1, 0), g2 = P3(x0, y1, 22);
+      c.beginPath(); c.moveTo(a.X, a.Y); c.lineTo(b2.X, b2.Y); c.moveTo(e.X, e.Y); c.lineTo(g2.X, g2.Y); c.stroke();
+      break;
+    }
+    default: box3(c, x0, y0, x1, y1, 0, d.z, col);
+  }
+}
+
+// ================= drawing: street props & cars =================
+function drawSP(c, o, nf, time) {
+  const { x, y } = o;
+  switch (o.kind) {
+    case "bin": box3(c, x - .17, y - .17, x + .17, y + .17, 0, 18, "#3c5b44"); ell3(c, x, y, 18.5, 7, 3.4, "#2f4836"); break;
+    case "hydrant": box3(c, x - .1, y - .1, x + .1, y + .1, 0, 14, "#b8362e"); box3(c, x - .17, y - .05, x + .17, y + .05, 7, 10, "#a02f28"); dot3(c, x, y, 15, 3.5, "#d4473c"); break;
+    case "bench": {
+      const ax = !o.rot;
+      const bx0 = x - o.hx, by0 = y - o.hy, bx1 = x + o.hx, by1 = y + o.hy;
+      box3(c, bx0 + .05, by0 + .05, bx0 + .12, by1 - .05, 0, 8, "#3a3a3a"); box3(c, bx1 - .12, by0 + .05, bx1 - .05, by1 - .05, 0, 8, "#3a3a3a");
+      box3(c, bx0, by0, bx1, by1, 8, 10, "#8a6a48");
+      if (ax) box3(c, bx0, by0, bx1, by0 + .07, 10, 20, "#7a5c3e"); else box3(c, bx0, by0, bx0 + .07, by1, 10, 20, "#7a5c3e");
+      break;
+    }
+    case "busstop": {
+      const bx0 = x - o.hx, by0 = y - o.hy, bx1 = x + o.hx, by1 = y + o.hy, ax = !o.rot;
+      for (const [px, py] of [[bx0, by0], [bx1 - .06, by0], [bx0, by1 - .06], [bx1 - .06, by1 - .06]]) box3(c, px, py, px + .06, py + .06, 0, 54, "#5a6068");
+      if (ax) quad(c, P3(bx0, by0 + .03, 4), P3(bx1, by0 + .03, 4), P3(bx1, by0 + .03, 50), P3(bx0, by0 + .03, 50), "rgba(160,200,220,.35)");
+      else quad(c, P3(bx0 + .03, by1, 4), P3(bx0 + .03, by0, 4), P3(bx0 + .03, by0, 50), P3(bx0 + .03, by1, 50), "rgba(160,200,220,.35)");
+      box3(c, bx0 + (ax ? .1 : .1), by0 + .1, bx1 - (ax ? .1 : .3), by1 - (ax ? .3 : .1), 10, 12, "#6b5a48");
+      isoBox(c, bx0 - .05, by0 - .05, bx1 + .05, by1 + .05, 54, 58, "#c8cdd2", "#3b5b7a", "#2f4a63");
+      break;
+    }
+    case "newsbox": box3(c, x - .17, y - .14, x + .17, y + .14, 0, 22, "#2f5f9a"); quad(c, P3(x - .12, y + .14, 12), P3(x + .12, y + .14, 12), P3(x + .12, y + .14, 19), P3(x - .12, y + .14, 19), "#c9d6e2"); break;
+    case "stopsign": {
+      const p = P3(x, y, 0); c.strokeStyle = "#7a7f86"; c.lineWidth = 2; c.beginPath(); c.moveTo(p.X, p.Y); c.lineTo(p.X, p.Y - 50); c.stroke();
+      c.fillStyle = "#c0392b"; c.beginPath(); for (let k = 0; k < 8; k++) { const a = Math.PI / 8 + k * Math.PI / 4; c.lineTo(p.X + Math.cos(a) * 8, p.Y - 56 + Math.sin(a) * 8); } c.closePath(); c.fill();
+      c.fillStyle = "#fff"; c.fillRect(p.X - 5, p.Y - 57, 10, 2);
+      break;
+    }
+    case "barrier": {
+      const bx0 = x - o.hx, by0 = y - o.hy, bx1 = x + o.hx, by1 = y + o.hy, ax = !o.rot;
+      box3(c, bx0, by0, bx0 + .1, by1, 0, 18, "#666"); box3(c, bx1 - .1, by0, bx1, by1, 0, 18, "#666");
+      for (let k = 0; k < 4; k++) {
+        const t0 = k / 4, t1 = (k + 1) / 4, colr = k % 2 ? "#e8e4da" : "#c0392b";
+        if (ax) box3(c, lerp(bx0, bx1, t0), by0 + .02, lerp(bx0, bx1, t1), by1 - .02, 12, 20, colr); else box3(c, bx0 + .02, lerp(by0, by1, t0), bx1 - .02, lerp(by0, by1, t1), 12, 20, colr);
+      }
+      break;
+    }
+    case "barrel": { const colr = o.var < .5 ? "#3b5f8a" : "#8a4a2a"; box3(c, x - .22, y - .22, x + .22, y + .22, 0, 22, colr); ell3(c, x, y, 22.5, 9, 4.5, shade(colr, -.2)); c.strokeStyle = "rgba(0,0,0,.25)"; c.lineWidth = 1; const a = P3(x - .22, y + .22, 8), b2 = P3(x + .22, y + .22, 8), e = P3(x + .22, y - .22, 8); c.beginPath(); c.moveTo(a.X, a.Y); c.lineTo(b2.X, b2.Y); c.lineTo(e.X, e.Y); c.stroke(); break; }
+    case "tires": for (let k = 0; k < 3; k++) { ell3(c, x, y, k * 5 + 4, 10, 5, "#1a1a1c"); ell3(c, x, y, k * 5 + 5, 4, 2, "#3a3a3e"); } break;
+    case "dumpster": { const ax = !o.rot; const hx = ax ? .7 : .4, hy = ax ? .4 : .7; box3(c, x - hx, y - hy, x + hx, y + hy, 2, 26, "#2f6b4a"); isoBox(c, x - hx - .03, y - hy - .03, x + hx + .03, y + hy + .03, 26, 28, "#25553a", "#1f4a33", "#1a3f2b"); break; }
+    case "bbq": { const p = P3(x, y, 0); c.strokeStyle = "#333"; c.lineWidth = 1.4; c.beginPath(); c.moveTo(p.X - 4, p.Y); c.lineTo(p.X, p.Y - 12); c.lineTo(p.X + 4, p.Y); c.stroke(); ell3(c, x, y, 14, 8, 5, "#1f1f22"); ell3(c, x, y, 15, 6, 3, "#5a2a1a"); break; }
+    case "chair": box3(c, x - .15, y - .15, x + .15, y + .15, 6, 8, "#e8e6e0"); box3(c, x - .15, y - .15, x + .15, y - .1, 8, 18, "#dcdad4"); break;
+    case "bike": { const a = P3(x - .3, y + .05, 5), b2 = P3(x + .3, y - .05, 5); c.strokeStyle = "#222"; c.lineWidth = 1.5; c.beginPath(); c.ellipse(a.X, a.Y, 5, 5, 0, 0, 7); c.moveTo(b2.X + 5, b2.Y); c.ellipse(b2.X, b2.Y, 5, 5, 0, 0, 7); c.stroke(); c.strokeStyle = o.var < .5 ? "#c0392b" : "#2f6fb0"; c.lineWidth = 2; c.beginPath(); c.moveTo(a.X, a.Y); c.lineTo((a.X + b2.X) / 2, a.Y - 7); c.lineTo(b2.X, b2.Y); c.lineTo((a.X + b2.X) / 2 - 3, a.Y - 1); c.closePath(); c.stroke(); break; }
+    case "trashbags": dot3(c, x - .1, y, 6, 7, "#1f2226"); dot3(c, x + .12, y + .08, 5, 6, "#2a2e33"); dot3(c, x, y - .1, 9, 5, "#25292d"); break;
+    case "slide": { box3(c, x - .8, y - .25, x - .5, y + .25, 0, 32, "#c0392b"); const a = P3(x - .5, y - .2, 32), b2 = P3(x + .8, y - .2, 2), e = P3(x + .8, y + .2, 2), g2 = P3(x - .5, y + .2, 32); quad(c, a, b2, e, g2, "#e0b040"); break; }
+    case "swings": { const p1 = P3(x - 1, y, 0), p2 = P3(x + 1, y, 0); c.strokeStyle = "#3b5b7a"; c.lineWidth = 2.5; c.beginPath(); c.moveTo(p1.X, p1.Y - 42); c.lineTo(p2.X, p2.Y - 42); c.stroke();
+      c.strokeStyle = "#555"; c.lineWidth = 1;
+      for (const s of [-.45, .45]) { const sw = Math.sin(time * 1.5 + s * 3) * .12, top = P3(x + s, y, 42), seat = P3(x + s + sw, y, 12); c.beginPath(); c.moveTo(top.X, top.Y); c.lineTo(seat.X, seat.Y); c.stroke(); c.fillStyle = "#c0392b"; c.fillRect(seat.X - 4, seat.Y, 8, 2.5); }
+      break; }
+    case "swingpost": box3(c, x - .06, y - .06, x + .06, y + .06, 0, 42, "#3b5b7a"); break;
+    case "picnic": { box3(c, x - .7, y - .5, x + .7, y - .3, 0, 8, "#7a5c3e"); box3(c, x - .7, y + .3, x + .7, y + .5, 0, 8, "#7a5c3e"); box3(c, x - .05, y - .05, x + .05, y + .05, 0, 13, "#5a4330"); box3(c, x - .7, y - .25, x + .7, y + .25, 13, 15, "#8a6a48"); break; }
+    case "pump": { box3(c, x - .28, y - .18, x + .28, y + .18, 0, 30, "#e9ecef"); box3(c, x - .28, y - .18, x + .28, y + .18, 30, 34, "#c8473a"); quad(c, P3(x - .18, y + .18, 18), P3(x + .18, y + .18, 18), P3(x + .18, y + .18, 26), P3(x - .18, y + .18, 26), "#1f2a33"); const h = P3(x + .28, y + .1, 14); c.strokeStyle = "#222"; c.lineWidth = 2; c.beginPath(); c.moveTo(h.X, h.Y); c.quadraticCurveTo(h.X + 8, h.Y + 6, h.X + 4, h.Y + 14); c.stroke(); break; }
+    case "post": box3(c, x - .09, y - .09, x + .09, y + .09, 0, 58, "#d8dce0"); break;
+    case "pricesign": { box3(c, x - .06, y - .06, x + .06, y + .06, 0, 56, "#5a6068"); const O = P3(x - .45, y, 56); c.save(); c.transform(1, .5, 0, 1, O.X, O.Y); c.fillStyle = "#2f6fb0"; c.fillRect(0, -30, 28, 30); c.fillStyle = "#fff"; c.fillRect(3, -25, 22, 9); c.fillRect(3, -13, 22, 9); c.fillStyle = "#222"; c.font = "700 7px Rubik, sans-serif"; c.fillText("АИ-95", 4, -18.5); c.fillText("ДТ", 4, -6.5); c.restore(); break; }
+    case "fountain": {
+      const r = 1;
+      ell3(c, x, y, 0, r * 45, r * 22.5, "#9a958a"); ell3(c, x, y, 10, r * 45, r * 22.5, "#b9b3a6"); ell3(c, x, y, 10, r * 39, r * 19.5, "#4f7f9a");
+      ell3(c, x, y, 10, r * 30, r * 15, "rgba(255,255,255,.08)");
+      box3(c, x - .15, y - .15, x + .15, y + .15, 10, 30, "#b9b3a6"); ell3(c, x, y, 30, 12, 6, "#a8a296");
+      const s = P3(x, y, 34); c.fillStyle = "rgba(200,225,240,.55)"; for (let k = 0; k < 6; k++) { const a = time * 2 + k; c.beginPath(); c.arc(s.X + Math.cos(a) * 8, s.Y + 6 + Math.sin(a * 1.3) * 3, 1.6, 0, 7); c.fill(); }
+      break;
+    }
+    case "crateout": box3(c, x - .4, y - .4, x + .4, y + .4, 0, 22, "#9a7a4c"); c.strokeStyle = "rgba(60,40,20,.5)"; c.lineWidth = 1; { const a = P3(x - .4, y + .4, 0), b2 = P3(x + .4, y + .4, 22); c.beginPath(); c.moveTo(a.X, a.Y); c.lineTo(b2.X, b2.Y); c.stroke(); } break;
+    case "pallet": for (let k = 0; k < 4; k++) box3(c, x - .45 + k * .24, y - .45, x - .3 + k * .24, y + .45, 0, 4, "#a68a60"); break;
+    case "cone": { const p = P3(x, y, 0); c.fillStyle = "#e86a2a"; c.beginPath(); c.moveTo(p.X - 5, p.Y); c.lineTo(p.X, p.Y - 16); c.lineTo(p.X + 5, p.Y); c.fill(); c.fillStyle = "#fff"; c.fillRect(p.X - 3, p.Y - 8, 6, 2); break; }
+    case "planter": { const ax = !o.rot; const hx = ax ? .5 : .25, hy = ax ? .25 : .5; box3(c, x - hx, y - hy, x + hx, y + hy, 0, 10, "#8a8478"); dot3(c, x - (ax ? .25 : 0), y - (ax ? 0 : .25), 17, 7, "#4f7f3f"); dot3(c, x + (ax ? .2 : 0), y + (ax ? 0 : .2), 16, 6.5, "#5f8f4a"); break; }
+    case "mailbox": { const p = P3(x, y, 0); c.fillStyle = "#4a3a2c"; c.fillRect(p.X - 1, p.Y - 16, 2.5, 16); c.fillStyle = "#3b5a7a"; roundRect(c, p.X - 6, p.Y - 22, 12, 7, 3); c.fill(); c.fillStyle = "#c9433a"; c.fillRect(p.X + 4, p.Y - 26, 1.5, 5); break; }
+  }
+}
+function drawCar2(c, car, nf, time) {
+  const k = car.kind, big = k === "truck" || k === "amb";
+  const [lx, ly] = car.L, x0 = car.x - lx, x1 = car.x + lx, y0 = car.y - ly, y1 = car.y + ly;
+  const body = car.wreck ? "#6a5a50" : k === "police" || k === "amb" ? "#ecebe6" : k === "truck" ? "#cfd2d6" : car.c;
+  c.fillStyle = "#121419";
+  const wheels = car.alongY ? [[x1, y0 + .18], [x1, y1 - .18]] : [[x0 + .18, y1], [x1 - .18, y1]];
+  if (big) {
+    const ax = !car.alongY, split = .32;
+    if (ax) {
+      const xs = lerp(x1, x0, split);
+      box3(c, x0, y0, xs - .03, y1, 5, 40, body);
+      if (k === "amb") { quad(c, P3(x0 + .3, y1, 18), P3(xs - .3, y1, 18), P3(xs - .3, y1, 22), P3(x0 + .3, y1, 22), "#c23b3b"); const m = P3((x0 + xs) / 2, y1, 30); c.fillStyle = "#c23b3b"; c.fillRect(m.X - 2, m.Y - 6, 4, 12); c.fillRect(m.X - 6, m.Y - 2, 12, 4); }
+      box3(c, xs, y0 + .02, x1, y1 - .02, 5, 22, k === "truck" ? "#3b5b7a" : body);
+      isoBox(c, xs + .05, y0 + .06, x1 - .1, y1 - .06, 22, 32, shade(k === "truck" ? "#3b5b7a" : body, .1), "#2a3645", "#223040");
+    } else {
+      const ys = lerp(y1, y0, split);
+      box3(c, x0, y0, x1, ys - .03, 5, 40, body);
+      if (k === "amb") { quad(c, P3(x1, ys - .3, 18), P3(x1, y0 + .3, 18), P3(x1, y0 + .3, 22), P3(x1, ys - .3, 22), "#c23b3b"); }
+      box3(c, x0 + .02, ys, x1 - .02, y1, 5, 22, k === "truck" ? "#3b5b7a" : body);
+      isoBox(c, x0 + .06, ys + .05, x1 - .06, y1 - .1, 22, 32, shade(k === "truck" ? "#3b5b7a" : body, .1), "#2a3645", "#223040");
+    }
+    c.fillStyle = "#121419";
+    for (const [wx, wy] of wheels) { const q = P3(wx, wy, 5); c.beginPath(); c.ellipse(q.X, q.Y, 5.5, 5, 0, 0, 7); c.fill(); }
+    if (k === "amb" && nf > .2) { const q = P3(car.x, car.y, 42); c.fillStyle = Math.sin(time * 8) > 0 ? "#ff4040" : "#4060ff"; c.beginPath(); c.arc(q.X, q.Y, 3, 0, 7); c.fill(); }
+    return;
+  }
+  const hb = 14, cab = 11;
+  quad(c, P3(x0, y1, 4), P3(x1, y1, 4), P3(x1, y1, hb), P3(x0, y1, hb), shade(body, -.08));
+  quad(c, P3(x1, y1, 4), P3(x1, y0, 4), P3(x1, y0, hb), P3(x1, y1, hb), shade(body, -.3));
+  quad(c, P3(x0, y0, hb), P3(x1, y0, hb), P3(x1, y1, hb), P3(x0, y1, hb), body);
+  if (k === "police") { quad(c, P3(x0, y1, 8), P3(x1, y1, 8), P3(x1, y1, 11), P3(x0, y1, 11), "#2b4a8a"); quad(c, P3(x1, y1, 8), P3(x1, y0, 8), P3(x1, y0, 11), P3(x1, y1, 11), "#22407a"); }
+  const ix = car.alongY ? 0 : .12, iy = car.alongY ? .12 : 0;
+  const cx0 = x0 + .06 + ix, cx1 = x1 - .06 - ix * .2, cy0 = y0 + .06 + iy, cy1 = y1 - .06 - iy * .2;
+  const glass = car.wreck ? "#2b2b2b" : "#2a3645";
+  quad(c, P3(cx0, cy1, hb), P3(cx1, cy1, hb), P3(cx1 - .04, cy1 - .04, hb + cab), P3(cx0 + .04, cy1 - .04, hb + cab), glass);
+  quad(c, P3(cx1, cy1, hb), P3(cx1, cy0, hb), P3(cx1 - .04, cy0 + .04, hb + cab), P3(cx1 - .04, cy1 - .04, hb + cab), shade(glass, -.25));
+  quad(c, P3(cx0 + .04, cy0 + .04, hb + cab), P3(cx1 - .04, cy0 + .04, hb + cab), P3(cx1 - .04, cy1 - .04, hb + cab), P3(cx0 + .04, cy1 - .04, hb + cab), shade(body, .08));
+  if (k === "police") { const blink = Math.sin(time * 7 + car.ph) > 0; box3(c, (cx0 + cx1) / 2 - .12, (cy0 + cy1) / 2 - .06, (cx0 + cx1) / 2, (cy0 + cy1) / 2 + .06, hb + cab, hb + cab + 3, blink && nf > .2 ? "#ff5050" : "#a03030"); box3(c, (cx0 + cx1) / 2, (cy0 + cy1) / 2 - .06, (cx0 + cx1) / 2 + .12, (cy0 + cy1) / 2 + .06, hb + cab, hb + cab + 3, !blink && nf > .2 ? "#5080ff" : "#303a80"); }
+  c.fillStyle = "#121419";
+  for (const [wx, wy] of car.alongY ? [[x1, y0 + .14], [x1, y1 - .14]] : [[x0 + .14, y1], [x1 - .14, y1]]) { const q = P3(wx, wy, 4); c.beginPath(); c.ellipse(q.X, q.Y, 4.6, 4.2, 0, 0, 7); c.fill(); }
+  if (car.wreck) { c.fillStyle = "rgba(30,20,15,.5)"; const q = P3(car.x, car.y, hb); c.beginPath(); c.ellipse(q.X, q.Y, 9, 4, 0, 0, 7); c.fill(); }
 }
 
 // ================= drawing: nature & props =================
@@ -1250,6 +2143,7 @@ function drawProp(c, o) {
     c.fillStyle = "#c9433a"; c.fillRect(p.X + 4, p.Y - 26, 1.5, 5);
   }
 }
+
 
 // ================= drawing: people =================
 function ik(ax, ay, bx, by, l1, l2, bend) {
@@ -1412,69 +2306,104 @@ function drawCorpse(c, k) {
   c.restore();
 }
 
+
+
 // ================= main draw =================
+const visList = [];
 function draw(time) {
-  const Wd = world, p = Wd.player, nf = nightF(Wd.time);
+  frameNo++;
+  chunkBudget = world._warm ? 99 : 3; world._warm = false;
+  const Wd = world, M = Wd.map, p = Wd.player, nf = nightF(Wd.time);
   const sh = Wd.shake, ox = sh ? rand(-sh, sh) : 0, oy = sh ? rand(-sh, sh) : 0;
   const tx = Math.round(cv.width / 2 - Wd.camX * K + ox * dpr), ty = Math.round(cv.height / 2 - Wd.camY * K + oy * dpr);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = "#2c4529"; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = "#2c3b27"; ctx.fillRect(0, 0, cv.width, cv.height);
   ctx.setTransform(K, 0, 0, K, tx, ty);
-  ctx.drawImage(gc, -N * HW, 0, N * TW, N * TH);
-  const vx0 = Wd.camX - W / 2 / S - 90, vx1 = Wd.camX + W / 2 / S + 90, vy0 = Wd.camY - H / 2 / S - 60, vy1 = Wd.camY + H / 2 / S + 170;
+  // world bounds of the view
+  const inv = (sx, sy) => { const X = (sx - tx) / K, Y = (sy - ty) / K; return [(X / HW + Y / HH) / 2, (Y / HH - X / HW) / 2]; };
+  const cs = [inv(0, 0), inv(cv.width, 0), inv(0, cv.height + 160 * K), inv(cv.width, cv.height + 160 * K)];
+  const wx0 = Math.min(...cs.map(q => q[0])) - 2, wx1 = Math.max(...cs.map(q => q[0])) + 2, wy0 = Math.min(...cs.map(q => q[1])) - 2, wy1 = Math.max(...cs.map(q => q[1])) + 2;
+  const vx0 = Wd.camX - W / 2 / S - 120, vx1 = Wd.camX + W / 2 / S + 120, vy0 = Wd.camY - H / 2 / S - 60, vy1 = Wd.camY + H / 2 / S + 220;
   const vis = (x, y) => { const q = iso(x, y); return q.X > vx0 && q.X < vx1 && q.Y > vy0 && q.Y < vy1; };
+  const ccx0 = clamp(Math.floor(wx0 / CH), 0, NC - 1), ccx1 = clamp(Math.floor(wx1 / CH), 0, NC - 1), ccy0 = clamp(Math.floor(wy0 / CH), 0, NC - 1), ccy1 = clamp(Math.floor(wy1 / CH), 0, NC - 1);
+  // ground
+  for (let cy = ccy0; cy <= ccy1; cy++) for (let cx = ccx0; cx <= ccx1; cx++) {
+    const x0 = cx * CH, y0 = cy * CH;
+    const q = iso(x0 + CH / 2, y0 + CH / 2);
+    if (q.X < vx0 - 300 || q.X > vx1 + 300 || q.Y < vy0 - 200 || q.Y > vy1 + 100) continue;
+    const ch = getChunk(cx, cy);
+    if (ch) ctx.drawImage(ch.cv, ch.X0, ch.Y0, ch.Wd, ch.Hd);
+  }
+  // gather objects
+  visList.length = 0;
+  for (let cy = ccy0; cy <= ccy1; cy++) for (let cx = ccx0; cx <= ccx1; cx++) for (const o of M.chunks[cy * NC + cx]) {
+    if (o.fr === frameNo) continue; o.fr = frameNo;
+    if (o.dt === "roof" || o.dt === "canopy" ? true : vis(o.ax, o.ay)) visList.push(o);
+  }
+  // wet sheen & puddles
   if (Wd.wet > .02) {
-    ctx.fillStyle = `rgba(40,55,80,${.16 * Wd.wet})`; ctx.fillRect(vx0, vy0, vx1 - vx0, vy1 - vy0);
-    for (let i = 0; i < 40; i++) {
-      const hx = 1 + hash(i, 3) * (N - 2), hy = 1 + hash(7, i) * (N - 2);
-      if (!vis(hx, hy) || Wd.map.ground[Math.floor(hx)][Math.floor(hy)] !== 1) continue;
-      const q = iso(hx, hy), s = .5 + hash(i, i);
+    ctx.fillStyle = `rgba(40,55,80,${.14 * Wd.wet})`; ctx.fillRect(vx0, vy0, vx1 - vx0, vy1 - vy0);
+    for (let j = Math.max(0, Math.floor(wy0)); j < Math.min(N, wy1); j++) for (let i = Math.max(0, Math.floor(wx0)); i < Math.min(N, wx1); i++) {
+      if (M.ground[j * N + i] !== RD || hash(i * 3, j * 5) < .86 || !vis(i, j)) continue;
+      const q = iso(i + .5, j + .5), s = .5 + hash(i, j);
       ctx.fillStyle = `rgba(150,175,210,${.2 * Wd.wet})`; ctx.beginPath(); ctx.ellipse(q.X, q.Y, 20 * s, 8 * s, 0, 0, 7); ctx.fill();
-      if (Wd.raining) { const rt = (time * 1.7 + hash(i, 1)) % 1; ctx.strokeStyle = `rgba(210,225,245,${.35 * (1 - rt)})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(q.X + 4, q.Y, 2 + rt * 7, 1 + rt * 3.5, 0, 0, 7); ctx.stroke(); }
+      if (Wd.raining) { const rt = (time * 1.7 + hash(i, j)) % 1; ctx.strokeStyle = `rgba(210,225,245,${.35 * (1 - rt)})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(q.X + 4, q.Y, 2 + rt * 7, 1 + rt * 3.5, 0, 0, 7); ctx.stroke(); }
     }
   }
-  ctx.fillStyle = PAL.blood;
-  for (const d of Wd.decals) { if (!vis(d.x, d.y)) continue; const q = iso(d.x, d.y); ctx.globalAlpha = .8; ctx.beginPath(); ctx.ellipse(q.X, q.Y, d.r * 40, d.r * 20, 0, 0, 7); ctx.fill(); }
+  // shadows
+  ctx.fillStyle = "rgba(10,14,20,.2)";
+  for (const o of visList) {
+    if (o.dt === "roof") {
+      const b = o, a = iso(b.x + b.w, b.y), b2 = iso(b.x + b.w + 1.1, b.y - .45), c2 = iso(b.x + b.w + 1.1, b.y + b.h - .25), d = iso(b.x + b.w, b.y + b.h);
+      ctx.beginPath(); ctx.moveTo(a.X, a.Y); ctx.lineTo(b2.X, b2.Y); ctx.lineTo(c2.X, c2.Y); ctx.lineTo(d.X, d.Y); ctx.closePath(); ctx.fill();
+    } else if (o.dt === "tree") { const q = iso(o.x + .35 * o.s, o.y - .15), k = o.kind === "bush" ? .7 : 1; ctx.beginPath(); ctx.ellipse(q.X, q.Y, 22 * o.s * k, 10 * o.s * k, 0, 0, 7); ctx.fill(); }
+    else if (o.dt === "car") { const q = iso(o.x + .15, o.y - .05); ctx.beginPath(); ctx.ellipse(q.X, q.Y, o.kind === "truck" || o.kind === "amb" ? 50 : 34, o.kind === "truck" || o.kind === "amb" ? 22 : 15, 0, 0, 7); ctx.fill(); }
+  }
+  // decals, dust, corpses
+  ctx.fillStyle = PAL.blood; ctx.globalAlpha = .8;
+  for (const d of Wd.decals) { if (!vis(d.x, d.y)) continue; const q = iso(d.x, d.y); ctx.beginPath(); ctx.ellipse(q.X, q.Y, d.r * 40, d.r * 20, 0, 0, 7); ctx.fill(); }
   ctx.globalAlpha = 1;
   for (const q of Wd.dust) { const s = iso(q.x, q.y), r = q.r + q.t * .3; ctx.fillStyle = `rgba(200,190,170,${.35 * (1 - q.t / .6)})`; ctx.beginPath(); ctx.ellipse(s.X, s.Y - 2, r * 40, r * 20, 0, 0, 7); ctx.fill(); }
   for (const k of Wd.corpses) if (k.t >= 1 && vis(k.x, k.y)) drawCorpse(ctx, k);
-  if (Wd.mode === "play") {
-    for (const h of Wd.map.houses) {
-      if (h.looted || !vis(h.door.x, h.door.y)) continue;
-      const q = iso(h.door.x, h.door.y - .25), near = Math.hypot(h.door.x - p.x, h.door.y - p.y) < 1.15;
-      ctx.strokeStyle = near ? "rgba(242,165,65,.95)" : "rgba(242,165,65,.45)"; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.ellipse(q.X, q.Y, 15 + Math.sin(time * 4) * 1.5, 7.5 + Math.sin(time * 4) * .75, 0, 0, 7); ctx.stroke();
+  // sortable
+  const inside = Wd.mode === "play" ? Wd.inside : null;
+  const objs = visList.slice();
+  for (const z of Wd.zombies) if (vis(z.x, z.y)) objs.push({ dt: "z", key: z.x + z.y, z });
+  for (const k of Wd.corpses) if (k.t < 1 && vis(k.x, k.y)) objs.push({ dt: "corpse", key: k.x + k.y, k });
+  if (Wd.mode === "play") objs.push({ dt: "p", key: p.x + p.y });
+  objs.sort((a, b) => a.key - b.key);
+  const lights = [];
+  for (const o of objs) {
+    switch (o.dt) {
+      case "wall": drawWall(ctx, o, !!(inside && o.b === inside && !o.backOuter)); if (o.lit) lights.push(o); break;
+      case "roof": drawRoof(ctx, o); break;
+      case "canopy": drawCanopy(ctx, o); break;
+      case "furn": drawFurn(ctx, o); break;
+      case "tree": drawTree(ctx, o, time); break;
+      case "car": drawCar2(ctx, o, nf, time); break;
+      case "lamp": drawLampPost(ctx, o, nf); lights.push(o); break;
+      case "prop": drawSP(ctx, o, nf, time); break;
+      case "corpse": drawCorpse(ctx, o.k); break;
+      case "z": { const z = o.z, q = iso(z.x, z.y), look = zombieLook(z); drawPerson(ctx, q.X, q.Y, look, time); z.sf = look.sf; break; }
+      case "p": { const q = iso(p.x, p.y), look = playerLook(p); drawPerson(ctx, q.X, q.Y, look, time); p.sf = look.sf; break; }
     }
-  }
-  const objs = [];
-  for (const h of Wd.map.houses) for (let i = h.x; i < h.x + h.w; i++) for (let j = h.y; j < h.y + h.h; j++) {
-    const front = i === h.x + h.w - 1 && j === h.y + h.h - 1;
-    if (!(j === h.y + h.h - 1 || i === h.x + h.w - 1)) continue;
-    if (vis(i + .5, j + .5) || (front && vis(h.x + h.w / 2, h.y + h.h / 2))) objs.push({ k: i + j + 1, t: 0, h, i, j });
-  }
-  for (const t of Wd.map.trees) if (vis(t.x, t.y)) objs.push({ k: t.x + t.y, t: 1, o: t });
-  for (const car of Wd.map.cars) if (vis(car.x, car.y)) objs.push({ k: car.x + car.y, t: 2, o: car });
-  for (const L of Wd.map.lamps) if (vis(L.x, L.y)) objs.push({ k: L.x + L.y, t: 3, o: L });
-  for (const o of Wd.map.props) if (vis(o.x, o.y)) objs.push({ k: o.x + o.y, t: 6, o });
-  for (const z of Wd.zombies) if (vis(z.x, z.y)) objs.push({ k: z.x + z.y, t: 4, o: z });
-  for (const k of Wd.corpses) if (k.t < 1 && vis(k.x, k.y)) objs.push({ k: k.x + k.y, t: 7, o: k });
-  if (Wd.mode === "play") objs.push({ k: p.x + p.y, t: 5 });
-  objs.sort((a, b) => a.k - b.k);
-  for (const ob of objs) {
-    if (ob.t === 0) drawHouseTile(ctx, ob.h, ob.i, ob.j, nf);
-    else if (ob.t === 1) drawTree(ctx, ob.o, time);
-    else if (ob.t === 2) drawCar(ctx, ob.o);
-    else if (ob.t === 3) drawLampPost(ctx, ob.o, nf);
-    else if (ob.t === 6) drawProp(ctx, ob.o);
-    else if (ob.t === 7) drawCorpse(ctx, ob.o);
-    else if (ob.t === 4) { const z = ob.o, q = iso(z.x, z.y), look = zombieLook(z); drawPerson(ctx, q.X, q.Y, look, time); z.sf = look.sf; }
-    else { const q = iso(p.x, p.y), look = playerLook(p); drawPerson(ctx, q.X, q.Y, look, time); p.sf = look.sf; }
   }
   if (Wd.mode === "play") {
     const q = iso(p.x, p.y);
     ctx.globalAlpha = .2; ctx.fillStyle = "#e0782f";
     roundRect(ctx, q.X - 7, q.Y - 48, 14, 22, 5); ctx.fill(); ctx.beginPath(); ctx.arc(q.X, q.Y - 56, 6, 0, 7); ctx.fill();
     ctx.globalAlpha = 1;
+    // container hints
+    const near = !p.search ? nearContainer() : null;
+    for (const o of visList) {
+      if (o.dt !== "furn" || !o.cont || o.cont.searched) continue;
+      const cx = (o.x0 + o.x1) / 2, cy = (o.y0 + o.y1) / 2;
+      if (Math.abs(cx - p.x) > 5 || Math.abs(cy - p.y) > 5) continue;
+      const qq = P3(cx, cy, o.def.z + 10 + Math.sin(time * 3 + cx) * 2);
+      ctx.fillStyle = o === near ? "#f2a541" : "rgba(242,165,65,.6)";
+      ctx.beginPath(); ctx.moveTo(qq.X, qq.Y - 5); ctx.lineTo(qq.X + 4, qq.Y); ctx.lineTo(qq.X, qq.Y + 5); ctx.lineTo(qq.X - 4, qq.Y); ctx.fill();
+      if (o === near) { ctx.strokeStyle = "rgba(242,165,65,.9)"; ctx.lineWidth = 2; diamond(ctx, o.x0 - .05, o.y0 - .05, o.x1 - o.x0 + .1, o.y1 - o.y0 + .1); ctx.stroke(); }
+    }
     if (p.search) {
       const t = p.search.t / p.search.dur;
       ctx.lineWidth = 4; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.arc(q.X, q.Y - 76, 10, 0, 7); ctx.stroke();
@@ -1504,12 +2433,18 @@ function draw(time) {
       grd.addColorStop(0, `rgba(0,0,0,${a})`); grd.addColorStop(.55, `rgba(0,0,0,${a * .75})`); grd.addColorStop(1, "rgba(0,0,0,0)");
       Lg.fillStyle = grd; Lg.beginPath(); Lg.arc(0, 0, r, 0, 7); Lg.fill(); Lg.restore();
     };
-    for (const lp of Wd.map.lamps) {
-      if (!lp.on) continue;
-      const flick = lp.ph > 8 ? (Math.sin(time * 23 + lp.ph) > .6 ? .35 : 1) : 1;
-      const s = scr(lp.x + .3, lp.y + .3); ellipseLight(s.x, s.y, R1 * 3.3, .95 * flick);
+    for (const o of lights) {
+      if (o.dt === "lamp") {
+        if (!o.on) continue;
+        const flick = o.ph > 8 ? (Math.sin(time * 23 + o.ph) > .6 ? .35 : 1) : 1;
+        const s = scr(o.x + .3, o.y + .3); ellipseLight(s.x, s.y, R1 * 3.3, .95 * flick);
+      } else {
+        const out = o.inFace ? -.6 : .6;
+        const s = o.axis === "x" ? scr(o.i + .5, o.j + out) : scr(o.i + out, o.j + .5);
+        ellipseLight(s.x, s.y, R1 * 1.1, .5);
+      }
     }
-    for (const h of Wd.map.houses) if (h.lit.some(Boolean)) { const s = scr(h.x + h.w / 2 + .3, h.y + h.h + .5); ellipseLight(s.x, s.y, R1 * 1.4, .55); }
+    for (const cp of M.canopies) if (vis(cp.x + 3, cp.y + 2)) { const s = scr(cp.x + cp.w / 2, cp.y + cp.h / 2); ellipseLight(s.x, s.y, R1 * 3.4, .9); }
     for (const fl of Wd.flies) { const s = scr(fl.x, fl.y, fl.z); ellipseLight(s.x, s.y, R1 * .25, .6); }
     if (Wd.mode === "play") {
       const ps = scr(p.x, p.y, 14);
@@ -1527,9 +2462,9 @@ function draw(time) {
     ctx.drawImage(lc, 0, 0, cv.width, cv.height);
     ctx.setTransform(K, 0, 0, K, tx, ty);
     ctx.globalCompositeOperation = "lighter";
-    for (const lp of Wd.map.lamps) {
-      if (!lp.on || !vis(lp.x, lp.y)) continue;
-      const q = iso(lp.x, lp.y), grd = ctx.createRadialGradient(q.X + 10, q.Y - 83, 0, q.X + 10, q.Y - 83, 28);
+    for (const o of lights) {
+      if (o.dt !== "lamp" || !o.on) continue;
+      const q = iso(o.x, o.y), grd = ctx.createRadialGradient(q.X + 10, q.Y - 83, 0, q.X + 10, q.Y - 83, 28);
       grd.addColorStop(0, `rgba(255,214,140,${.6 * nf})`); grd.addColorStop(1, "rgba(255,214,140,0)");
       ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(q.X + 10, q.Y - 83, 28, 0, 7); ctx.fill();
     }
@@ -1546,6 +2481,7 @@ function draw(time) {
     }
     ctx.globalCompositeOperation = "source-over";
     if (Wd.mode === "play") for (const z of Wd.zombies) {
+      if (Math.abs(z.x - p.x) > 8 || Math.abs(z.y - p.y) > 8) continue;
       const d = Math.hypot(z.x - p.x, z.y - p.y);
       if (d > 8 || !vis(z.x, z.y)) continue;
       const q = iso(z.x, z.y), hx = q.X + Math.cos(z.dir - Math.PI / 4) * 3, hy = q.Y - 54;
@@ -1555,7 +2491,7 @@ function draw(time) {
   }
   if (Wd.raining || Wd.rain.length) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const want = Wd.raining ? (settings.quality === "high" ? 200 : 80) : 0;
+    const want = Wd.raining && !(Wd.mode === "play" && Wd.inside) ? (settings.quality === "high" ? 200 : 80) : 0;
     while (Wd.rain.length < want) Wd.rain.push({ x: Math.random() * (W + 100), y: Math.random() * H, v: rand(600, 900), l: rand(10, 18) });
     if (Wd.rain.length > want) Wd.rain.length = want;
     ctx.strokeStyle = `rgba(190,210,235,${.35 - nf * .15})`; ctx.lineWidth = 1;
@@ -1580,6 +2516,94 @@ function stepRain(dt) {
   for (const r of world.rain) { r.y += r.v * dt; r.x -= r.v * .25 * dt; if (r.y > H) { r.y = -20; r.x = Math.random() * (W + 100); } }
 }
 
+// ================= map overlay =================
+const mapCv = $("#mapcv"), mctx = mapCv.getContext("2d");
+const mapState = { zoom: 2.6, cx: N / 2, cy: N / 2, base: null, fog: null, drag: null };
+const MAPC = { house: "#c9a77a", shed: "#9a7a58", shop: "#d9584a", hard: "#e0953a", pharm: "#45b27a", clinic: "#45b27a", cafe: "#a07ab8", gasshop: "#4f8fd0", ware: "#8a8f98", police: "#4f6fc0" };
+function openMap() { if (!world || world.mode !== "play") return; mapState.cx = world.player.x; mapState.cy = world.player.y; openModal("mapModal"); }
+function buildMapBase() {
+  const M = world.map, s = 4, c = document.createElement("canvas"); c.width = c.height = N * s;
+  const g = c.getContext("2d");
+  const col = { [GR]: "#5f7d45", [FO]: "#3d5734", [RD]: "#3a3f4a", [WK]: "#8f897d", [DT]: "#8b7454", [LT]: "#4a4f5a", [CN]: "#7d7b76", [SA]: "#cdbb8c", [WA]: "#4f7f9a" };
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const t = M.ground[j * N + i], b = M.bld[j * N + i];
+    g.fillStyle = b >= 0 ? MAPC[M.buildings[b].type] : (col[t] || "#5f7d45");
+    g.fillRect(i * s, j * s, s, s);
+  }
+  for (const b of M.buildings) if (b.conts && b.searched >= b.conts) { g.fillStyle = "rgba(20,20,20,.45)"; g.fillRect(b.x * s, b.y * s, b.w * s, b.h * s); }
+  g.fillStyle = "rgba(255,255,255,.35)";
+  for (const r of ROADS) for (let k = 0; k < N; k += 2) { g.fillRect((r + 1) * s - .5, k * s + 1, 1, 2); g.fillRect(k * s + 1, (r + 1) * s - .5, 2, 1); }
+  for (const t of M.trees) { g.fillStyle = t.kind === "pine" ? "#2b4430" : "#3f6b35"; g.beginPath(); g.arc(t.x * s, t.y * s, 1.6, 0, 7); g.fill(); }
+  for (const car of M.cars) { g.fillStyle = "#cfcfcf"; g.fillRect((car.x - car.L[0]) * s, (car.y - car.L[1]) * s, car.L[0] * 2 * s, car.L[1] * 2 * s); }
+  for (let j = 0; j <= N; j++) for (let i = 0; i < N; i++) { const e = M.hW[j * N + i]; if (e && e !== 4) { g.fillStyle = e === 3 ? "#6e5236" : "#1c1f26"; g.fillRect(i * s, j * s - .6, s, e === 3 ? .8 : 1.3); } }
+  for (let j = 0; j < N; j++) for (let i = 0; i <= N; i++) { const e = M.vW[j * (N + 1) + i]; if (e && e !== 4) { g.fillStyle = e === 3 ? "#6e5236" : "#1c1f26"; g.fillRect(i * s - .6, j * s, e === 3 ? .8 : 1.3, s); } }
+  return c;
+}
+function buildFog() {
+  const c = document.createElement("canvas"); c.width = c.height = N;
+  const g = c.getContext("2d"), img = g.createImageData(N, N), ex = world.explored;
+  for (let k = 0; k < N * N; k++) { img.data[k * 4] = 12; img.data[k * 4 + 1] = 15; img.data[k * 4 + 2] = 26; img.data[k * 4 + 3] = ex[k] ? 0 : 165; }
+  g.putImageData(img, 0, 0);
+  return c;
+}
+function renderMap(rebuild = true) {
+  if (!world) return;
+  if (rebuild) { mapState.base = buildMapBase(); mapState.fog = buildFog(); }
+  const r = mapCv.getBoundingClientRect(), md = Math.min(window.devicePixelRatio || 1, 2);
+  mapCv.width = Math.max(1, Math.round(r.width * md)); mapCv.height = Math.max(1, Math.round(r.height * md));
+  const c = mctx, cw = mapCv.width, chh = mapCv.height;
+  c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = "#0c0f1a"; c.fillRect(0, 0, cw, chh);
+  const sc = Math.max(Math.min(cw, chh), Math.max(cw, chh) * .6) / (N * 1.45) * mapState.zoom;
+  const toScr = (x, y) => { const dx = x - mapState.cx, dy = y - mapState.cy, rx = (dx - dy) * Math.SQRT1_2, ry = (dx + dy) * Math.SQRT1_2; return [cw / 2 + rx * sc, chh / 2 + ry * sc]; };
+  c.save();
+  c.translate(cw / 2, chh / 2); c.scale(sc, sc); c.rotate(Math.PI / 4); c.translate(-mapState.cx, -mapState.cy);
+  c.imageSmoothingEnabled = mapState.zoom < 2;
+  c.drawImage(mapState.base, 0, 0, N, N);
+  c.imageSmoothingEnabled = true;
+  c.drawImage(mapState.fog, 0, 0, N, N);
+  c.restore();
+  // labels
+  c.textAlign = "center"; c.textBaseline = "middle";
+  const fs = Math.round(clamp(9 + mapState.zoom * 2.2, 10, 15) * md);
+  c.font = `600 ${fs}px Rubik, system-ui, sans-serif`;
+  for (const b of world.map.buildings) {
+    if (!b.name || b.type === "shed" || !world.explored[Math.floor(b.cy) * N + Math.floor(b.cx)]) continue;
+    const [sx, sy] = toScr(b.cx, b.cy);
+    const done = b.conts && b.searched >= b.conts;
+    const txt = b.name + (done ? " ✓" : "");
+    const w = c.measureText(txt).width + 10 * md;
+    c.fillStyle = "rgba(10,12,20,.75)"; roundRect(c, sx - w / 2, sy - fs * .8, w, fs * 1.6, 6 * md); c.fill();
+    c.fillStyle = MAPC[b.type]; c.fillText(txt, sx, sy + .5);
+  }
+  for (const pk of world.map.parks) {
+    if (!world.explored[(pk.y + 6) * N + pk.x + 6]) continue;
+    const [sx, sy] = toScr(pk.x + 6, pk.y + 6); c.fillStyle = "rgba(220,240,200,.85)"; c.fillText("Парк", sx, sy - fs * 1.6);
+  }
+  // player
+  const p = world.player, [px, py] = toScr(p.x, p.y);
+  const a = p.dir + Math.PI / 4, ps = 9 * md;
+  c.save(); c.translate(px, py); c.rotate(a);
+  c.fillStyle = "#f2a541"; c.strokeStyle = "#1b1408"; c.lineWidth = 2 * md;
+  c.beginPath(); c.moveTo(ps, 0); c.lineTo(-ps * .7, -ps * .65); c.lineTo(-ps * .35, 0); c.lineTo(-ps * .7, ps * .65); c.closePath(); c.fill(); c.stroke();
+  c.restore();
+  $("#mapZoom").textContent = "×" + mapState.zoom.toFixed(1).replace(".0", "");
+}
+mapCv.addEventListener("pointerdown", e => { mapState.drag = { x: e.clientX, y: e.clientY, cx: mapState.cx, cy: mapState.cy, id: e.pointerId }; try { mapCv.setPointerCapture(e.pointerId); } catch (er) {} });
+mapCv.addEventListener("pointermove", e => {
+  const d = mapState.drag; if (!d || d.id !== e.pointerId) return;
+  const r = mapCv.getBoundingClientRect(), sc = Math.max(Math.min(r.width, r.height), Math.max(r.width, r.height) * .6) / (N * 1.45) * mapState.zoom;
+  const dx = (e.clientX - d.x) / sc, dy = (e.clientY - d.y) / sc;
+  const wx = (dx + dy) * Math.SQRT1_2, wy = (dy - dx) * Math.SQRT1_2;
+  mapState.cx = clamp(d.cx - wx, 0, N); mapState.cy = clamp(d.cy - wy, 0, N);
+  renderMap(false);
+});
+const endDrag = () => { mapState.drag = null; };
+mapCv.addEventListener("pointerup", endDrag); mapCv.addEventListener("pointercancel", endDrag);
+mapCv.addEventListener("wheel", e => { e.preventDefault(); mapState.zoom = clamp(mapState.zoom * (e.deltaY < 0 ? 1.2 : 1 / 1.2), 1, 6); renderMap(false); }, { passive: false });
+$("#mapIn").addEventListener("click", () => { mapState.zoom = clamp(mapState.zoom * 1.5, 1, 6); renderMap(false); });
+$("#mapOut").addEventListener("click", () => { mapState.zoom = clamp(mapState.zoom / 1.5, 1, 6); renderMap(false); });
+$("#mapMe").addEventListener("click", () => { mapState.cx = world.player.x; mapState.cy = world.player.y; renderMap(false); });
+
 // ================= screens =================
 const screen = $("#screen");
 function fmtSurvived(min) {
@@ -1592,18 +2616,18 @@ function setPlayUI(on) {
   if (on) placeStickIdle();
 }
 function showTitle() {
-  newWorld("title");
+  newWorld("title"); world._warm = true;
   setPlayUI(false); paused = false;
   const best = store.get("best", null);
   screen.innerHTML = `<div class="box">
     <span class="eyebrow">Выживание · ночь за ночью</span>
     <h1>Последний квартал</h1>
-    <p>Городок опустел, на улицах бродят мертвецы. Обыскивай дома, следи за едой и водой и переживи как можно больше ночей.</p>
+    <p>Целый город опустел: жилые улицы, магазины, аптеки, больница и склады. Заходи в дома, обыскивай шкафы и холодильники и переживи как можно больше ночей.</p>
     <div class="btns"><button class="big" id="start">Начать</button><button class="big ghost" id="openSettings">Настройки</button></div>
     <div class="howto">
       <div class="glass"><b>Левый палец</b>Ходьба. Стик до упора — бег, но шумно</div>
-      <div class="glass"><b>Красная кнопка</b>Удар. Ищи биту или топор</div>
-      <div class="glass"><b>У двери</b>«Обыскать дом»: еда, вода, бинты</div>
+      <div class="glass"><b>Внутри домов</b>Подойди к мебели и нажми «Обыскать»</div>
+      <div class="glass"><b>Карта</b>Кнопка вверху: что разведано и где аптека</div>
     </div>
     ${best ? `<span class="best">Рекорд: ${fmtSurvived(best)}</span>` : ""}
   </div>`;
@@ -1612,13 +2636,13 @@ function showTitle() {
   $("#openSettings").addEventListener("click", () => { unlockAudio(); openModal("setModal"); });
 }
 function startGame() {
-  newWorld("play");
+  newWorld("play"); world._warm = true;
   if (settings.weather === "random") world.raining = Math.random() < .2;
   world.wet = world.raining ? 1 : 0;
   screen.hidden = true; closeModals(true);
   setPlayUI(true); updateHud();
   buildFlow();
-  toast("Утро, 7:00. Найди еду и воду до темноты");
+  toast("Утро, 7:00. Загляни в ближайшие дома за едой и водой");
   tone(330, .2, "triangle", .05, 1.5);
 }
 function gameOver() {
@@ -1634,7 +2658,7 @@ function gameOver() {
     <div class="tally">
       <div class="glass"><b>${fmtSurvived(Wd.elapsed)}</b><small>продержался</small></div>
       <div class="glass"><b>${Wd.kills}</b><small>упокоено</small></div>
-      <div class="glass"><b>${Wd.searched}</b><small>домов обыскано</small></div>
+      <div class="glass"><b>${Wd.searched}</b><small>мест обыскано</small></div>
     </div>
     <div class="btns"><button class="big" id="again">Ещё раз</button><button class="big ghost" id="menu">В меню</button></div>
     ${!rec && best ? `<span class="best">Рекорд: ${fmtSurvived(best)}</span>` : ""}
@@ -1663,11 +2687,12 @@ function frame(now) {
   if (!paused) stepRain(dt);
   draw(now / 1000);
 }
-window.addEventListener("resize", () => resize());
+window.addEventListener("resize", () => { resize(); if (!$("#mapModal").hidden) renderMap(false); });
 game.classList.toggle("lefty", !!settings.lefty);
 resize();
 showTitle();
 requestAnimationFrame(frame);
+
 })();
 </script>
 </html>
