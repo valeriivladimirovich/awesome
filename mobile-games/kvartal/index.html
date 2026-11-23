@@ -1599,24 +1599,37 @@ function attack() {
   let near = null, nd = w.range + .7;
   for (const z of world.zombies) { if (Math.abs(z.x - p.x) > 3 || Math.abs(z.y - p.y) > 3) continue; const d = Math.hypot(z.x - p.x, z.y - p.y); if (d < nd && los(p.x, p.y, z.x, z.y, true)) { nd = d; near = z; } }
   if (near) p.dir = Math.atan2(near.y - p.y, near.x - p.x);
+  // the blow lands mid-swing: step in so the fist / blade sinks a little into the body
+  if (near) p.lunge = { z: near, d: MELEE_SINK[p.weapon] || .5 };
+  p.strike = .13;
+}
+const MELEE_SINK = { fists: .4, bat: .74, axe: .76 };
+function stepMelee(p, dt) {
+  if (p.lunge && p.swing > .14) {
+    const z = p.lunge.z, dx = z.x - p.x, dy = z.y - p.y, d = Math.hypot(dx, dy), over = d - p.lunge.d;
+    if (over > .01 && world.zombies.includes(z)) { const st = Math.min(over, dt * 5.5); moveEnt(p, dx / d * st, dy / d * st); }
+  }
+  if (!(p.strike > 0)) return;
+  p.strike -= dt; if (p.strike > 0) return;
+  p.strike = 0; p.lunge = null;
+  const w = WEAPONS[p.weapon];
   let hitAny = false;
   for (const z of [...world.zombies]) {
     const dx = z.x - p.x, dy = z.y - p.y, d = Math.hypot(dx, dy);
-    if (d > w.range + .25) continue;
+    if (d > w.range + .3) continue;
     if (Math.abs(angDiff(p.dir, Math.atan2(dy, dx))) > 1.15 && d > .4) continue;
     if (!los(p.x, p.y, z.x, z.y, true)) continue;
     hitAny = true;
     const ux = dx / (d || 1), uy = dy / (d || 1);
-    z.hp -= w.dmg; z.hit = .22; z.state = "chase";
-    const kb = p.weapon === "fists" ? 2.6 : 3.6;
-    z.kx = ux * kb; z.ky = uy * kb;
+    z.hp -= w.dmg; z.hit = .3; z.hitDir = Math.atan2(uy, ux); z.state = "chase";
+    z.vx *= .2; z.vy *= .2;
     z.atkT = 0; z.cool = Math.max(z.cool, .5);
-    bleed(z.x, z.y, 7, ux, uy);
+    bleed(z.x - ux * .12, z.y - uy * .12, 7, ux * .5, uy * .5);
     if (z.hp <= 0) killZombie(z, ux, uy, p.weapon, false);
     else if (p.weapon === "axe" && !z.lostArm && Math.random() < .28) loseArm(z, ux, uy);
   }
   noise(p.x, p.y, hitAny ? 6 : 3.5);
-  if (hitAny) { thud(.32); world.shake = Math.max(world.shake, 4); } else tone(240, .08, "triangle", .03, .6);
+  if (hitAny) { thud(.32); world.shake = Math.max(world.shake, 3); } else tone(240, .08, "triangle", .03, .6);
 }
 function bleed(x, y, n, dx = 0, dy = 0) {
   for (let i = 0; i < n; i++) world.parts.push({ x, y, z: rand(.7, 1.2), vx: rand(-1.2, 1.2) + dx * 1.5, vy: rand(-1.2, 1.2) + dy * 1.5, vz: rand(.5, 2.5) });
@@ -1683,7 +1696,7 @@ function fireGun() {
   if (hit) {
     const head = Math.random() < (hit === best ? .22 : .12);
     hit.hp -= w.dmg * (head ? 2.5 : 1); hit.hit = .15; hit.state = "chase";
-    hit.kx = cx * 2; hit.ky = cy * 2;
+    hit.vx *= .3; hit.vy *= .3; hit.hitDir = Math.atan2(cy, cx);
     bleed(hit.x, hit.y, 6, cx, cy);
     if (hit.hp <= 0) killZombie(hit, cx, cy, id, head);
   }
@@ -1771,7 +1784,7 @@ function update(dt) {
     if (p.spd > .3) { p.noiseT -= dt; if (p.noiseT <= 0) { p.noiseT = .5; noise(p.x, p.y, p.spd > 2.2 ? 4.5 : 1.6); } }
     if (p.search && mv.m > .4) { p.search = null; toast("Обыск прерван"); }
     if (p.search) { p.search.t += dt; if (p.search.t >= p.search.dur) finishSearch(); }
-    p.cool -= dt; p.swing = Math.max(0, p.swing - dt); p.hurtT = Math.max(0, p.hurtT - dt); p.flash = Math.max(0, p.flash - dt);
+    stepMelee(p, dt); p.cool -= dt; p.swing = Math.max(0, p.swing - dt); p.hurtT = Math.max(0, p.hurtT - dt); p.flash = Math.max(0, p.flash - dt);
     if (p.reload > 0) {
       p.reload -= dt;
       if (p.reload <= 0) { const w = WEAPONS[p.weapon]; if (w.gun) { const take = Math.min(w.mag - p.mag[p.weapon], p.inv[w.ammo] || 0); p.mag[p.weapon] += take; p.inv[w.ammo] -= take; tone(640, .06, "square", .03); hudT = 0; } }
@@ -3208,8 +3221,8 @@ function mat(key, opts = {}) {
 function init3D() {
   if (typeof THREE === "undefined" || settings.quality === "low") return false;
   try {
-    const r = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance", stencil: false });
-    r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
+    const r = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance", stencil: false });
+    r.shadowMap.enabled = true; r.shadowMap.type = settings.quality === "ultra" ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     r.outputEncoding = THREE.sRGBEncoding; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1;
     r.physicallyCorrectLights = true; r.localClippingEnabled = true;
     r.domElement.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block";
@@ -3284,7 +3297,7 @@ function makeMaterials() {
 function makeComposer() {
   const r = T3.r;
   const size = r.getDrawingBufferSize(new THREE.Vector2());
-  const rt = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType });
+  const rt = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples: settings.quality === "ultra" ? 4 : 2 });
   const comp = new THREE.EffectComposer(r, rt);
   comp.addPass(new THREE.RenderPass(T3.scene, T3.camera));
   const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), .3, .55, .9);
@@ -3313,7 +3326,7 @@ function makeComposer() {
 }
 function resize3D() {
   if (!T3.ok) return;
-  const pr = Math.min(window.devicePixelRatio || 1, settings.quality === "ultra" ? 3 : 2);
+  const pr = Math.max(.75, Math.min(window.devicePixelRatio || 1, settings.quality === "ultra" ? 3 : 2) * (T3.dynK || 1));
   T3.r.setPixelRatio(pr); T3.r.setSize(W, H, false);
   T3.camera.aspect = W / H; T3.camera.updateProjectionMatrix();
   const sm = settings.quality === "ultra" ? 4096 : 2048;
@@ -3339,6 +3352,8 @@ function build3D() {
   for (const b of M.buildings) buildBuilding(M, b);
   buildTrees(M); buildProps(M); buildCars(M); buildLamps(M); buildFences(M);
   buildPuddles(M); buildDynamic();
+  T3.static.updateMatrixWorld(true);
+  T3.static.traverse(o => { if (!o.isSprite) o.matrixAutoUpdate = false; });
   T3.buildMs = performance.now() - t0;
 }
 function addMesh(geo, material, parent, cast = true, recv = true) {
@@ -3530,7 +3545,7 @@ function instanced(geo, material, list, place, cast = true) {
   // split into spatial buckets so frustum culling still works for city-wide instance sets
   if (!list.length) return null;
   if (!geo.boundingSphere) geo.computeBoundingSphere();
-  const B = 32 * U, buckets = new Map(), placed = list.map((o, k) => [o, place(o, k), k]);
+  const B = 12 * U, buckets = new Map(), placed = list.map((o, k) => [o, place(o, k), k]);
   for (const it of placed) { const key = Math.floor(it[1].x / B) + "," + Math.floor(it[1].z / B); (buckets.get(key) || buckets.set(key, []).get(key)).push(it); }
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), e = new THREE.Euler();
   const meshes = [];
@@ -3549,7 +3564,7 @@ function instanced(geo, material, list, place, cast = true) {
       rad = Math.max(rad, Math.hypot(r.x - cx, r.z - cz));
     });
     g2.boundingSphere = new THREE.Sphere(new THREE.Vector3(cx, geo.boundingSphere.center.y * ms, cz), rad + geo.boundingSphere.radius * ms + 1);
-    im.castShadow = cast; im.receiveShadow = true; T3.static.add(im);
+    im.frustumCulled = true; im.castShadow = cast; im.receiveShadow = true; T3.static.add(im);
     im.userData.idx = items.map(it => it[2]);
     meshes.push(im);
   }
@@ -3662,6 +3677,8 @@ function buildLamps(M) {
   M.lamps.forEach(l => { const a = Math.PI * .75; l.lx = l.x * U + Math.cos(a) * .88; l.lz = l.y * U - Math.sin(a) * .88; });
 }
 // ---------- vehicles (stage 1 models; driving comes later) ----------
+let _carHide = null;
+const CAR_HIDE = () => _carHide || (_carHide = new THREE.MeshBasicMaterial({ visible: false }));
 function buildCars(M) {
   const tpl = {};
   const paints = new Map();
@@ -3672,7 +3689,8 @@ function buildCars(M) {
     const base = car.burnt ? "#22201e" : car.wreck ? "#5e544c" : car.kind === "police" ? "#e8e8e4" : car.kind === "amb" ? "#ecebe6" : car.kind === "truck" ? "#d6d8da" : car.kind === "mtruck" ? "#4f5434" : car.c;
     let pm = paints.get(base + car.burnt);
     if (!pm) { pm = tpl[k].userData.mats.paint.clone(); pm.color.copy(LC(base)); if (car.burnt || car.wreck) { pm.metalness = .1; pm.roughness = car.burnt ? 1 : .7; } paints.set(base + car.burnt, pm); }
-    g.traverse(o => { if (o.isMesh && o.material === tpl[k].userData.mats.paint) o.material = pm; if (o.isMesh && car.burnt && o.material === tpl[k].userData.mats.glassM) o.visible = false; });
+    const tm = tpl[k].userData.mats, swap = m => m === tm.paint ? pm : car.burnt && m === tm.glassM ? CAR_HIDE() : m;
+    g.traverse(o => { if (o.isMesh) o.material = Array.isArray(o.material) ? o.material.map(swap) : swap(o.material); });
     const flip = hash(car.x, car.y) > .5 ? Math.PI : 0;
     g.position.set(car.x * U, 0, car.y * U);
     g.rotation.y = (car.alongY ? -Math.PI / 2 : 0) + flip + (car.wreck ? (hash(car.y, car.x) - .5) * .25 : 0);
@@ -4063,7 +4081,7 @@ function poseChar(ch, s, time) {
   B("hips").rotation.z = moving ? Math.sin(ph) * .035 * amp : Math.sin(time * .6 + s.seed) * .015;
   B("chest").rotation.y = moving ? -Math.sin(ph) * .16 * amp : 0;
   let lean = zombie ? (s.runner ? .5 : .22) : (run ? .22 : moving ? .05 : 0);
-  if (s.hit > 0) lean = -.3;
+  if (s.hit > 0 && !zombie) lean = -.3;
   B("spine").rotation.x = lean + (moving ? 0 : Math.sin(time * 1.8 + s.seed) * .012);
   B("chest").rotation.x = moving ? 0 : Math.sin(time * 1.8 + s.seed) * .02;
   // arms
@@ -4080,6 +4098,14 @@ function poseChar(ch, s, time) {
     B("neck").rotation.z = s.tilt * .9 + Math.sin(time * .8 + s.seed) * .12; B("neck").rotation.x = s.runner ? -.2 : .32; B("head").rotation.y = Math.sin(time * .5 + s.seed) * .2;
     if (s.atk > 0) { B("spine").rotation.x += .25; B("neck").rotation.x = -.1; }
     B("chest").rotation.z = moving ? Math.sin(ph) * .08 : 0;
+    if (s.hit > 0) {
+      // flinch in place: the torso and head absorb the blow, the feet stay planted
+      const k = Math.sin(Math.min(1, s.hit / .3) * Math.PI) , rel = angDiff(s.dir, s.hitDir || s.dir), fwd = Math.cos(rel), sideK = Math.sin(rel);
+      B("spine").rotation.x += .32 * k * fwd; B("chest").rotation.x += .22 * k * fwd;
+      B("chest").rotation.z += .3 * k * sideK; B("chest").rotation.y += .25 * k * sideK;
+      B("neck").rotation.x += .5 * k * fwd; B("neck").rotation.z += .35 * k * sideK;
+      B("shL").rotation.x += .5 * k; B("shR").rotation.x += .4 * k;
+    }
   } else {
     B("neck").rotation.y = moving ? Math.sin(ph) * .06 : 0;
     const w = WEAPONS[s.weapon] || WEAPONS.fists, gun = w.gun;
@@ -4412,8 +4438,29 @@ function carTemplate(kind) {
     if (isAmb) { const red = new THREE.MeshStandardMaterial({ color: 0x400000, emissive: 0xff2020, emissiveIntensity: 0 }); box(.3, .14, 1.4, red, .85, hBox + .07, 0); grp.userData.siren = [red, red]; }
   }
   grp.userData.mats = { paint, glassM, chrome, lightF, lightR };
+  mergeChildren(grp); wheels.forEach(mergeChildren);
   grp.userData.wheels = wheels;
   return grp;
+}
+
+// collapse a node's direct mesh children into one mesh with one draw group per material
+function mergeChildren(node) {
+  const byMat = new Map(), drop = [];
+  for (const o of node.children) {
+    if (!o.isMesh) continue;
+    o.updateMatrix();
+    let g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+    g.applyMatrix4(o.matrix);
+    for (const k of Object.keys(g.attributes)) if (k !== "position" && k !== "normal" && k !== "uv") g.deleteAttribute(k);
+    if (!g.attributes.uv) g.setAttribute("uv", new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
+    (byMat.get(o.material) || byMat.set(o.material, []).get(o.material)).push(g); drop.push(o);
+  }
+  if (drop.length < 2) return;
+  drop.forEach(o => { node.remove(o); o.geometry.dispose(); });
+  const mats = [...byMat.keys()], parts = mats.map(m => THREE.BufferGeometryUtils.mergeBufferGeometries(byMat.get(m)));
+  const geo = THREE.BufferGeometryUtils.mergeBufferGeometries(parts, true);
+  const mesh = new THREE.Mesh(geo, mats); mesh.castShadow = mesh.receiveShadow = true;
+  node.add(mesh);
 }
 
 // ================= stage 3: effects =================
@@ -4504,7 +4551,18 @@ function stepFX(dt, time, nf, cand) {
 // ---------- per-frame ----------
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _p = new THREE.Vector3();
 let cutTimer = 0;
+function dynRes(dt) {
+  // keep the frame rate up: render fewer pixels when frames run long, more when there is headroom
+  if (!(dt > 0) || dt > .25) return;
+  T3.ft = T3.ft ? lerp(T3.ft, dt, .04) : dt; T3.dynT = (T3.dynT || 0) + dt;
+  if (T3.dynT < 1.5) return;
+  T3.dynT = 0; const k = T3.dynK || 1;
+  if (T3.ft > 1 / 42 && k > .55) T3.dynK = Math.max(.55, k - .1);
+  else if (T3.ft < 1 / 57 && k < 1) T3.dynK = Math.min(1, k + .05);
+  if (T3.dynK !== k) resize3D();
+}
 function render3D(time, dt) {
+  dynRes(dt);
   const Wd = world, M = Wd.map, p = Wd.player, nf = nightF(Wd.time), sun = sunVec(Wd.time);
   const play = Wd.mode === "play";
   // camera
@@ -4552,7 +4610,8 @@ function render3D(time, dt) {
   if (nf > .1) for (const cp of M.canopies) cand.push([(cp.x + cp.w / 2) * U, 3.4, (cp.y + cp.h / 2) * U, 90 * nf, 0xe0ecff, 20]);
   for (const { car, g } of T3.cars) if (g.userData.siren && nf > .1 && !car.wreck && Math.abs(g.position.x - cx) < 30 && Math.abs(g.position.z - cz) < 30) { const red = Math.sin(time * 7 + car.ph) > 0; cand.push([g.position.x, 2, g.position.z, 25 * nf, red ? 0xff2020 : 0x2040ff, 12]); g.userData.siren[0].emissiveIntensity = red ? 4 : 0; g.userData.siren[1].emissiveIntensity = red ? 0 : 4; }
   cand.sort((a, b) => Math.hypot(a[0] - cx, a[2] - cz) - Math.hypot(b[0] - cx, b[2] - cz));
-  T3.pool.forEach((pl, k) => { const c = cand[k]; if (!c) { pl.intensity = 0; return; } pl.position.set(c[0], c[1], c[2]); pl.intensity = c[3]; pl.color.setHex(c[4]); pl.distance = c[5]; });
+  const nPool = settings.quality === "ultra" ? 10 : 6;
+  T3.pool.forEach((pl, k) => { pl.visible = k < nPool; const c = k < nPool ? cand[k] : null; if (!c) { pl.intensity = 0; return; } pl.position.set(c[0], c[1], c[2]); pl.intensity = c[3]; pl.color.setHex(c[4]); pl.distance = c[5]; });
   if (T3.fx) stepFX(dt || .016, time, nf, cand);
   // emissive bits
   T3.mats.lit.emissiveIntensity = nf * 2.2;
