@@ -468,7 +468,8 @@ const SP = {
   post: [.1, .1, 1], pricesign: [.1, .1, 1], fountain: [1, 1, 1], crateout: [.42, .42, 1], pallet: [.45, .45, 0], cone: [.12, .12, 0],
   planter: [.5, .25, 1], mailbox: [.1, .1, 1], swingpost: [.08, .08, 1], sandbag: [.5, .22, 1], firebarrel: [.25, .25, 1],
   flagpole: [.08, .08, 1], statue: [.4, .4, 1], grave: [.22, .1, 1], goalpost: [1.3, .08, 0], bleacher: [2.6, .55, 1],
-  cart: [.28, .18, 0], billboard: [.15, .15, 1], silo: [1.05, 1.05, 1], hay: [.42, .42, 1], xing: [.08, .08, 1]
+  cart: [.28, .18, 0], billboard: [.15, .15, 1], silo: [1.05, 1.05, 1], hay: [.42, .42, 1], xing: [.08, .08, 1],
+  pole: [.08, .08, 1], wtower: [1.4, 1.4, 1], windmill: [.45, .45, 1], gbin: [1.25, 1.25, 1]
 };
 
 // ================= canvas & sizing =================
@@ -539,7 +540,7 @@ function genMap() {
     ground: new Uint8Array(N * N), bld: new Int16Array(N * N).fill(-1), nav: new Uint8Array(N * N),
     vW: new Uint8Array((N + 1) * N), hW: new Uint8Array(N * (N + 1)),
     boxes: [], grid: Array.from({ length: NG * NG }, () => []),
-    buildings: [], furn: [], trees: [], cars: [], lamps: [], props: [], decor: [], walls: [], canopies: [], parks: [],
+    buildings: [], furn: [], trees: [], cars: [], lamps: [], props: [], corn: [], decor: [], walls: [], canopies: [], parks: [],
     chunks: Array.from({ length: NC * NC }, () => [])
   };
   const T = (i, j) => j * N + i;
@@ -648,7 +649,9 @@ function genMap() {
       ridgeX: w >= h, rh: Math.min(56, 22 + Math.min(w, h) * 5),
       floorC: d.floor === WD ? pick(PAL.woodFloors) : d.floor === TL ? pick(PAL.tileFloors) : ["#8f8d88", "#86847f"],
       roofA: 1, conts: 0, searched: 0, lit: Math.random() < .35, curtain: !com && Math.random() < .75 ? pick(["#8a4a3a", "#5a6a7a", "#c9b98a", "#6a7a5a", "#7a5a7a", "#d8d0c0"]) : null, shutters: !com && Math.random() < .55 ? pick(PAL.shutters) : null,
-      ac: com ? [[rand(.2, .5), rand(.2, .6)], [rand(.5, .8), rand(.3, .7)]] : null, key: x + w + y + h - .02
+      ac: com ? [[rand(.2, .5), rand(.2, .6)], [rand(.5, .8), rand(.3, .7)]] : null, key: x + w + y + h - .02,
+      floors: opts.floors || ({ house: Math.random() < .55 ? 2 : 1, court: 3, school: 2, clinic: 3, police: 2, fire: 2, bank: 2, motel: 2 })[type] || 1,
+      front: opts.front || (doors[0] && doors[0][0]) || "S"
     };
     if (d.wallC) b.wallC = d.wallC;
     if (d.roofC) b.roofC = d.roofC;
@@ -891,7 +894,8 @@ function genMap() {
       for (let k = 0; k < 12; k++) for (const [i, j] of [[bx + 5, by + k], [bx + 6, by + k], [bx + k, by + 5], [bx + k, by + 6]]) occ[T(i, j)] = 1;
       addProp("fountain", bx + 6, by + 6);
       M.parks.push({ x: bx, y: by });
-      const q = pick([[bx, by], [bx + 7, by], [bx, by + 7], [bx + 7, by + 7]]);
+      const quads = shuffle([[bx, by], [bx + 7, by], [bx, by + 7], [bx + 7, by + 7]]), q = quads[0];
+      if (Math.random() < .35) { const w = quads[1]; addProp("wtower", w[0] + 2.5, w[1] + 2.5); for (let j = w[1]; j < w[1] + 5; j++) for (let i = w[0]; i < w[0] + 5; i++) occ[T(i, j)] = 1; }
       for (let j = q[1] + 1; j < q[1] + 4; j++) for (let i = q[0] + .0; i < q[0] + 4; i++) { M.ground[T(i, j)] = SA; occ[T(i, j)] = 1; }
       addProp("slide", q[0] + 1.2, q[1] + 2); addProp("swings", q[0] + 3, q[1] + 3);
       addProp("swingpost", q[0] + 2, q[1] + 3); addProp("swingpost", q[0] + 4, q[1] + 3);
@@ -945,16 +949,17 @@ function genMap() {
   // ================= American town: zones =================
   // A county-seat town: courthouse square and Main Street downtown, a highway strip on the west,
   // a river with a few bridges on the east, the railroad with grain elevators, suburbs, farms.
-  const RIV = 14, RAIL = 12, BRIDGES = new Set([0, 3, 8, 12, 15, 18]);
+  const RIV = 14, RAIL = 12, BRIDGES = new Set([1, 2, 5, 9, 12, 16]), KEEP = new Set([1, 2, 9, 16]);
+  const ruralBlock = (c, r) => c === 0 || c >= 16 || r <= 1 || r >= 16;
   const blockXY = k => ROADS[k] + 3;
   // storefront row along one side of a block, buildings share party walls
-  function storeRow(bx, y, h, face, types, widths) {
+  function storeRow(bx, y, h, face, types, widths, opts = {}) {
     let x = bx;
     const made = [];
     for (let k = 0; k < widths.length; k++) {
       const w = widths[k], type = types[k % types.length];
       const door = x + ri(0, w - 1);
-      const b = building(x, y, w, h, type, [[face, door]], { front: face, win: .5, party: true });
+      const b = building(x, y, w, h, type, [[face, door]], { front: face, win: .5, party: true, floors: opts.floors || pick([2, 2, 3, 3, 1]) });
       made.push(b);
       x += w;
     }
@@ -1016,7 +1021,7 @@ function genMap() {
   };
   GEN.motel = (bx, by) => {
     for (let j = by; j < by + 12; j++) for (let i = bx; i < bx + 12; i++) M.ground[T(i, j)] = LT;
-    const rooms = storeRow(bx, by + 1, 4, "S", ["motel"], [3, 3, 3, 3]);
+    const rooms = storeRow(bx, by + 1, 4, "S", ["motel"], [3, 3, 3, 3], { floors: 2 });
     rooms.forEach((r, k) => { if (k) r.name = null; });
     for (let k = 0; k < 4; k++) if (Math.random() < .55) addCar(bx + 1.5 + k * 3, by + 7.6, true);
     for (let i = bx; i <= bx + 12; i += 3) M.decor.push({ t: "pline", x0: i + .05, x1: i + .05, y0: by + 6.2, y1: by + 9, v: 1 });
@@ -1110,20 +1115,23 @@ function genMap() {
     }
   };
   GEN.railblock = (bx, by) => GEN.indus(bx, by);
+  GEN.rural = () => {};
 
   // ---- zone plan (18 x 18 blocks)
   const NB = ROADS.length - 1, plan = [];
   for (let r = 0; r < NB; r++) { plan.push([]); for (let c = 0; c < NB; c++) plan[r].push(null); }
   const set = (c, r, k) => { if (plan[r] && plan[r][c] === null) plan[r][c] = k; };
   for (let r = 0; r < NB; r++) plan[r][RIV] = "river";
-  for (let c = 0; c < NB; c++) if (c !== RIV) plan[RAIL][c] = "railblock";
+  // the countryside: everything outside the town limits is farmland, woods and ponds (filled in below)
+  for (let r = 0; r < NB; r++) for (let c = 0; c < NB; c++) if (ruralBlock(c, r)) set(c, r, "rural");
+  for (let c = 0; c < NB; c++) if (c !== RIV) set(c, RAIL, "railblock");
   // downtown: courthouse square in the middle, Main Street around it
   set(8, 8, "court");
   const downtown = shuffle(["church", "fire", "police", "clinic", ...Array(11).fill("main")]);
   for (let r = 7; r <= 10; r++) for (let c = 7; c <= 10; c++) if (!plan[r][c]) set(c, r, downtown.pop() || "main");
   // highway strip along the west side
   const strip = ["gas", "motel", "strip", "market", "dealer", "gas", "strip", "motel", "market", "strip", "gas", "dealer", "strip", "motel", "gas", "strip"];
-  for (let r = 1, k = 0; r < NB - 1; r++) if (r !== RAIL) set(1, r, strip[k++ % strip.length]);
+  for (let r = 2, k = 0; r < 16; r++) if (r !== RAIL) set(1, r, strip[k++ % strip.length]);
   // farms around the edge
   for (let r = 0; r < NB; r++) { set(0, r, "farm"); set(NB - 1, r, Math.random() < .7 ? "farm" : "camp"); }
   for (let c = 0; c < NB; c++) { set(c, 0, Math.random() < .75 ? "farm" : "camp"); set(c, NB - 1, Math.random() < .75 ? "farm" : "junk"); }
@@ -1145,15 +1153,83 @@ function genMap() {
   for (let k = 0; k < ROADS.length; k++) {
     const r = ROADS[k];
     if (BRIDGES.has(k)) {
-      for (let i = rx0; i < rx1; i++) { setH(i, r - 1, 3, true); setH(i, r + 3, 3, true); }
+      M.decor.push({ t: "brail", x0: rx0 + .5, x1: rx1 - .5, y: r - 1, side: -1 }, { t: "brail", x0: rx0 + .5, x1: rx1 - .5, y: r + 3, side: 1 });
       continue;
     }
     for (let j = r - 1; j <= r + 2; j++) for (let i = rx0 + 1; i < rx1 - 1; i++) { M.ground[T(i, j)] = WA; M.nav[T(i, j)] = 1; occ[T(i, j)] = 1; }
     for (let j = r - 1; j <= r + 2; j++) for (const i of [rx0, rx1 - 1]) { M.ground[T(i, j)] = GR; occ[T(i, j)] = 1; }
     addBox(rx0 + 1, r - 1, rx1 - 1, r + 3, null);
   }
-  // the railroad: one line across town on a gravel bed, with crossings at every street
+  // ---- countryside: farm roads give way to fields; only a few county roads leave town
   const ry = blockXY(RAIL);
+  const keptLine = v => { for (const k of KEEP) if (v >= ROADS[k] - 1 && v <= ROADS[k] + 2) return true; return false; };
+  const blockOf = v => { let k = 0; while (k < NB - 1 && v >= ROADS[k + 1]) k++; return k; };
+  const isRiver = i => i >= rx0 && i < rx1, isRail = j => j >= ry && j < ry + 3;
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    if (!ruralBlock(blockOf(i), blockOf(j)) || isRiver(i)) continue;
+    const t = M.ground[T(i, j)];
+    if (keptLine(i) || keptLine(j)) { if (t === WK) M.ground[T(i, j)] = GR; continue; }   // gravel shoulders, no sidewalks out here
+    if (t === RD || t === WK) M.ground[T(i, j)] = GR;
+  }
+  const fieldRows = (x0, x1, y0, y1, kind) => {
+    const step = kind === "corn" ? .9 : kind === "wheat" ? .6 : .75;
+    for (let y = y0 + .45; y < y1 - .2; y += step) {
+      let a = null;
+      for (let i = Math.floor(x0); i <= Math.ceil(x1); i++) {
+        const ok = i < x1 && !keptLine(i) && !keptLine(Math.floor(y)) && !isRiver(i) && !isRail(Math.floor(y)) && !occ[T(i, Math.floor(y))] && M.ground[T(i, Math.floor(y))] !== RD;
+        if (ok && a === null) a = i;
+        if (!ok && a !== null) {
+          const list = kind === "corn" ? M.corn : kind === "wheat" ? (M.wheat = M.wheat || []) : (M.soy = M.soy || []);
+          for (let x = a + .3; x < i - .1; x += kind === "corn" ? .62 : .42) list.push({ x: x + rand(-.1, .1), y: y + rand(-.06, .06), s: rand(.8, 1.2), r: Math.random() * 6 });
+          a = null;
+        }
+      }
+    }
+    for (let j = Math.floor(y0); j < y1; j++) for (let i = Math.floor(x0); i < x1; i++) if (!keptLine(i) && !keptLine(j) && !isRiver(i) && !isRail(j) && !occ[T(i, j)]) M.ground[T(i, j)] = DT;
+  };
+  for (let r = 0; r < NB; r++) for (let c = 0; c < NB; c++) {
+    if (plan[r][c] !== "rural" && !(r === RAIL && ruralBlock(c, r))) continue;
+    if (c === RIV) continue;
+    const bx = blockXY(c), by = blockXY(r), px0 = c === 0 ? 5 : ROADS[c], px1 = c === NB - 1 ? N - 5 : ROADS[c + 1], py0 = r === 0 ? 5 : ROADS[r], py1 = r === NB - 1 ? N - 5 : ROADS[r + 1];
+    const roll = Math.random(), onRail = r === RAIL;
+    const kind = onRail ? (roll < .6 ? "corn" : "woods") : roll < .28 ? "corn" : roll < .45 ? "wheat" : roll < .58 ? "soy" : roll < .7 ? "pasture" : roll < .86 ? "farmstead" : roll < .95 ? "woods" : "pond";
+    if (kind === "corn" || kind === "wheat" || kind === "soy") fieldRows(px0, px1, py0, py1, kind);
+    else if (kind === "woods") {
+      for (let j = py0; j < py1; j++) for (let i = px0; i < px1; i++) if (!keptLine(i) && !keptLine(j) && !isRail(j) && Math.random() < .45) { M.ground[T(i, j)] = FO; addTree(i + .5 + rand(-.25, .25), j + .5 + rand(-.25, .25), Math.random() < .5 ? "pine" : Math.random() < .3 ? "bush" : "tree", rand(1, 1.4)); }
+    } else if (kind === "pond") {
+      const cx = bx + 6, cy = by + 6, rx = rand(3.5, 5), rz = rand(3, 4.5);
+      for (let j = by; j < by + 12; j++) for (let i = bx; i < bx + 12; i++) {
+        const d = ((i + .5 - cx) / rx) ** 2 + ((j + .5 - cy) / rz) ** 2;
+        if (d < 1) { M.ground[T(i, j)] = WA; M.nav[T(i, j)] = 1; occ[T(i, j)] = 1; addBox(i, j, i + 1, j + 1, null); }
+        else if (d < 1.7 && Math.random() < .3) addTree(i + .5, j + .5, Math.random() < .4 ? "bush" : "tree");
+      }
+    } else if (kind === "pasture") {
+      for (let k = 0; k < 12; k++) { if (k !== 6) { setH(bx + k, by, 3); setH(bx + k, by + 12, 3); } if (k !== 5) { setV(bx, by + k, 3); setV(bx + 12, by + k, 3); } }
+      for (let k = 0; k < ri(3, 7); k++) { const i = bx + ri(1, 10), j = by + ri(1, 10); if (isFree(i, j)) addProp("hay", i + .5, j + .5); }
+      if (Math.random() < .5) { const b = building(bx + 8, by + 1, 3, 3, "shed", [["S", bx + 9]], { win: .1 }); furnishCom(b); }
+      if (Math.random() < .5) addProp("windmill", bx + 2, by + 2);
+    } else {
+      // farmstead: white farmhouse with a porch, big red barn, silos, grain bins, a windmill
+      for (let j = by; j < by + 12; j++) for (let i = bx; i < bx + 12; i++) M.ground[T(i, j)] = Math.random() < .6 ? DT : GR;
+      const flip = Math.random() < .5, hx = flip ? bx + 7 : bx + 1, gx = flip ? bx + 1 : bx + 6;
+      const h = building(hx, by + 6, 4, 4, "house", [["S", hx + ri(1, 2)]], { floors: 2 }); h.wallC = ["#ece8de", "#c8c2b4"]; furnishHouse(h);
+      const b = building(gx, by + 1, 5, 6, "barn", [["S", gx + 2]], { win: .1 }); furnishCom(b);
+      addProp("silo", flip ? bx + 6.5 : bx + 11, by + 2.5); addProp("silo", flip ? bx + 6.5 : bx + 11, by + 5);
+      for (let k = 0; k < ri(1, 3); k++) { const i = (flip ? bx + 9 : bx + 2) + k * 1.2, j = by + 11; addProp("gbin", Math.min(i, bx + 11), j - .3); }
+      addProp("windmill", flip ? bx + 11 : bx + .8, by + 11); addProp("hay", flip ? bx + 6.4 : bx + 11.3, by + 8);
+      if (Math.random() < .7) { const car = addCar(flip ? bx + 6.5 : bx + 5.5, by + 9.2, true); car.wreck = Math.random() < .2; }
+      for (const [i, j] of [[hx - 1, by + 5], [hx + 4, by + 5], [hx - 1, by + 10]]) if (isFree(i, j)) addTree(i + .5, j + .5, "tree", rand(1.1, 1.4));
+    }
+  }
+  // power lines along the county roads
+  for (const k of KEEP) {
+    const r = ROADS[k] - 1;
+    for (let v = 4; v < N - 4; v += 6) {
+      if (isFree(v, r) && M.ground[T(v, r)] !== WA && M.ground[T(v, r + 1)] === RD) addProp("pole", v + .5, r + .3, { line: "h" + k });
+      if (isFree(r, v) && M.ground[T(r, v)] !== WA && M.ground[T(r + 1, v)] === RD) addProp("pole", r + .3, v + .5, { line: "v" + k });
+    }
+  }
+  // the railroad: one line across town on a gravel bed, with crossings at every street
   for (let i = 0; i < N; i++) {
     for (let j = ry; j < ry + 3; j++) {
       const t = M.ground[T(i, j)];
@@ -1169,7 +1245,8 @@ function genMap() {
   M.boxes = M.boxes.filter(b => !b.gone);
   for (let k = 0; k < M.grid.length; k++) if (M.grid[k].some(b => b.gone)) M.grid[k] = M.grid[k].filter(b => !b.gone);
   for (let j = blockXY(RAIL); j < blockXY(RAIL) + 12; j++) if (j < ry || j >= ry + 3) addBox(rx0 + 1, j, rx1 - 1, j + 1, null);
-  for (const c of ROADS) { addProp("xing", c - .6, ry - .4); addProp("xing", c + 2.6, ry + 3.4); }
+  for (const c of ROADS) if (M.ground[T(c, ry)] === RD) { addProp("xing", c - .6, ry - .4); addProp("xing", c + 2.6, ry + 3.4); }
+  M.decor.push({ t: "truss", x0: rx0 + .5, x1: rx1 - .5, y0: ry, y1: ry + 3 });
 
 
   // ---- forest
@@ -1180,7 +1257,8 @@ function genMap() {
   }
   // road ends: barricades and wrecks
   for (const r of ROADS) for (const e of [2, N - 3]) {
-    addProp("barrier", r + 1, e + .5); addProp("barrier", e + .5, r + 1, { rot: true });
+    if (M.ground[T(r, e)] === RD) addProp("barrier", r + 1, e + .5);
+    if (M.ground[T(e, r)] === RD) addProp("barrier", e + .5, r + 1, { rot: true });
   }
   // ---- cars on roads
   let n = 0, tries = 0;
@@ -1200,7 +1278,7 @@ function genMap() {
     if (M.ground[T(r - 1, k)] === WK && isFree(r - 1, k)) addLamp(r - .55, k + .5);
   }
   // stop signs at junction corners
-  for (const r of ROADS) for (const c of ROADS) { if (isFree(r - 1, c - 1)) addProp("stopsign", r - .7, c - .7); if (isFree(r + 2, c + 2)) addProp("stopsign", r + 2.7, c + 2.7); }
+  for (const r of ROADS) for (const c of ROADS) if (M.ground[T(r, c)] === RD && M.ground[T(r + 2, c)] !== GR) { if (isFree(r - 1, c - 1)) addProp("stopsign", r - .7, c - .7); if (isFree(r + 2, c + 2)) addProp("stopsign", r + 2.7, c + 2.7); }
   // sidewalk props
   n = 0; tries = 0;
   while (n < 1000 && tries++ < 40000) {
@@ -1409,6 +1487,10 @@ function drawDecor(g, d) {
     g.strokeStyle = "#4a3a2c"; g.lineWidth = 2;
     for (let k = 0; k < 3; k++) line2(g, d.x0 + .17 + k * .33, d.y - .7, d.x0 + .17 + k * .33, d.y + .7);
     g.strokeStyle = "#a8a49e"; g.lineWidth = 1.2; line2(g, d.x0, d.y - .4, d.x1, d.y - .4); line2(g, d.x0, d.y + .4, d.x1, d.y + .4);
+  } else if (d.t === "field") {
+    g.strokeStyle = d.kind === "corn" ? "#6f8a3a" : d.kind === "wheat" ? "#c8a85a" : "#4a7a3a"; g.lineWidth = 3; line2(g, d.x0, d.y, d.x1, d.y);
+  } else if (d.t === "brail") {
+    g.strokeStyle = "#a8a49c"; g.lineWidth = 3; line2(g, d.x0, d.y, d.x1, d.y);
   } else if (d.t === "crops") {
     g.strokeStyle = "#6f8a3a"; g.lineWidth = 3; line2(g, d.x0, d.y, d.x1, d.y);
   } else if (d.t === "pline") {
@@ -2714,7 +2796,8 @@ function drawSP(c, o, nf, time) {
     }
     case "sandbag": { const ax = !o.rot; for (let r = 0; r < 3; r++) for (let k2 = 0; k2 < 3; k2++) { const t = (k2 - 1) * .33; ell3(c, x + (ax ? t : 0), y + (ax ? 0 : t), 3 + r * 6, 9, 4.6, ["#9a8c68", "#a89a76", "#8e8060"][(r + k2) % 3]); } break; }
     case "flagpole": case "xing": case "billboard": { const p = P3(x, y, 0); c.fillStyle = "#c8ccd0"; c.fillRect(p.X - 1, p.Y - (o.kind === "flagpole" ? 90 : 50), 2, o.kind === "flagpole" ? 90 : 50); if (o.kind === "billboard") { c.fillStyle = "#e8e2d0"; c.fillRect(p.X - 30, p.Y - 80, 60, 30); } break; }
-    case "statue": case "grave": case "goalpost": case "bleacher": case "cart": case "silo": case "hay": box3(c, x - o.hx, y - o.hy, x + o.hx, y + o.hy, 0, o.kind === "silo" ? 120 : o.kind === "bleacher" ? 30 : 18, o.kind === "silo" ? "#b8bcc2" : o.kind === "hay" ? "#c8a85a" : "#8e8b84"); break;
+    case "pole": case "windmill": { const p = P3(x, y, 0); c.fillStyle = "#5a4a3a"; c.fillRect(p.X - 1.5, p.Y - 120, 3, 120); break; }
+    case "wtower": case "gbin": case "statue": case "grave": case "goalpost": case "bleacher": case "cart": case "silo": case "hay": box3(c, x - o.hx, y - o.hy, x + o.hx, y + o.hy, 0, o.kind === "silo" ? 120 : o.kind === "bleacher" ? 30 : 18, o.kind === "silo" ? "#b8bcc2" : o.kind === "hay" ? "#c8a85a" : "#8e8b84"); break;
     case "mailbox": { const p = P3(x, y, 0); c.fillStyle = "#4a3a2c"; c.fillRect(p.X - 1, p.Y - 16, 2.5, 16); c.fillStyle = "#3b5a7a"; roundRect(c, p.X - 6, p.Y - 22, 12, 7, 3); c.fill(); c.fillStyle = "#c9433a"; c.fillRect(p.X + 4, p.Y - 26, 1.5, 5); break; }
   }
 }
@@ -3412,14 +3495,15 @@ class GB {
     const nx = u[1] * v[2] - u[2] * v[1], ny = u[2] * v[0] - u[0] * v[2], nz = u[0] * v[1] - u[1] * v[0], nl = Math.hypot(nx, ny, nz) || 1, N = [nx / nl, ny / nl, nz / nl];
     for (const q of [a, b, c]) { this.p.push(q[0], q[1], q[2]); this.n.push(...N); this.u.push(...uvOf(q, N, ts)); this.c.push(col[0], col[1], col[2]); }
   }
-  box(x0, y0, z0, x1, y1, z1, col, ts = 2, bottom = false) {
+  box(x0, y0, z0, x1, y1, z1, col, ts = 2, bottom = false, skip = 0) {
     if (x1 < x0) [x0, x1] = [x1, x0]; if (y1 < y0) [y0, y1] = [y1, y0]; if (z1 < z0) [z0, z1] = [z1, z0];
     const m = this.mirror; this.mirror = false;
     const dx = x1 - x0, dy = y1 - y0, dz = z1 - z0;
-    this.quad([x1, y0, z1], [0, 0, -dz], [0, dy, 0], col, ts);
-    this.quad([x0, y0, z0], [0, 0, dz], [0, dy, 0], col, ts);
-    this.quad([x0, y0, z1], [dx, 0, 0], [0, dy, 0], col, ts);
-    this.quad([x1, y0, z0], [-dx, 0, 0], [0, dy, 0], col, ts);
+    // skip: 1 = +x, 2 = -x, 4 = +z, 8 = -z faces (hidden against a wall or at the ends of a thin strip)
+    if (!(skip & 1)) this.quad([x1, y0, z1], [0, 0, -dz], [0, dy, 0], col, ts);
+    if (!(skip & 2)) this.quad([x0, y0, z0], [0, 0, dz], [0, dy, 0], col, ts);
+    if (!(skip & 4)) this.quad([x0, y0, z1], [dx, 0, 0], [0, dy, 0], col, ts);
+    if (!(skip & 8)) this.quad([x1, y0, z0], [-dx, 0, 0], [0, dy, 0], col, ts);
     this.quad([x0, y1, z1], [dx, 0, 0], [0, 0, -dz], col, ts);
     if (bottom) this.quad([x0, y0, z0], [dx, 0, 0], [0, 0, dz], col, ts);
     this.mirror = m;
@@ -3600,7 +3684,9 @@ function makeComposer() {
         float l = dot(c, vec3(.2126,.7152,.0722)); c = mix(vec3(l), c, uSat);
         c = pow(c, vec3(1./2.2));
         vec2 q = (vUv - .5) * vec2(uRes.x / uRes.y, 1.);
-        c *= 1. - smoothstep(.45, 1.25, length(q)) * .55;
+        c = mix(c, c * c * (3. - 2. * c), .3);                    // a little more contrast
+        c = mix(c, c * vec3(.95, 1., .96), .5);                     // sickly, slightly green cast
+        c *= 1. - smoothstep(.35, 1.15, length(q)) * .72;
         c += (h(vUv * uRes + uTime) - .5) * .03;
         gl_FragColor = vec4(c, 1.);
       }`
@@ -3635,8 +3721,14 @@ function build3D() {
   buildGround(M);
   for (const b of M.buildings) buildBuilding(M, b);
   buildTrees(M); buildProps(M); buildCars(M); buildLamps(M); buildFences(M);
-  buildPuddles(M); buildDynamic();
+  buildCorn(M); buildPuddles(M); buildDynamic();
   T3.static.updateMatrixWorld(true);
+  const free = function () { this.array = null; };
+  T3.static.traverse(o => { if ((o.isMesh || o.isLineSegments) && o.geometry && !o.geometry.userData.keep) { if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); for (const a of Object.values(o.geometry.attributes)) if (a.onUpload) a.onUpload(free); if (o.geometry.index) o.geometry.index.onUpload(free); } });
+  // upload everything once (one slow frame while loading), so the CPU copies are released right away
+  const culled = []; T3.static.traverse(o => { if (o.frustumCulled) { o.frustumCulled = false; culled.push(o); } });
+  try { T3.r.render(T3.scene, T3.camera); } catch (e) {}
+  for (const o of culled) o.frustumCulled = true;
   T3.static.traverse(o => { if (!o.isSprite) o.matrixAutoUpdate = false; });
   T3.buildMs = performance.now() - t0;
 }
@@ -3692,6 +3784,36 @@ function buildGround(M) {
         for (let k = 0; k < 3; k++) { const x = x0 + .3 + k * .6; rugs.box(x - .11, .02, z - 1.25, x + .11, .14, z + 1.25, CA("#4a3a2c")); }
         for (const o of [-.72, .72]) { rugs.box(x0, .14, z + o - .04, x0 + U, .26, z + o + .04, CA("#6e6a66")); rugs.box(x0, .26, z + o - .035, x0 + U, .28, z + o + .035, CA("#b8b4ae")); }
       }
+      else if (d.t === "field") {
+        // a crop row: corn stands tall, wheat low and golden, soy in dark green clumps
+        const z = d.y * U, h = d.kind === "corn" ? 1.9 : d.kind === "wheat" ? .8 : .55, w = d.kind === "corn" ? .32 : d.kind === "wheat" ? .26 : .3;
+        const base = d.kind === "corn" ? ["#5f7a32", "#6f8a3a", "#7a8a3e"] : d.kind === "wheat" ? ["#b89a4a", "#c8a85a", "#a88c42"] : ["#3f6a34", "#4a7a3a", "#557a40"];
+        // separate bushy clumps with gaps, not a hedge
+        for (let x = d.x0 * U + .1; x < d.x1 * U - .3; x += .72) {
+          const hh = h * (.7 + hash(x, z) * .6), ww = w * (.8 + hash(z, x) * .5), l = .42 + hash(x * 2, z) * .18, col = CA(base[Math.floor(hash(z, x) * 3)]);
+          rugs.box(x, 0, z - ww, x + l, hh * .65, z + ww, mulC(col, .85));
+          rugs.box(x + .08, hh * .5, z - ww * .7, x + l - .08, hh, z + ww * .7, col);
+        }
+      }
+      else if (d.t === "brail") {
+        // bridge: concrete parapet with posts, a deep edge beam and a lamp every few metres
+        const z = d.y * U, o = d.side * .14, x0 = d.x0 * U, x1 = d.x1 * U, cc = CA("#a8a49c");
+        rugs.box(x0, -.95, z - .1 + o, x1, .14, z + .1 + o, CA("#8a8680"));
+        rugs.box(x0, .14, z - .12 + o, x1, .38, z + .12 + o, cc);
+        rugs.box(x0, .9, z - .14 + o, x1, 1.04, z + .14 + o, cc);
+        for (let x = x0; x <= x1; x += 1.2) rugs.box(x - .1, .38, z - .1 + o, x + .1, .9, z + .1 + o, cc);
+        for (let x = x0 + 2; x < x1; x += 6) rugs.box(x - .5, -3, z - .4 + o * 3, x + .5, -.9, z + .4 + o * 3, CA("#7a7670"));
+      }
+      else if (d.t === "truss") {
+        // steel railroad truss
+        const st = CA("#5a4a3a"), x0 = d.x0 * U, x1 = d.x1 * U;
+        for (const z of [d.y0 * U + .1, d.y1 * U - .1]) {
+          rugs.box(x0, 0, z - .15, x1, .5, z + .15, st); rugs.box(x0, 3.8, z - .15, x1, 4.1, z + .15, st);
+          for (let x = x0; x <= x1 + .01; x += 2.7) rugs.box(x - .12, .5, z - .12, x + .12, 3.8, z + .12, st);
+          for (let x = x0; x < x1 - 2.6; x += 2.7) for (let k = 0; k < 6; k++) { const t = k / 6; rugs.box(x + t * 2.7 - .09, .5 + t * 3.3, z - .08, x + t * 2.7 + .45, .5 + t * 3.3 + .62, z + .08, st); }
+        }
+        for (let x = x0; x <= x1 + .01; x += 2.7) rugs.box(x - .1, 3.8, d.y0 * U, x + .1, 4.05, d.y1 * U, st);
+      }
       else if (d.t === "crops") {
         const z = d.y * U;
         rugs.box(d.x0 * U, 0, z - .28, d.x1 * U, .14, z + .28, CA("#5a4630"));
@@ -3714,36 +3836,48 @@ function buildBuilding(M, b) {
   const extCol = tent ? CA(b.wallC[0]) : com ? mulC(CA(b.wallC[0]), .7).map(v => v * .5 + .5) : mulC(CA(b.wallC[0]), 1.12);
   const inCol = CA(b.inC), white = CA("#efece4"), doorC = CA("#5a3c28"), plinth = CA("#6e6a62");
   const tex = TEX[extKey].ts;
-  const t = .2, H = WH;
-  // emit an axis-aligned box in edge-local coordinates (a along the edge, c across it)
-  const E = (g, axis, a0, a1, c0, c1, y0, y1, col, ts = 2) => axis === "x" ? g.box(a0, y0, c0, a1, y1, c1, col, ts) : g.box(c0, y0, a0, c1, y1, a1, col, ts);
+  const t = .2, H = WH, FL = b.floors || 1;
+  // emit an axis-aligned box in edge-local coordinates (a along the edge, c across it); yo lifts it to an upper storey
+  let yo = 0;
+  const E = (g, axis, a0, a1, c0, c1, y0, y1, col, ts = 2) => axis === "x" ? g.box(a0, y0 + yo, c0, a1, y1 + yo, c1, col, ts) : g.box(c0, y0 + yo, a0, c1, y1 + yo, a1, col, ts);
+  const TS = (axis, a0, a1, c0, c1, y0, y1, col, side) => {
+    const ends = axis === "x" ? 3 : 12, back = axis === "x" ? (side > 0 ? 8 : 4) : (side > 0 ? 2 : 1);
+    return axis === "x" ? trim.box(a0, y0 + yo, c0, a1, y1 + yo, c1, col, 2, false, ends | back) : trim.box(c0, y0 + yo, a0, c1, y1 + yo, a1, col, 2, false, ends | back);
+  };
+  const Pt = (axis, a, y, c) => axis === "x" ? [a, y, c] : [c, y, a];
+  const quad2 = (g, axis, o, u, v, col) => { const O = Pt(axis, ...o), Uv = Pt(axis, ...u), Vv = Pt(axis, ...v); g.quad(O, Uv, Vv, col); g.quad(O, Vv, Uv, col); };
   const solidPieces = c => c === 2 ? [[0, 1, 0, WB], [0, 1, WT, H], [0, .2, WB, WT], [.8, 1, WB, WT]] : c === 4 ? [[0, .18, 0, H], [.82, 1, 0, H], [.18, .82, DH, H]] : [[0, 1, 0, H]];
   const wall = (axis, a0, cLine, code, inSide, interior, litW) => {
     const A = s => a0 + s * U;
     for (const [s0, s1, y0, y1] of solidPieces(code)) {
       if (interior) E(int, axis, A(s0), A(s1), cLine - t / 2, cLine + t / 2, y0, y1, inCol);
       else {
-        E(int, axis, A(s0), A(s1), cLine, cLine + inSide * t / 2, y0, y1, inCol);
+        if (yo === 0) E(int, axis, A(s0), A(s1), cLine, cLine + inSide * t / 2, y0, y1, inCol);
         E(ext, axis, A(s0), A(s1), cLine - inSide * t / 2, cLine, y0, y1, extCol, tex);
       }
     }
-    if (!interior) E(ext, axis, A(0), A(1), cLine - inSide * (t / 2 + .03), cLine - inSide * t / 2, 0, .42, plinth);
+    if (!interior) { if (yo === 0) E(ext, axis, A(0), A(1), cLine - inSide * (t / 2 + .03), cLine - inSide * t / 2, 0, .42, plinth); else E(trim, axis, A(0), A(1), cLine - inSide * (t / 2 + .06), cLine - inSide * t / 2, -.04, .1, CA("#d8d2c4")); }
     const outS = interior ? -1 : -inSide;
     if (code === 2) {
       E(litW ? lit : glass, axis, A(.2), A(.8), cLine - .015, cLine + .015, WB, WT, white);
-      for (const side of interior ? [1, -1] : [outS, -outS]) {
+      if (yo > 0 && !interior) {
+        // upper storeys: flat frame faces only, they are only ever seen from the street
+        const fc = cLine + outS * (t / 2 + .02), Qd = (p0, p1, y0, y1) => quad2(trim, axis, [A(p0), y0 + yo, fc], [A(p1) - A(p0), 0, 0], [0, y1 - y0, 0], white);
+        Qd(.17, .83, WT, WT + .08); Qd(.17, .83, WB - .06, WB); Qd(.17, .21, WB, WT); Qd(.79, .83, WB, WT); Qd(.49, .51, WB, WT);
+      }
+      else for (const side of interior ? [1, -1] : [outS, -outS]) {
         const f0 = cLine + side * t / 2, f1 = cLine + side * (t / 2 + .04);
-        E(trim, axis, A(.17), A(.83), f0, f1, WT, WT + .08, white); E(trim, axis, A(.17), A(.83), f0, f1, WB - .06, WB, white);
-        E(trim, axis, A(.17), A(.21), f0, f1, WB, WT, white); E(trim, axis, A(.79), A(.83), f0, f1, WB, WT, white);
-        E(trim, axis, A(.49), A(.51), cLine - .03, cLine + .03, WB, WT, white); E(trim, axis, A(.2), A(.8), cLine - .03, cLine + .03, 1.65, 1.68, white);
+        TS(axis, A(.17), A(.83), f0, f1, WT, WT + .08, white, side); TS(axis, A(.17), A(.83), f0, f1, WB - .06, WB, white, side);
+        TS(axis, A(.17), A(.21), f0, f1, WB, WT, white, side); TS(axis, A(.79), A(.83), f0, f1, WB, WT, white, side);
+        if (side === outS) { TS(axis, A(.49), A(.51), cLine - .03, cLine + .03, WB, WT, white, 0); TS(axis, A(.2), A(.8), cLine - .03, cLine + .03, 1.65, 1.68, white, 0); }
       }
       if (!interior) E(trim, axis, A(.15), A(.85), cLine + outS * t / 2, cLine + outS * (t / 2 + .12), WB - .1, WB - .04, CA("#d8d2c4"));
-      if (!interior && b.shutters) for (const [p0, p1] of [[.08, .17], [.83, .92]]) E(trim, axis, A(p0), A(p1), cLine + outS * t / 2, cLine + outS * (t / 2 + .03), WB, WT, CA(b.shutters));
+      if (!interior && b.shutters) for (const [p0, p1] of [[.08, .17], [.83, .92]]) TS(axis, A(p0), A(p1), cLine + outS * t / 2, cLine + outS * (t / 2 + .03), WB, WT, CA(b.shutters), outS);
       if (b.curtain && !interior) for (const [p0, p1] of [[.21, .29], [.71, .79]]) E(int, axis, A(p0), A(p1), cLine + inSide * .03, cLine + inSide * .06, WB + .05, WT - .05, CA(b.curtain));
     } else if (code === 4) {
       for (const side of [1, -1]) {
         const f0 = cLine + side * t / 2, f1 = cLine + side * (t / 2 + .035);
-        E(trim, axis, A(.14), A(.86), f0, f1, DH, DH + .1, white); E(trim, axis, A(.14), A(.19), f0, f1, 0, DH, white); E(trim, axis, A(.81), A(.86), f0, f1, 0, DH, white);
+        TS(axis, A(.14), A(.86), f0, f1, DH, DH + .1, white, side); TS(axis, A(.14), A(.19), f0, f1, 0, DH, white, side); TS(axis, A(.81), A(.86), f0, f1, 0, DH, white, side);
       }
       // an open door leaf, swung into the room
       const dir = interior ? 1 : inSide, hinge = A(.2);
@@ -3751,34 +3885,95 @@ function buildBuilding(M, b) {
     }
   };
   // a wall shared with the building next door: each side draws only its own interior face
-  const other = (i, j) => i >= 0 && j >= 0 && i < N && j < N && M.bld[T(i, j)] >= 0 && M.bld[T(i, j)] !== b.id;
+  const bidAt = (i, j) => i >= 0 && j >= 0 && i < N && j < N ? M.bld[T(i, j)] : -1;
   const party = (axis, a0, cLine, inSide) => E(int, axis, a0, a0 + U, cLine, cLine + inSide * t / 2, 0, H, inCol);
+  const AWN = new Set(["shop", "pharm", "hard", "diner", "bar", "gun", "cafe", "bank"]);
+  let porch = false;
+  const edge = (axis, i, j, c, inSide, interior, litW, nbBid, side, a0, cLine) => {
+    const partyF = nbBid >= 0 && nbBid !== b.id ? (M.buildings[nbBid].floors || 1) : 0;
+    yo = 0;
+    if (partyF) party(axis, a0, cLine, inSide); else wall(axis, a0, cLine, c, inSide, interior, litW);
+    if (interior) return;
+    for (let f = 1; f < FL; f++) {
+      yo = f * H;
+      if (f < partyF) continue;   // hidden between the two buildings
+      else if (partyF) wall(axis, a0, cLine, 1, inSide, false, false);   // blank brick side above a lower neighbour
+      else { const win = c === 2 || c === 4 || hash(i * 1.7 + f, j * 2.3) > .4; wall(axis, a0, cLine, win ? 2 : 1, inSide, false, win && b.lit && hash(j + f * 3, i) > .45); }
+    }
+    yo = 0;
+    if (partyF) return;
+    const out = -inSide, front = side === b.front;
+    // storefront awning over the display windows
+    if (front && AWN.has(b.type) && c === 2) {
+      const ac = mulC(CA(b.sign || "#6b4a32"), .85), c0 = cLine + out * (t / 2 + .02);
+      quad2(trim, axis, [a0 + .04, 2.78, c0], [U - .08, 0, 0], [0, -.42, out * 1.05], ac);
+      quad2(trim, axis, [a0 + .04, 2.36, c0 + out * 1.05], [U - .08, 0, 0], [0, -.24, 0], mulC(ac, .8));
+    }
+    // a wide front porch on houses: deck, steps, posts, rail and a little roof
+    if (b.type === "house" && c === 4 && !porch) {
+      porch = true;
+      const len = (axis === "x" ? b.w : b.h) * U, s0 = (axis === "x" ? b.x : b.y) * U, d = 1.65, c1 = cLine + out * (t / 2), c2 = c1 + out * d;
+      const wood = CA("#8a7058"), wh = CA("#ece8de"), rf = CA(b.roofC);
+      E(trim, axis, s0 - .05, s0 + len + .05, Math.min(c1, c2), Math.max(c1, c2), 0, .34, wood);
+      E(trim, axis, a0 + .2, a0 + U - .2, Math.min(c2, c2 + out * .45), Math.max(c2, c2 + out * .45), 0, .17, wood);
+      const posts = Math.max(2, Math.round(len / 2.2) + 1);
+      for (let k = 0; k < posts; k++) { const pa = s0 + .1 + (len - .2) * k / (posts - 1); E(trim, axis, pa - .08, pa + .08, c2 - out * .2 - .08, c2 - out * .2 + .08, .34, 2.72, wh); }
+      for (const [r0, r1] of [[s0 + .1, a0 + .15], [a0 + U - .15, s0 + len - .1]]) if (r1 - r0 > .2) { E(trim, axis, r0, r1, c2 - out * .2 - .04, c2 - out * .2 + .04, .95, 1.02, wh); E(trim, axis, r0, r1, c2 - out * .2 - .015, c2 - out * .2 + .015, .4, .92, mulC(wh, .9)); }
+      E(trim, axis, s0 - .15, s0 + len + .15, Math.min(c1, c2 + out * .1), Math.max(c1, c2 + out * .1), 2.72, 2.84, rf);
+      E(trim, axis, s0 - .15, s0 + len + .15, Math.min(c2 + out * .06, c2 + out * .12), Math.max(c2 + out * .06, c2 + out * .12), 2.6, 2.84, wh);
+    }
+    // columns and a pediment in front of the courthouse and the bank
+    if ((b.type === "court" || b.type === "bank") && front && !b._portico) {
+      b._portico = true;
+      const len = (axis === "x" ? b.w : b.h) * U, s0 = (axis === "x" ? b.x : b.y) * U, d = 2.2, c1 = cLine + out * (t / 2), c2 = c1 + out * d, top = Math.min(FL, 2) * H;
+      const stone = CA("#e6e1d6");
+      for (let k = 0; k < 3; k++) E(trim, axis, s0 + .3 - k * .2, s0 + len - .3 + k * .2, Math.min(c1, c2 + out * k * .3), Math.max(c1, c2 + out * k * .3), .12 * (2 - k), .12 * (3 - k), stone);
+      const cols = Math.max(4, Math.round(len / 2.4));
+      for (let k = 0; k < cols; k++) { const pa = s0 + .7 + (len - 1.4) * k / (cols - 1), pc = c2 - out * .5; trim.cyl(axis === "x" ? pa : pc, .36, axis === "x" ? pc : pa, .26, .22, top - .36, 12, stone); }
+      E(trim, axis, s0 + .3, s0 + len - .3, Math.min(c1, c2), Math.max(c1, c2), top, top + .55, stone);
+      const mid = s0 + len / 2, ph = Math.min(2.2, len * .16);
+      for (const cc of [c2, c2 - out * .02]) trim.tri(Pt(axis, s0 + .3, top + .55, cc), Pt(axis, s0 + len - .3, top + .55, cc), Pt(axis, mid, top + .55 + ph, cc), stone);
+      trim.tri(Pt(axis, s0 + len - .3, top + .55, c2), Pt(axis, s0 + .3, top + .55, c2), Pt(axis, mid, top + .55 + ph, c2), stone);
+      quad2(trim, axis, [s0 + .3, top + .55, c1], [len - .6, 0, 0], [0, 0, c2 - c1], stone);
+    }
+  };
   for (let j = b.y; j <= b.y + b.h; j++) for (let i = b.x; i < b.x + b.w; i++) {
     const c = M.hW[j * N + i]; if (!c || c === 3) continue;
-    const s = own(i, j), n = own(i, j - 1); if (!s && !n) continue;
-    if ((s && other(i, j - 1)) || (n && other(i, j))) { party("x", i * U, j * U, s ? 1 : -1); continue; }
-    wall("x", i * U, j * U, c, s ? 1 : -1, s && n, T3.litSet.has("x" + i + "," + j));
+    const s2 = own(i, j), n = own(i, j - 1); if (!s2 && !n) continue;
+    edge("x", i, j, c, s2 ? 1 : -1, s2 && n, T3.litSet.has("x" + i + "," + j), s2 ? bidAt(i, j - 1) : bidAt(i, j), s2 ? "N" : "S", i * U, j * U);
   }
   for (let j = b.y; j < b.y + b.h; j++) for (let i = b.x; i <= b.x + b.w; i++) {
     const c = M.vW[j * (N + 1) + i]; if (!c || c === 3) continue;
     const e = own(i, j), w = own(i - 1, j); if (!e && !w) continue;
-    if ((e && other(i - 1, j)) || (w && other(i, j))) { party("z", j * U, i * U, e ? 1 : -1); continue; }
-    wall("z", j * U, i * U, c, e ? 1 : -1, e && w, T3.litSet.has("y" + i + "," + j));
+    edge("z", i, j, c, e ? 1 : -1, e && w, T3.litSet.has("y" + i + "," + j), e ? bidAt(i - 1, j) : bidAt(i, j), e ? "W" : "E", j * U, i * U);
   }
-  for (const f of b.furn || []) { const L = furnLocal(f); mergeLocal(furn, L.g, L.rot, L.cx, L.cz); }
+
   const grp = new THREE.Group(); T3.static.add(grp);
   const mesh = (g, k) => g.empty ? null : addMesh(g.geo(), Mt[k], grp);
   const rec = { b, base: {}, meshes: {} };
   for (const [g, k] of [[ext, extKey], [int, "plaster"], [glass, "glass"], [lit, "lit"], [trim, "trim"]]) { const m = mesh(g, k); if (m) { rec.meshes[k] = m; rec.base[k] = k; } }
-  if (!furn.empty) addMesh(furn.geo(), Mt.furn, grp);
+  rec.grp = grp;
   // roof
   const roof = new THREE.Group(); grp.add(roof);
   buildRoof(b, roof, extKey, extCol);
   rec.roof = roof;
   T3.bmeshes.set(b.id, rec);
 }
+// furniture lives in memory only around the player: hundreds of furnished buildings would not fit on a phone
+function furnishNear(cx, cz) {
+  const R1 = 42, R2 = 62;
+  for (const rec of T3.bmeshes.values()) {
+    const b = rec.b, d = Math.hypot((b.x + b.w / 2) * U - cx, (b.y + b.h / 2) * U - cz);
+    if (d < R1 && !rec.furn && b.furn && b.furn.length) {
+      const g = new GB();
+      for (const f of b.furn) { const L = furnLocal(f); mergeLocal(g, L.g, L.rot, L.cx, L.cz); }
+      rec.furn = addMesh(g.geo(), T3.mats.furn, rec.grp);
+      rec.furn.updateMatrixWorld(true); rec.furn.matrixAutoUpdate = false;
+    } else if (d > R2 && rec.furn) { rec.grp.remove(rec.furn); rec.furn.geometry.dispose(); rec.furn = null; }
+  }
+}
 function buildRoof(b, roof, extKey, extCol) {
-  const Mt = T3.mats, H = WH;
+  const Mt = T3.mats, H = WH * (b.floors || 1);
   const sh = new GB(), ex = new GB(), tr = new GB(), br = new GB();
   if (b.roofType === "gable") {
     const o = .38, rh = Math.min(2.7, .9 + Math.min(b.w, b.h) * U * .2);
@@ -3810,6 +4005,20 @@ function buildRoof(b, roof, extKey, extCol) {
     const ca = A0 + (A1 - A0) * .72, cc = cm - (cm - C0) * .45, ch = H + rh * (1 - Math.abs(cc - cm) / (cm - C0)) - .2;
     E(br, ca - .3, ca + .3, cc - .3, cc + .3, ch, H + rh + .9, CA("#8a5442"));
     E(tr, ca - .35, ca + .35, cc - .35, cc + .35, H + rh + .9, H + rh + 1.0, CA("#4a3029"));
+    if (b.type === "church") {
+      // bell tower and spire over the entrance
+      const fa = b.front === "N" || b.front === "W" ? A0 + 1.2 : A1 - 1.2, tw = 1.25, top = H + rh + 3.2;
+      const fc = b.front === "N" || b.front === "S" ? (b.x + b.w / 2) * U : (b.y + b.h / 2) * U;
+      const tx0 = ridgeX ? fa - tw : fc - tw, tx1 = ridgeX ? fa + tw : fc + tw, tz0 = ridgeX ? fc - tw : fa - tw, tz1 = ridgeX ? fc + tw : fa + tw;
+      for (const g of [sh, ex, tr, br]) g.mirror = false;
+      ex.box(tx0, H - .2, tz0, tx1, top, tz1, extCol, TEXT_TS(extKey));
+      tr.box(tx0 - .1, top, tz0 - .1, tx1 + .1, top + .25, tz1 + .1, CA("#e8e4da"));
+      for (const [ox, oz] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) { const mx = (tx0 + tx1) / 2 + ox * (tw + .01), mz = (tz0 + tz1) / 2 + oz * (tw + .01); tr.box(mx - (oz ? .45 : .02), top - 2, mz - (ox ? .45 : .02), mx + (oz ? .45 : .02), top - .7, mz + (ox ? .45 : .02), CA("#2a2a2e")); }
+      const sp = top + .25, cx2 = (tx0 + tx1) / 2, cz2 = (tz0 + tz1) / 2, r = tw + .1, peak = [cx2, sp + 4.2, cz2], spc = CA("#3a3f48");
+      tr.tri([cx2 - r, sp, cz2 + r], [cx2 + r, sp, cz2 + r], peak, spc); tr.tri([cx2 + r, sp, cz2 - r], [cx2 - r, sp, cz2 - r], peak, spc);
+      tr.tri([cx2 + r, sp, cz2 + r], [cx2 + r, sp, cz2 - r], peak, spc); tr.tri([cx2 - r, sp, cz2 - r], [cx2 - r, sp, cz2 + r], peak, spc);
+      tr.box(cx2 - .04, sp + 4.1, cz2 - .04, cx2 + .04, sp + 5, cz2 + .04, CA("#c8c0a8")); tr.box(cx2 - .25, sp + 4.6, cz2 - .04, cx2 + .25, sp + 4.68, cz2 + .04, CA("#c8c0a8"));
+    }
     for (const g of [sh, ex, tr, br]) g.mirror = false;
   } else {
     const x0 = b.x * U - .05, x1 = (b.x + b.w) * U + .05, z0 = b.y * U - .05, z1 = (b.y + b.h) * U + .05;
@@ -3828,8 +4037,18 @@ function buildRoof(b, roof, extKey, extCol) {
       const tx = new THREE.CanvasTexture(c); tx.encoding = THREE.sRGBEncoding; tx.anisotropy = 4;
       const w = Math.min(b.w * U * .75, 9), sm = new THREE.MeshStandardMaterial({ map: tx, emissive: 0xffffff, emissiveMap: tx, emissiveIntensity: 0, roughness: .5 });
       const sign = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 112 / 512), sm);
-      sign.position.set((x0 + x1) / 2, H + ph + w * 112 / 1024 + .1, z1 + .03); sign.castShadow = true; roof.add(sign);
-      tr.box((x0 + x1) / 2 - w / 2, H + ph, z1 - .02, (x0 + x1) / 2 + w / 2, H + ph + w * 112 / 512 + .2, z1 + .02, CA("#2a2a2a"));
+      // on the street side; above the shop windows on taller buildings, on the parapet on one-storey ones
+      const fr = b.front || "S", ns = fr === "N" || fr === "S", sw = Math.min((ns ? b.w : b.h) * U * .75, 9), sh2 = sw * 112 / 512;
+      if (!ns) { sign.geometry.dispose(); sign.geometry = new THREE.PlaneGeometry(sw, sh2); }
+      const sy = (b.floors || 1) > 1 ? WH + sh2 / 2 + .05 : H + ph + sh2 / 2 + .1;
+      const off = (b.floors || 1) > 1 ? .2 : .03;
+      if (fr === "S") sign.position.set((x0 + x1) / 2, sy, z1 + off);
+      else if (fr === "N") { sign.position.set((x0 + x1) / 2, sy, z0 - off); sign.rotation.y = Math.PI; }
+      else if (fr === "E") { sign.position.set(x1 + off, sy, (z0 + z1) / 2); sign.rotation.y = Math.PI / 2; }
+      else { sign.position.set(x0 - off, sy, (z0 + z1) / 2); sign.rotation.y = -Math.PI / 2; }
+      sign.castShadow = true; roof.add(sign);
+      // cornice along the top of the facade
+      tr.box(x0 - .14, H - .3, z0 - .14, x1 + .14, H - .08, z1 + .14, CA("#b8b0a0"));
       T3.signs = T3.signs || []; T3.signs.push(sm);
     }
   }
@@ -3934,6 +4153,28 @@ function propGeo(kind) {
     case "planter": g.box(-.9, 0, -.4, .9, .55, .4, C("#8a8478")); g.box(-.85, .55, -.35, .85, .62, .35, C("#3a2a1a")); break;
     case "mailbox": g.box(-.04, 0, -.04, .04, 1.05, .04, C("#4a3a2c")); g.box(-.18, 1.05, -.12, .22, 1.3, .12, C("#3b5a7a")); g.box(.2, 1.2, .1, .23, 1.45, .12, C("#c9433a")); break;
     case "sandbag": for (let r = 0; r < 3; r++) for (let k = 0; k < 3; k++) { const x = -.6 + k * .42 + (r % 2) * .2; g.box(x, r * .24, -.22, x + .4, r * .24 + .22, .22, C(["#9a8c68", "#a89a76", "#8e8060"][(r + k) % 3])); } break;
+    case "pole": {
+      g.cyl(0, 0, 0, .14, .1, 8.2, 8, C("#5a4a3a")); g.box(-1, 7.45, -.07, 1, 7.6, .07, C("#4a3a2c"));
+      for (const x of [-.85, 0, .85]) g.cyl(x, x ? 7.6 : 8.2, 0, .05, .05, .16, 6, C("#c8d0d8"));
+      break;
+    }
+    case "wtower": {
+      for (const [x, z] of [[-1.6, -1.6], [1.6, -1.6], [-1.6, 1.6], [1.6, 1.6]]) g.box(x - .12, 0, z - .12, x + .12, 13, z + .12, C("#8a9098"));
+      for (const y of [4, 8.5]) { g.box(-1.7, y, -1.62, 1.7, y + .12, -1.5, C("#7a8088")); g.box(-1.7, y, 1.5, 1.7, y + .12, 1.62, C("#7a8088")); g.box(-1.62, y, -1.7, -1.5, y + .12, 1.7, C("#7a8088")); g.box(1.5, y, -1.7, 1.62, y + .12, 1.7, C("#7a8088")); }
+      g.cyl(0, 12.6, 0, .4, 2.7, 1.2, 22, C("#a8b4bc")); g.cyl(0, 13.8, 0, 2.7, 2.7, 3.6, 22, C("#b8c4cc")); g.cyl(0, 17.4, 0, 2.75, .2, 1.4, 22, C("#98a4ac"));
+      g.cyl(0, 13.65, 0, 3.1, 3.1, .12, 22, C("#6e767e"));
+      g.box(-.05, 0, 1.6, .05, 13.7, 1.7, C("#5a5e66"));
+      break;
+    }
+    case "windmill": {
+      for (const [x, z] of [[-.45, -.45], [.45, -.45], [-.45, .45], [.45, .45]]) g.box(x * .2 + x * .8 - .05, 0, z - .05, x * .2 + x * .8 + .05, 8, z + .05, C("#7a7e84"));
+      for (const y of [2.5, 5, 7.5]) g.box(-.5, y, -.5, .5, y + .06, .5, C("#6a6e74"));
+      g.box(-.15, 8, -.15, .15, 8.4, .5, C("#5a5e64")); g.box(-.04, 8.1, .5, .04, 8.8, 2.1, C("#8a2a22"));
+      for (let k = 0; k < 18; k++) { const a = k / 18 * Math.PI * 2, ux = Math.cos(a), uy = Math.sin(a); g.quad([0, 8.2, -.2], [ux * 1.6, uy * 1.6, 0], [-uy * .26, ux * .26, 0], C("#c8ccd0")); g.quad([0, 8.2, -.2], [-uy * .26, ux * .26, 0], [ux * 1.6, uy * 1.6, 0], C("#c8ccd0")); }
+      g.cyl(0, 8.1, -.25, .18, .18, .2, 8, C("#4a4e54"));
+      break;
+    }
+    case "gbin": g.cyl(0, 0, 0, 2.1, 2.1, 3.4, 20, C("#c0c6cc")); for (let y = .5; y < 3.4; y += .45) g.cyl(0, y, 0, 2.13, 2.13, .05, 20, C("#9aa0a6"), false); g.cyl(0, 3.4, 0, 2.2, .35, 1.3, 20, C("#a8aeb4")); g.cyl(0, 4.7, 0, .4, .4, .4, 10, C("#8a9096")); break;
     case "flagpole": {
       g.cyl(0, 0, 0, .06, .04, 7.2, 8, C("#c8ccd0")); g.cyl(0, 7.2, 0, .09, .09, .1, 8, C("#d8b040"));
       for (let k = 0; k < 7; k++) g.box(.06, 6.9 - k * .11, -.01, 1.5, 6.9 - k * .11 + .11, .01, C(k % 2 ? "#ecebe6" : "#b8302c"));
@@ -3965,6 +4206,30 @@ function buildProps(M) {
   for (const [k, list] of Object.entries(groups)) {
     const geo = propGeo(k); if (!geo) continue;
     instanced(geo, T3.mats.prop, list, o => ({ x: o.x * U, z: o.y * U, ry: o.rot ? Math.PI / 2 : 0 }));
+  }
+  // power lines: three sagging wires between neighbouring poles on the same road
+  const lines = {};
+  for (const o of M.props) if (o.kind === "pole" && o.line) (lines[o.line] = lines[o.line] || []).push(o);
+  const wp = [];
+  for (const list of Object.values(lines)) {
+    list.sort((a, b) => (a.x + a.y) - (b.x + b.y));
+    for (let k = 1; k < list.length; k++) {
+      const a = list[k - 1], b = list[k];
+      if (Math.hypot(a.x - b.x, a.y - b.y) > 9) continue;
+      const vert = a.line[0] === "v";
+      for (const [off, h] of [[-.85, 7.6], [0, 8.2], [.85, 7.6]]) {
+        const ax = a.x * U + (vert ? off : 0), az = a.y * U + (vert ? 0 : off), bx = b.x * U + (vert ? off : 0), bz = b.y * U + (vert ? 0 : off);
+        const n = 6;
+        for (let s = 0; s < n; s++) {
+          const t0 = s / n, t1 = (s + 1) / n, sag = t => Math.sin(t * Math.PI) * .55;
+          wp.push(lerp(ax, bx, t0), h - sag(t0), lerp(az, bz, t0), lerp(ax, bx, t1), h - sag(t1), lerp(az, bz, t1));
+        }
+      }
+    }
+  }
+  if (wp.length) {
+    const gw = new THREE.BufferGeometry(); gw.setAttribute("position", new THREE.Float32BufferAttribute(wp, 3));
+    const wires = new THREE.LineSegments(gw, new THREE.LineBasicMaterial({ color: 0x15171a })); T3.static.add(wires);
   }
   // gas station canopies
   const g = new GB();
@@ -4112,7 +4377,7 @@ function dressRig(rg, look, isPlayer) {
   m.shoes.color.copy(LC(look.shoes)); m.hair.color.copy(LC(look.hairCol));
   rg.hair.visible = look.hair !== "bald"; rg.hairLong.visible = look.hair === "long" || look.hair === "pony";
   rg.pack.visible = !!isPlayer; if (isPlayer) m.pack.color.copy(LC("#4f553a"));
-  const white = look.hit > .12;
+  const white = false; // no white hit flash: the flinch and the blood show the blow
   for (const k of ["skin", "top", "sleeve", "pants"]) m[k].emissive.setRGB(white ? .6 : 0, white ? .6 : 0, white ? .6 : 0);
 }
 // ---------- ragdolls ----------
@@ -4352,7 +4617,7 @@ function dressChar(ch, look, isPlayer, zombie) {
     if (hairKey && !(look.hat && look.hair !== "long" && look.hair !== "pony")) show(hairKey, m.hair);
     if (isPlayer) { show("pack", m.pack); m.pack.color.copy(LC("#4f553a")); }
   }
-  const white = look.hit > .12;
+  const white = false; // no white hit flash: the flinch and the blood show the blow
   for (const k of ["skin", "head", "top", "outer", "pants"]) m[k].emissive.setRGB(white ? .5 : 0, white ? .45 : 0, white ? .45 : 0);
 }
 // ---------- weapons as models ----------
@@ -4820,6 +5085,29 @@ function initFX() {
   for (let i = 0; i < 6; i++) { const g = new THREE.CylinderGeometry(.25, 3.2, 5.8, 24, 1, true); g.translate(0, 2.9, 0); const m = new THREE.Mesh(g, coneMat()); m.visible = false; T3.scene.add(m); fx.cones.push(m); }
   { const g = new THREE.CylinderGeometry(.06, 2.6, 9, 20, 1, true); g.translate(0, -4.5, 0); g.rotateX(-Math.PI / 2); const m = new THREE.Mesh(g, coneMat()); m.material.uniforms.uCol.value.set(1, .93, .8); m.visible = false; T3.scene.add(m); fx.beam = m; }
 }
+// corn: one clump of stalks with drooping leaves, instanced over every field
+function buildCorn(M) {
+  const g = new GB(), C = CA;
+  for (const [ox, oz, h] of [[0, 0, 2.15], [.22, .12, 1.9], [-.18, .16, 2.05]]) {
+    g.box(ox - .025, 0, oz - .025, ox + .025, h, oz + .025, C("#7a8a42"));
+    for (let k = 0; k < 4; k++) {
+      const y = .45 + k * .38, a = k * 2.1 + ox * 9, ux = Math.cos(a) * .55, uz = Math.sin(a) * .55, col = C(k % 2 ? "#5e7a30" : "#6a8636");
+      g.quad([ox, y, oz], [ux, .22, uz], [-uz * .12, 0, ux * .12], col); g.quad([ox, y, oz], [-uz * .12, 0, ux * .12], [ux, .22, uz], col);
+      g.quad([ox + ux, y + .22, oz + uz], [ux * .5, -.3, uz * .5], [-uz * .1, 0, ux * .1], col); g.quad([ox + ux, y + .22, oz + uz], [-uz * .1, 0, ux * .1], [ux * .5, -.3, uz * .5], col);
+    }
+    g.box(ox - .05, h, oz - .05, ox + .05, h + .28, oz + .05, C("#c8b060"));
+    g.box(ox + .03, 1.1, oz - .05, ox + .11, 1.45, oz + .05, C("#d8c070"));
+  }
+  if (M.corn.length) instanced(g.geo(), T3.mats.furn, M.corn, o => ({ x: o.x * U, z: o.y * U, s: o.s, ry: o.r }), true);
+  // wheat: a tuft of golden stems; soy: a low leafy mound
+  for (const [list, cols, hgt] of [[M.wheat, ["#b89a4a", "#c8a85a"], .85], [M.soy, ["#3f6a34", "#4f7a3a"], .5]]) {
+    if (!list || !list.length) continue;
+    const q = new GB();
+    for (let k = 0; k < 5; k++) { const a = k * 1.3, ox = Math.cos(a) * .14, oz = Math.sin(a) * .14, h = hgt * (.8 + (k % 3) * .12); q.box(ox - .06, 0, oz - .06, ox + .06, h, oz + .06, C(cols[k % 2])); }
+    if (hgt < .6) q.box(-.22, .2, -.22, .22, .42, .22, C(cols[1])); else q.box(-.18, hgt * .75, -.18, .18, hgt, .18, C("#d8b868"));
+    instanced(q.geo(), T3.mats.furn, list, o => ({ x: o.x * U, z: o.y * U, s: o.s, ry: o.r }), false);
+  }
+}
 function buildPuddles(M) {
   initFX();
   const list = [];
@@ -4895,6 +5183,8 @@ function render3D(time, dt) {
   // camera
   const fx = play ? p.x + p.vx * .3 : Wd.focusX, fy = play ? p.y + p.vy * .3 : Wd.focusY;
   T3.camT.lerp(_p.set(fx * U, 1, fy * U), 1 - Math.pow(.002, dt || .016));
+  T3.furnT = (T3.furnT || 0) - (dt || .016);
+  if (T3.furnT <= 0) { T3.furnT = .5; furnishNear(T3.camT.x, T3.camT.z); }
   const dist = { near: 15, mid: 19, far: 26 }[settings.zoom] || 19, pitch = .8;
   const sh = Wd.shake ? rand(-Wd.shake, Wd.shake) * .012 : 0;
   T3.camera.position.set(T3.camT.x + Math.cos(pitch) * dist * Math.SQRT1_2 + sh, T3.camT.y + Math.sin(pitch) * dist, T3.camT.z + Math.cos(pitch) * dist * Math.SQRT1_2 - sh);
@@ -4906,16 +5196,16 @@ function render3D(time, dt) {
   const gold = clamp(1 - elev * 2.2, 0, 1);
   if (nf < .6) {
     T3.sun.position.copy(T3.camT).addScaledVector(sd, 80); T3.sun.color.setRGB(1, lerp(.97, .66, gold), lerp(.92, .45, gold));
-    T3.sun.intensity = (2.6 * day + .02) * (1 - Wd.wet * .7);
+    T3.sun.intensity = (2.1 * day + .02) * (1 - Wd.wet * .7);
   } else {
     T3.sun.position.copy(T3.camT).add(_p.set(-30, 60, 20)); T3.sun.color.setRGB(.55, .65, 1); T3.sun.intensity = .18;
   }
   T3.sun.target.position.copy(T3.camT); T3.sun.target.updateMatrixWorld();
-  T3.hemi.intensity = lerp(.75, .05, nf) * (1 - Wd.wet * .25);
+  T3.hemi.intensity = lerp(.6, .04, nf) * (1 - Wd.wet * .25);
   T3.hemi.color.setRGB(lerp(.75, .25, nf), lerp(.85, .3, nf), lerp(1, .55, nf));
   T3.scene.environment = nf > .5 ? T3.envNight : T3.envDay;
-  const fogC = new THREE.Color().setRGB(lerp(lerp(.55, .8, gold * day), .02, nf), lerp(lerp(.6, .6, gold * day), .03, nf), lerp(lerp(.66, .5, gold * day), .06, nf));
-  T3.scene.fog.color.copy(fogC); T3.scene.fog.density = (.0045 + Wd.wet * .006 + nf * .004);
+  const fogC = new THREE.Color().setRGB(lerp(lerp(.44, .62, gold * day), .02, nf), lerp(lerp(.47, .5, gold * day), .03, nf), lerp(lerp(.47, .42, gold * day), .05, nf));
+  T3.scene.fog.color.copy(fogC); T3.scene.fog.density = (.0075 + Wd.wet * .006 + nf * .004);
   T3.scene.background = fogC;
   T3.wind.value = time;
   if (play) {
@@ -4954,9 +5244,13 @@ function render3D(time, dt) {
     if (play) {
       const ray = new THREE.Raycaster(); ray.layers.enableAll(); const tgt = _p.set(p.x * U, 1.2, p.y * U).clone();
       ray.set(T3.camera.position, tgt.clone().sub(T3.camera.position).normalize()); ray.far = T3.camera.position.distanceTo(tgt) - .5;
-      const objs = [];
-      for (const [id, rec] of T3.bmeshes) { const b = rec.b; if (Math.abs((b.cx) * U - tgt.x) > 16 || Math.abs(b.cy * U - tgt.z) > 16) continue; rec.roof.traverse(o => { if (o.isMesh) { o.userData.bid = id; objs.push(o); } }); for (const m of Object.values(rec.meshes)) { m.userData.bid = id; objs.push(m); } }
-      for (const hit of ray.intersectObjects(objs, false)) cut.add(hit.object.userData.bid);
+      // which buildings stand between the camera and the player: ray against each building's box
+      const box = T3._box || (T3._box = new THREE.Box3()), hitP = new THREE.Vector3();
+      for (const [id, rec] of T3.bmeshes) {
+        const b = rec.b; if (Math.abs(b.cx * U - tgt.x) > 18 || Math.abs(b.cy * U - tgt.z) > 18) continue;
+        box.min.set(b.x * U - .4, 0, b.y * U - .4); box.max.set((b.x + b.w) * U + .4, WH * (b.floors || 1) + (b.roofType === "gable" ? 2.6 : .7) + (b.type === "church" ? 9 : 0), (b.y + b.h) * U + .4);
+        if (ray.ray.intersectBox(box, hitP) && hitP.distanceTo(T3.camera.position) < ray.far) cut.add(id);
+      }
     }
     for (const [id, rec] of T3.bmeshes) {
       const on = cut.has(id);
@@ -5027,9 +5321,9 @@ function render3D(time, dt) {
   }
   // post: exposure, grade, bloom
   const gold2 = gold * day;
-  T3.grade.uniforms.uTint.value.set(lerp(lerp(1, 1.12, gold2), .9, nf), lerp(1, .98, nf), lerp(lerp(1, .86, gold2), 1.18, nf));
-  T3.grade.uniforms.uSat.value = lerp(.92, .7, nf) - Wd.wet * .1;
-  T3.grade.uniforms.uExp.value = lerp(.72, 1.5, nf);
+  T3.grade.uniforms.uTint.value.set(lerp(lerp(.96, 1.08, gold2), .88, nf), lerp(1.0, .98, nf), lerp(lerp(.94, .84, gold2), 1.12, nf));
+  T3.grade.uniforms.uSat.value = lerp(.7, .55, nf) - Wd.wet * .08;
+  T3.grade.uniforms.uExp.value = lerp(.6, 1.35, nf);
   T3.grade.uniforms.uTime.value = (time * 60) % 1000;
   T3.bloom.strength = lerp(.22, .75, nf); T3.bloom.threshold = lerp(.92, .6, nf);
   T3.comp.render(dt || .016);
