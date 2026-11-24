@@ -384,6 +384,9 @@ const ICON = {
   ammo545: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 10l1.5-6L10 10v10H7zM14 10l1.5-6L17 10v10h-3z"/></svg>',
   can: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M6 7h9l3 3v10H6z"/><path d="M9 4h4v3H9zM9 12l6 5M15 12l-6 5"/></svg>',
   radio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="3" y="9" width="18" height="11" rx="2"/><path d="M7 9l9-5M7 14h4M15 14.5h.01" stroke-linecap="round"/></svg>',
+  antibio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="3" y="9" width="18" height="7" rx="3.5" transform="rotate(-35 12 12.5)"/><path d="M9.5 9.5l5 6"/></svg>',
+  splint: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 3v18M16 3v18M6 8h12M6 16h12"/></svg>',
+  tools: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6a4 4 0 0 0 5 5l-9 9a2 2 0 0 1-3-3l9-9a4 4 0 0 0-2-2z"/></svg>',
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>'
 };
 
@@ -396,9 +399,12 @@ const ITEMS = {
   ammo9: { name: "Патроны 9 мм", desc: "Для пистолета", c: "#c9b27c", noUse: true },
   ammo545: { name: "Патроны 5,45", desc: "Для автомата", c: "#c9b27c", noUse: true },
   can: { name: "Канистра", desc: "Слить бензин и заправить машину", c: "#c8473a", noUse: true },
-  radio: { name: "Радио", desc: "Ловит голоса выживших и военных", c: "#9fc3e8", noUse: true }
+  radio: { name: "Радио", desc: "Ловит голоса выживших и военных", c: "#9fc3e8", noUse: true },
+  antibio: { name: "Антибиотики", desc: "Лечат заражённый укус, если не тянуть", c: "#7fd0a0" },
+  splint: { name: "Шина", desc: "Перелом срастается вдвое быстрее", c: "#d8c090" },
+  tools: { name: "Инструменты", desc: "Чинить машины", c: "#a8aeb6", noUse: true }
 };
-const ITEM_GEN = { radio: "радио", can: "канистра", food: "консервы", water: "вода", bandage: "бинт", medkit: "аптечка", battery: "батарейка", ammo9: "патроны 9 мм", ammo545: "патроны 5,45" };
+const ITEM_GEN = { antibio: "антибиотики", splint: "шина", tools: "инструменты", radio: "радио", can: "канистра", food: "консервы", water: "вода", bandage: "бинт", medkit: "аптечка", battery: "батарейка", ammo9: "патроны 9 мм", ammo545: "патроны 5,45" };
 const WEAPONS = {
   fists: { name: "Кулаки", dmg: 1, range: .8, cd: .42, rank: 0 },
   bat: { name: "Бита", dmg: 2, range: 1, cd: .5, rank: 1 },
@@ -410,15 +416,15 @@ const LOOTS = {
   fridge: [["food", 5], ["water", 5]],
   counter: [["food", 4], ["water", 3], ["battery", 1]],
   wardrobe: [["bandage", 2], ["battery", 2], ["food", 1], ["bat", .4], ["ammo9", .5], ["pistol", .12]],
-  cabinet: [["bandage", 5], ["medkit", 1]],
+  cabinet: [["bandage", 5], ["medkit", 1], ["antibio", .5], ["splint", .6]],
   desk: [["battery", 4], ["bandage", 1], ["ammo9", .6], ["radio", .35]],
   crate: [["food", 2], ["water", 2], ["battery", 2], ["bat", .8], ["axe", .5], ["ammo9", .5], ["can", .5]],
-  workbench: [["bat", 3], ["axe", 2], ["battery", 2], ["can", 1.6]],
+  workbench: [["bat", 3], ["axe", 2], ["battery", 2], ["can", 1.6], ["tools", 1.6]],
   locker: [["pistol", 1.2], ["ammo9", 3], ["rifle", .4], ["ammo545", 1.2], ["bandage", 1], ["bat", 1], ["radio", .6]],
   military: [["rifle", 1], ["ammo545", 3], ["ammo9", 1.5], ["pistol", .6], ["medkit", 1.2], ["food", 1], ["water", 1]],
   shop: [["food", 6], ["water", 5]],
-  pharm: [["bandage", 5], ["medkit", 1.5]],
-  hard: [["battery", 4], ["bat", 2], ["axe", 1.5], ["can", 1.5]],
+  pharm: [["bandage", 5], ["medkit", 1.5], ["antibio", 1], ["splint", .7]],
+  hard: [["battery", 4], ["bat", 2], ["axe", 1.5], ["can", 1.5], ["tools", 1.2]],
   glove: [["battery", 2], ["bandage", 2], ["food", 1], ["water", 1], ["ammo9", .8]],
   freight: [["food", 4], ["water", 4], ["battery", 2], ["bandage", 2], ["can", 1], ["axe", .4], ["ammo9", .5]],
   cafe: [["food", 5], ["water", 4]],
@@ -1590,7 +1596,7 @@ function spawnZombie(minDist, maxDist = 999, runnerChance = 0, inside = true) {
   if (runner) world.zombies[world.zombies.length - 1].o.top.col = pick(["#5a2f2a", "#4a3a3a", "#3b3b3b"]);
   return true;
 }
-function newWorld(mode) {
+function newWorld(mode, seed) {
   chunkCache.clear();
   world = {
     mode, map: null, zombies: [], rags: [], tracers: [], decals: [], parts: [], dust: [], flies: [], rain: [],
@@ -1600,13 +1606,16 @@ function newWorld(mode) {
     player: {
       x: START.x, y: START.y, vx: 0, vy: 0, dir: Math.PI * .25, sf: 1, hp: 100, food: 85, water: 80, bat: 100, ph: 0, spd: 0,
       weapon: "fists", owned: { fists: true }, mag: { pistol: 0, rifle: 0 }, reload: 0, flash: 0,
-      inv: { food: 1, water: 1, bandage: 0, medkit: 0, battery: 0, ammo9: 0, ammo545: 0, can: 0, radio: 0 }, notes: [], keys: new Set(), gas: 0, veh: null, task: null, swing: 0, cool: 0, noiseT: 0, search: null, hurtT: 0
+      inv: { food: 1, water: 1, bandage: 0, medkit: 0, battery: 0, ammo9: 0, ammo545: 0, can: 0, radio: 0, antibio: 0, splint: 0, tools: 0 }, skills: {}, wounds: {}, notes: [], keys: new Set(), gas: 0, veh: null, task: null, swing: 0, cool: 0, noiseT: 0, search: null, hurtT: 0
     },
     events: new Set()
   };
   engineSound(false); if (T3.bikeMesh) T3.bikeMesh.visible = false;
-  world.map = genMap();
-  Object.assign(world, { npcs: spawnNPCs(world.map), loose: [], marks: [], power: true, heliAt: 700 + Math.random() * 500, radioAt: 1e9 });
+  // the city grows from a seed, so a saved game can regrow the very same streets
+  world.seed = seed ?? ((Math.random() * 2147483647) | 0);
+  const realRandom = Math.random; Math.random = seeded(world.seed);
+  try { world.map = genMap(); world.npcs = spawnNPCs(world.map); } finally { Math.random = realRandom; }
+  Object.assign(world, { loose: [], marks: [], power: true, heliAt: 700 + Math.random() * 500, radioAt: 1e9 });
   world.wet = world.raining ? 1 : 0;
   const n = Math.round(1000 * diff().zombies);
   for (let i = 0; i < n; i++) spawnZombie(9);
@@ -1896,7 +1905,7 @@ let hurtTimer = 0;
 function hurtFlash() { const h = $("#hurt"); h.style.transition = "none"; h.style.opacity = "1"; clearTimeout(hurtTimer); hurtTimer = setTimeout(() => { h.style.transition = ""; h.style.opacity = "0"; }, 60); }
 function renderBag() {
   const p = world.player, box = $("#items");
-  box.innerHTML = "";
+  box.innerHTML = ""; renderSkills(box);
   for (const [k, it] of Object.entries(ITEMS)) {
     const n = p.inv[k] || 0;
     const b = document.createElement(it.noUse ? "div" : "button");
@@ -1916,9 +1925,17 @@ function renderBag() {
     box.append(b);
   }
 }
+function renderSkills(box) {
+  const d = document.createElement("div"); d.className = "item"; d.style.gridColumn = "1 / -1"; d.style.display = "block";
+  d.innerHTML = "<b>Навыки</b><small>" + Object.entries(SKILLS).map(([k, n]) => { const l = skillLv(k), xp = (world.player.skills || {})[k] || 0, nx = SKILL_XP[l + 1]; return `${n}: ${l}${nx ? ` (${xp}/${nx})` : " · максимум"}`; }).join(" · ") + "</small>";
+  box.append(d);
+}
 function useItem(k) {
-  const p = world.player;
+  const p = world.player, w = p.wounds = p.wounds || {};
   if (!p.inv[k]) return;
+  if (k === "antibio") { if (!w.bite) { toast("Сейчас не нужно. Прибереги на случай укуса"); return; } w.bite = 0; w.feverWarn = false; toast("Жар спадает. Укус заживёт", true); }
+  if (k === "splint") { if (!w.fracture || w.splint) { toast(w.splint ? "Шина уже наложена" : "Переломов нет"); return; } w.splint = true; toast("Шина наложена. Идти уже легче"); }
+  if (k === "bandage" || k === "medkit") { if (w.bleed) toast("Кровь остановлена"); w.bleed = 0; }
   p.inv[k]--;
   if (k === "food") p.food = Math.min(100, p.food + 35);
   if (k === "water") p.water = Math.min(100, p.water + 40);
@@ -1947,6 +1964,13 @@ function updateHud() {
   else if (p.task) { act.hidden = false; act.innerHTML = p.task.label + "…"; }
   else if (ca) { act.hidden = false; act.innerHTML = (ca.search ? ICON.search : "") + ca.label; }
   else act.hidden = true;
+  let wp = $("#woundp");
+  if (!wp) { wp = document.createElement("div"); wp.id = "woundp"; wp.style.cssText = "position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 96px);transform:translateX(-50%);display:flex;gap:6px;z-index:4;pointer-events:none"; $("#game").append(wp); }
+  const W = p.wounds || {}, chips = [];
+  if (W.bleed) chips.push("Кровотечение");
+  if (W.bite) chips.push((world.elapsed - W.bite) / 1440 > .35 ? "Укус · жар" : "Укус");
+  if (W.fracture) chips.push(W.splint ? "Перелом · шина" : "Перелом");
+  const sig = chips.join("|"); if (wp.dataset.s !== sig) { wp.dataset.s = sig; wp.innerHTML = chips.map(c => `<span style="padding:4px 10px;border-radius:999px;background:rgba(120,20,20,.8);color:#ffd8d0;font:600 12px Rubik,system-ui,sans-serif">${c}</span>`).join(""); }
   // dashboard while driving or riding
   let vp = $("#vehp");
   if (!vp) { vp = document.createElement("div"); vp.id = "vehp"; vp.style.cssText = "position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 58px);transform:translateX(-50%);padding:6px 14px;border-radius:999px;background:rgba(12,14,20,.72);color:#e8e4da;font:600 13px Rubik,system-ui,sans-serif;z-index:4;pointer-events:none;white-space:nowrap"; $("#game").append(vp); }
@@ -1981,7 +2005,7 @@ function doAction() {
   if (ca && !ca.search) { ca.run(); updateHud(); return; }
   const f = nearContainer();
   if (!f) return;
-  p.search = { f, t: 0, dur: f.kind === "shelf" ? 1.2 : 1.5 };
+  p.search = { f, t: 0, dur: (f.kind === "shelf" ? 1.2 : 1.5) * (1 - skillLv("search") * .1) };
   p.dir = Math.atan2((f.y0 + f.y1) / 2 - p.y, (f.x0 + f.x1) / 2 - p.x);
   noise(p.x, p.y, 3.5);
   thud(.1, 500);
@@ -2006,6 +2030,7 @@ function finishSearch() {
     } else if (k === "ammo9" || k === "ammo545") { const n = k === "ammo9" ? ri(5, 12) : ri(8, 20); p.inv[k] += n; got[k] = (got[k] || 0) + n; }
     else { p.inv[k] = (p.inv[k] || 0) + 1; got[k] = (got[k] || 0) + 1; }
   }
+  addXp("search");
   const parts = Object.entries(got).map(([k, n]) => ITEM_GEN[k] + (n > 1 ? " ×" + n : ""));
   if (parts.length) toast(`${f.cont.name}: ${parts.join(", ")}`);
   f.cont.loot = [];
@@ -2045,7 +2070,7 @@ function stepMelee(p, dt) {
     if (!los(p.x, p.y, z.x, z.y, true)) continue;
     hitAny = true;
     const ux = dx / (d || 1), uy = dy / (d || 1);
-    z.hp -= w.dmg; z.hit = .3; z.hitDir = Math.atan2(uy, ux); z.state = "chase";
+    z.hp -= w.dmg * (1 + skillLv("melee") * .12); z.hit = .3; z.hitDir = Math.atan2(uy, ux); z.state = "chase";
     z.vx *= .2; z.vy *= .2;
     z.atkT = 0; z.cool = Math.max(z.cool, .5);
     bleed(z.x - ux * .12, z.y - uy * .12, 7, ux * .5, uy * .5);
@@ -2055,9 +2080,10 @@ function stepMelee(p, dt) {
   for (const n of banditsAlive()) {
     const dx = n.x - p.x, dy = n.y - p.y, d = Math.hypot(dx, dy);
     if (d > w.range + .3 || (Math.abs(angDiff(p.dir, Math.atan2(dy, dx))) > 1.15 && d > .4) || !los(p.x, p.y, n.x, n.y, true)) continue;
-    hitAny = true; hurtNpc(n, w.dmg, dx / (d || 1), dy / (d || 1), p.weapon);
+    hitAny = true; hurtNpc(n, w.dmg * (1 + skillLv("melee") * .12), dx / (d || 1), dy / (d || 1), p.weapon);
   }
   noise(p.x, p.y, hitAny ? 6 : 3.5);
+  if (hitAny) addXp("melee");
   if (hitAny) { thud(.32); world.shake = Math.max(world.shake, 3); } else tone(240, .08, "triangle", .03, .6);
 }
 function bleed(x, y, n, dx = 0, dy = 0) {
@@ -2152,6 +2178,181 @@ function cycleWeapon() {
   tone(500, .06, "square", .03);
   toast("В руках: " + WEAPONS[p.weapon].name.toLowerCase());
   updateHud();
+}
+
+// ================= progress: saves, skills, wounds, the way out =================
+function seeded(seed) {
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+
+// ---------- skills: you get better at what you do
+const SKILLS = { melee: "Ближний бой", search: "Обыск", cook: "Кулинария", repair: "Починка" };
+const SKILL_XP = [0, 8, 22, 45, 80, 130];
+const skillLv = k => { const xp = (world.player.skills || {})[k] || 0; let l = 0; while (l < 5 && xp >= SKILL_XP[l + 1]) l++; return l; };
+function addXp(k, n = 1) {
+  const p = world.player; p.skills = p.skills || {};
+  const before = skillLv(k); p.skills[k] = (p.skills[k] || 0) + n;
+  const after = skillLv(k);
+  if (after > before) { toast(`Навык «${SKILLS[k]}» вырос до ${after}`, true); tone(660, .12, "triangle", .05, 1.5); setTimeout(() => tone(990, .16, "triangle", .05, 1.2), 110); }
+}
+
+// ---------- wounds: bleeding, bites, broken bones
+function woundsFrom(kind, sev = 1) {
+  const p = world.player; p.wounds = p.wounds || {};
+  if (kind === "zombie") {
+    if (Math.random() < .35) { p.wounds.bleed = 1; toast("Кровотечение! Перевяжи рану", true); }
+    if (Math.random() < .07 && !p.wounds.bite) { p.wounds.bite = world.elapsed; toast("Укус… Нужны антибиотики, и быстро", true); }
+  } else if (kind === "fall" && Math.random() < .35 * sev) { p.wounds.fracture = 1440 * 2; toast("Похоже на перелом. Не побегаешь. Нужна шина", true); }
+  else if (kind === "shot" && Math.random() < .5) p.wounds.bleed = 1;
+}
+function woundsTick(dt, rate) {
+  const p = world.player, w = p.wounds = p.wounds || {};
+  if (w.bleed) { p.hp -= dt * .7; if (Math.random() < dt * 3) bleed(p.x, p.y, 1); }
+  if (w.bite) {
+    // fever grows for a day, then it is too late
+    const t = (world.elapsed - w.bite) / 1440;
+    if (t > .35) p.hp -= dt * (t > 1 ? 1.6 : .35);
+    if (t > .35 && !w.feverWarn) { w.feverWarn = true; toast("Жар. Укус воспалился", true); }
+  }
+  if (w.fracture) { w.fracture -= dt * rate * (w.splint ? 2 : 1); if (w.fracture <= 0) { w.fracture = 0; w.splint = false; toast("Кость срослась"); } }
+}
+const woundsSpeed = () => { const w = world.player.wounds || {}; return w.fracture ? (w.splint ? .78 : .55) : 1; };
+
+// ---------- cooking and repairs
+function nearStoveOrFire() {
+  const p = world.player;
+  for (const o of world.map.props) if (o.kind === "firebarrel" && Math.hypot(o.x - p.x, o.y - p.y) < 1.4) return "fire";
+  if (world.power) for (const f of world.map.furn) if (f.kind === "stove" && Math.hypot((f.x0 + f.x1) / 2 - p.x, (f.y0 + f.y1) / 2 - p.y) < 1.2 && los(p.x, p.y, (f.x0 + f.x1) / 2, (f.y0 + f.y1) / 2, true)) return "stove";
+  return null;
+}
+function cook() {
+  const p = world.player;
+  if (!(p.inv.food > 0) || !(p.inv.water > 0)) { toast("Нужны консервы и вода", true); return; }
+  startTask("Готовлю", 3 - skillLv("cook") * .3, () => {
+    p.inv.food--; p.inv.water--;
+    const lv = skillLv("cook");
+    p.food = Math.min(100, p.food + 55 + lv * 6); p.water = Math.min(100, p.water + 25); p.hp = Math.min(100, p.hp + 8 + lv * 3);
+    addXp("cook", 2); toast(lv >= 3 ? "Горячий суп. Почти как дома" : "Горячая еда. Сразу стало легче");
+  });
+}
+function repairCar(car) {
+  const p = world.player;
+  if (!(p.inv.tools > 0)) { toast("Нужны инструменты", true); return; }
+  startTask("Чиню машину", 4.5 - skillLv("repair") * .5, () => {
+    const lv = skillLv("repair");
+    car.hp = Math.min(1, car.hp + .25 + lv * .06); car.glass = Math.min(1, car.glass + .2 + lv * .05);
+    if (Math.random() < .25 - lv * .04) { p.inv.tools--; toast("Инструменты сломались", true); }
+    addXp("repair", 3); toast(`Кузов ${Math.round(car.hp * 100)}%, стекло ${Math.round(car.glass * 100)}%`);
+    noise(p.x, p.y, 4);
+  });
+}
+
+// ---------- the way out: military evacuation at the edge of the map
+function evacTick(dt) {
+  const Wd = world, p = Wd.player;
+  // nobody tuned in by day five: a flare goes up anyway
+  if (!Wd.evac && Wd.day >= 5) {
+    const side = pick([["северной", N / 2, 8], ["южной", N / 2, N - 9], ["западной", 8, N / 2], ["восточной", N - 9, N / 2]]);
+    Wd.evac = { x: side[1], y: side[2], day: Wd.day + 3, side: side[0] };
+    Wd.marks.push({ x: side[1], y: side[2], label: "Эвакуация", kind: "evac" });
+    toast(`Над ${side[0]} окраиной взлетела зелёная ракета. Там кто-то ждёт. Отмечено на карте`, true);
+  }
+  const e = Wd.evac; if (!e) return;
+  if (Wd.day > e.day && !e.done) {
+    if (!e.gone) { e.gone = true; toast("Колонна ушла без тебя. Может, по радио объявят ещё", true); Wd.marks = Wd.marks.filter(m => m.kind !== "evac"); }
+    if (Wd.day > e.day + 1) Wd.evac = null;
+    return;
+  }
+  if (T3.ok && T3.fx && Math.random() < dt * 4 && Math.hypot(e.x - p.x, e.y - p.y) < 40) puff(e.x * U + rand(-.3, .3), .8, e.y * U + rand(-.3, .3), { col: 0x58c060, life: 6, vy: rand(1.2, 1.8), vx: rand(.1, .4), s0: .5, s1: 3, a: .5 });
+  const d = Math.hypot(e.x - p.x, e.y - p.y);
+  if (!e.wait && d < 5) { e.wait = 75; toast("Солдат по рации: «Вертолёт через минуту. Держись, сейчас здесь будет весь город!»", true); }
+  if (e.wait > 0) {
+    if (d > 9) { if (!e.warned) { e.warned = true; toast("Не уходи от точки! Вертолёт не будет ждать", true); } return; }
+    e.warned = false;
+    e.wait -= dt;
+    e.nT = (e.nT || 0) - dt;
+    if (e.nT <= 0) { e.nT = 4; noise(e.x, e.y, 30); if (Math.random() < .6) for (let k = 0; k < 4; k++) { const z = zombieAt(e.x + rand(-18, 18), e.y + rand(-18, 18)); if (z) { z.state = "chase"; } } }
+    if (e.wait < 20 && !Wd.heli) Wd.heli = { x0: e.x - 60, y0: e.y - 60, x1: e.x, y1: e.y, t: 0, dur: 18, final: true };
+    if (e.wait <= 0) { e.done = true; victory(); }
+  }
+}
+function victory() {
+  const Wd = world;
+  Wd.mode = "won"; store.set("save", null);
+  setPlayUI(false); document.querySelectorAll(".modal").forEach(m => m.hidden = true); paused = false;
+  engineSound(false); tone(523, .3, "triangle", .06, 1); setTimeout(() => tone(659, .3, "triangle", .06, 1), 250); setTimeout(() => tone(784, .6, "triangle", .06, 1), 500);
+  screen.innerHTML = `<div class="box">
+    <span class="eyebrow">Эвакуация</span>
+    <h1>Ты выбрался</h1>
+    <p>Вертолёт поднимается над крышами. Внизу горят огни блокпоста, а улицы, по которым ты шёл ${Wd.day} ${Wd.day === 1 ? "день" : Wd.day < 5 ? "дня" : "дней"}, медленно тонут в темноте.</p>
+    <div class="tally">
+      <div class="glass"><b>${fmtSurvived(Wd.elapsed)}</b><small>продержался</small></div>
+      <div class="glass"><b>${Wd.kills}</b><small>упокоено</small></div>
+      <div class="glass"><b>${Wd.player.notes.length} / ${NOTES.length}</b><small>записок</small></div>
+    </div>
+    <div class="btns"><button class="big" id="again">Ещё раз</button><button class="big ghost" id="menu">В меню</button></div>
+  </div>`;
+  screen.hidden = false;
+  $("#again").addEventListener("click", () => { unlockAudio(); rebuild(startGame); });
+  $("#menu").addEventListener("click", () => rebuild(() => showTitle(false)));
+}
+
+// ---------- saving: the city regrows from its seed, then the changes are replayed
+const contState = c => c.searched ? 1 : c.loot;
+const contApply = (c, v) => { if (v === 1) { c.searched = true; c.loot = []; } else if (Array.isArray(v)) { c.searched = false; c.loot = v; } };
+function saveGame() {
+  const Wd = world; if (!Wd || Wd.mode !== "play") return;
+  const p = Wd.player, M = Wd.map, r2 = v => Math.round(v * 100) / 100;
+  const P = {}; for (const k of ["x", "y", "dir", "hp", "food", "water", "bat", "weapon", "owned", "mag", "inv", "gas", "notes", "skills", "wounds"]) P[k] = p[k];
+  P.keys = [...p.keys]; if (p.veh && p.veh.car) P.car = p.veh.car.id; if (p.veh && p.veh.bike) P.bike = true;
+  const W = {}; for (const k of ["time", "day", "elapsed", "kills", "searched", "weather", "raining", "wet", "snow", "power", "heliAt", "radioAt", "evac", "marks", "loose", "flickerWarned"]) W[k] = Wd[k];
+  store.set("save", {
+    v: 1, seed: Wd.seed, at: Date.now(), P, W,
+    conts: M.furn.filter(f => f.cont).map(f => contState(f.cont)),
+    cars: M.cars.map(c => [r2(c.x), r2(c.y), r2(c.h), r2(c.fuel), r2(c.hp), r2(c.glass), c.keyIn ? 1 : 0, c.cont ? contState(c.cont) : 0, c.alarmTried ? 1 : 0]),
+    train: (M.train || []).map(t => t.cont ? contState(t.cont) : 0),
+    bikes: M.props.filter(o => o.kind === "bike").map(o => [r2(o.x), r2(o.y), o.rot ? 1 : 0]),
+    zombies: Wd.zombies.map(z => [r2(z.x), r2(z.y), r2(z.hp), z.runner ? 1 : 0]),
+    npcs: Wd.npcs
+  });
+}
+function placeCar(c, x, y, h) {
+  const b = carBoxOf(c); if (b) gridRemove(b);
+  c.x = x; c.y = y; c.h = h;
+  const { L, W } = carDims(c), cs = Math.abs(Math.cos(h)), sn = Math.abs(Math.sin(h)), ex = cs * L + sn * W, ey = sn * L + cs * W;
+  c.x0 = x - ex; c.x1 = x + ex; c.y0 = y - ey; c.y1 = y + ey; c.alongY = sn > .7;
+  gridAdd({ x0: c.x0, y0: c.y0, x1: c.x1, y1: c.y1, ref: c, st: 0 });
+  if (T3.ok) carGoLive(c);
+}
+function continueGame() {
+  const S = store.get("save", null);
+  if (!S) { rebuild(startGame); return; }
+  rebuild(() => { try { applySave(S); } catch (e) { console.error(e); store.set("save", null); startGame(); } }, S.seed);
+}
+function applySave(S) {
+  const Wd = world, M = Wd.map, p = Wd.player;
+  Object.assign(Wd, S.W); Wd.mode = "play"; Wd._warm = true;
+  Object.assign(p, S.P); p.keys = new Set(S.P.keys || []); p.veh = null; p.task = null; p.search = null; p.vx = p.vy = 0;
+  let k = 0; for (const f of M.furn) if (f.cont) contApply(f.cont, S.conts[k++]);
+  for (const b of M.buildings) b.searched = (b.furn || []).filter(f => f.cont && f.cont.searched).length;
+  S.cars.forEach((a, i) => {
+    const c = M.cars[i]; if (!c) return;
+    c.fuel = a[3]; c.hp = a[4]; c.glass = a[5]; c.keyIn = !!a[6]; if (c.cont) contApply(c.cont, a[7]); c.alarmTried = !!a[8];
+    if (Math.abs(c.x - a[0]) > .02 || Math.abs(c.y - a[1]) > .02 || Math.abs(c.h - a[2]) > .02) placeCar(c, a[0], a[1], a[2]);
+  });
+  (S.train || []).forEach((v, i) => { const t = M.train[i]; if (t && t.cont) contApply(t.cont, v); });
+  M.props = M.props.filter(o => o.kind !== "bike");
+  for (const [x, y, rot] of S.bikes || []) M.props.push({ dt: "prop", kind: "bike", x, y, hx: .45, hy: .12, rot: !!rot, key: x + y, var: Math.random() });
+  rebuildProp("bike");
+  Wd.zombies = [];
+  for (const [x, y, hp, run] of S.zombies) if (spawnZombie(0, 999, run ? 1 : 0, true)) { const z = Wd.zombies[Wd.zombies.length - 1]; z.x = z.lastX = z.tx = x; z.y = z.lastY = z.ty = y; z.hp = hp; }
+  Wd.npcs = S.npcs || [];
+  if (Wd.power === false) for (const l of M.lamps) l.on = false;
+  screen.hidden = true; closeModals(true); setPlayUI(true); updateHud(); buildFlow();
+  if (S.P.car != null && M.cars[S.P.car]) enterCar(M.cars[S.P.car]);
+  if (S.P.bike) { const o = { dt: "prop", kind: "bike", x: p.x, y: p.y, hx: .45, hy: .12, key: 0, var: 0 }; M.props.push(o); mountBike(o); }
+  toast(`С возвращением. День ${Wd.day}, ${fmtTime(Wd.time)}`, true);
 }
 
 // ================= atmosphere: weather, sounds, notes =================
@@ -2392,7 +2593,7 @@ function banditShoot(n, d, nf) {
   if (!hit) return;
   const car = p.veh && p.veh.car;
   if (car) { if (car.glass > 0) car.glass = Math.max(0, car.glass - .25); else { car.hp = Math.max(0, car.hp - .05); p.hp -= rand(6, 10); } }
-  else { p.hp -= rand(8, 13); p.hurtT = .3; hurtFlash(); bleed(p.x, p.y, 6, Math.cos(a), Math.sin(a)); }
+  else { p.hp -= rand(8, 13); p.hurtT = .3; hurtFlash(); woundsFrom("shot"); bleed(p.x, p.y, 6, Math.cos(a), Math.sin(a)); }
   world.shake = Math.max(world.shake, 7);
   if (p.hp <= 0) gameOver();
 }
@@ -2538,7 +2739,8 @@ function powerTick(prevDay) {
 }
 
 function updateWorldLife(dt, nf) {
-  updateNPCs(dt, nf); radioTick(); marksTick(); heliTick(dt); powerTick();
+  updateNPCs(dt, nf); radioTick(); marksTick(); heliTick(dt); powerTick(); evacTick(dt);
+  world.saveT = (world.saveT ?? 20) - dt; if (world.saveT <= 0) { world.saveT = 20; saveGame(); }
 }
 
 // ---------- 3D helicopter
@@ -2628,12 +2830,15 @@ function contextAction() {
   if (f && !(own && f === car)) return { label: "Обыскать: " + f.cont.name.toLowerCase(), run: doAction, search: true };
   if (car) {
     if (own && car.fuel < .98 && p.gas > .5) return { label: "Залить бензин", run: () => startTask("Заливаю бензин", 2.2, () => { const put = Math.min(p.gas, (1 - car.fuel) * 40); car.fuel += put / 40; p.gas -= put; toast(`Залил ${Math.round(put)} л. В баке ${Math.round(car.fuel * 100)}%`); }) };
+    if (own && car.hp < .7 && p.inv.tools) return { label: "Починить машину", run: () => repairCar(car) };
     if (own) return { label: car.fuel > .01 ? "Сесть за руль" : "Сесть (бак пуст)", run: () => enterCar(car) };
     if (p.inv.can && car.fuel > .02 && p.gas < 19.5 && !car.burnt) return { label: "Слить бензин", run: () => startTask("Сливаю бензин", 2.6, () => { const take = Math.min(car.fuel * 40, 20 - p.gas); car.fuel -= take / 40; p.gas += take; toast(`В канистре ${Math.round(p.gas)} л`); noise(p.x, p.y, 2.5); }) };
     if (canDrive(car)) return { label: "Нет ключей", run: () => toast(`Нужны ключи: ${carName(car)}. Поищи в домах рядом или в бардачке`) };
   }
   const bike = nearBike();
   if (bike) return { label: "Сесть на велосипед", run: () => mountBike(bike) };
+  const fire = nearStoveOrFire();
+  if (fire && p.inv.food > 0 && p.inv.water > 0) return { label: fire === "fire" ? "Приготовить на огне" : "Приготовить на плите", run: cook };
   return null;
 }
 function startTask(label, dur, fn) { const p = world.player; p.task = { label, t: 0, dur, fn }; thud(.1, 400); updateHud(); }
@@ -2699,7 +2904,7 @@ function driveCar(dt, mv) {
   else if (!carBlocked(car, car.x, ny, car.h)) { car.y = ny; v.spd *= .9; }
   else {
     const hit = Math.abs(v.spd);
-    if (hit > 2.5 && v.crashT <= 0) { car.hp = Math.max(0, car.hp - hit * .022); car.glass = Math.max(0, car.glass - hit * .015); world.shake = Math.min(14, hit * 1.4); thud(.5, 220); noise(car.x, car.y, 9); p.hp -= Math.max(0, hit - 6) * 2; v.crashT = .4; if (car.hp <= 0) { toast("Мотор заглох. Машина разбита", true); engineSound(false); } }
+    if (hit > 2.5 && v.crashT <= 0) { car.hp = Math.max(0, car.hp - hit * .022); car.glass = Math.max(0, car.glass - hit * .015); world.shake = Math.min(14, hit * 1.4); thud(.5, 220); noise(car.x, car.y, 9); p.hp -= Math.max(0, hit - 6) * 2; if (hit > 7) woundsFrom("fall", .6); v.crashT = .4; if (car.hp <= 0) { toast("Мотор заглох. Машина разбита", true); engineSound(false); } }
     v.spd *= -.2;
   }
   v.crashT -= dt;
@@ -2784,7 +2989,7 @@ function rideBike(dt, mv) {
   v.noiseT = (v.noiseT || 0) - dt; if (v.noiseT <= 0 && v.spd > .5) { v.noiseT = .6; noise(p.x, p.y, 2); }
 }
 function fallOff(msg, dmg) {
-  const p = world.player; exitVehicle(); p.hp -= dmg; p.hurtT = .4; world.shake = 8; thud(.4, 400); toast(msg, true);
+  const p = world.player; exitVehicle(); p.hp -= dmg; woundsFrom("fall", 1); p.hurtT = .4; world.shake = 8; thud(.4, 400); toast(msg, true);
 }
 function rebuildProp(kind) {
   if (!T3.ok || !T3.propMeshes) return;
@@ -2878,7 +3083,7 @@ function update(dt) {
     if (p.veh) { if (p.veh.car) driveCar(dt, mv); else rideBike(dt, mv); }
     else {
     let target = 0;
-    if (mv.m > 0) target = mv.m > .92 ? 2.5 : 1.6 * Math.min(1, mv.m / .85 + .1);
+    if (mv.m > 0) target = (mv.m > .92 ? 2.5 : 1.6 * Math.min(1, mv.m / .85 + .1)) * woundsSpeed();
     if (p.search) target = 0;
     const acc = 1 - Math.pow(.0008, dt);
     p.vx = lerp(p.vx, mv.dx * target, acc); p.vy = lerp(p.vy, mv.dy * target, acc);
@@ -2923,7 +3128,8 @@ function update(dt) {
     p.water = Math.max(0, p.water - dt * 100 / 330 * (run ? 1.6 : 1) * D.drain * k6);
     if (p.food <= 0 || p.water <= 0) { p.hp -= dt * 1.4; if (!Wd.events.has("starve")) { Wd.events.add("starve"); toast(p.food <= 0 ? "Голод отнимает силы. Поешь" : "Жажда отнимает силы. Попей", true); } }
     else Wd.events.delete("starve");
-    if (p.food > 45 && p.water > 45 && p.hp < 100) p.hp = Math.min(100, p.hp + dt * .45);
+    woundsTick(dt, 1440 / (settings.dayLen * 60));
+    if (p.food > 45 && p.water > 45 && p.hp < 100 && !p.wounds.bleed && !p.wounds.bite) p.hp = Math.min(100, p.hp + dt * .45);
     if (nf > .5 && p.bat > 0 && !(p.veh && p.veh.car)) { p.bat = Math.max(0, p.bat - dt * .42 * k6); if (p.bat === 0) toast("Фонарик сел. Батарейка в рюкзаке?", true); }
     if (p.hp <= 0) return gameOver();
     // inside / explored
@@ -2995,7 +3201,7 @@ function update(dt) {
           if (!(p.glassWarnT > Wd.elapsed)) { p.glassWarnT = Wd.elapsed + 6; toast(inCar.glass > 0 ? "Зомби бьют стёкла! Уезжай" : "Стекло выбито — они дотянутся до тебя", true); }
         } else if (mode === "play" && (inCar ? carDist(inCar, z.x, z.y) < .5 : d < .8 && los(z.x, z.y, p.x, p.y, true))) {
           const dmg = rand(8, 13) * (nf > .5 ? 1.15 : 1) * D.dmg;
-          p.hp -= dmg; p.hurtT = .3; Wd.shake = 9; hurtFlash(); thud(.35); tone(180, .18, "square", .03, .6);
+          p.hp -= dmg; p.hurtT = .3; Wd.shake = 9; hurtFlash(); thud(.35); tone(180, .18, "square", .03, .6); woundsFrom("zombie");
           p.search = null;
           const kd = d || 1; if (!inCar) moveEnt(p, dx / kd * .25, dy / kd * .25);
           if (p.hp <= 0) return gameOver();
@@ -6650,22 +6856,23 @@ function fmtSurvived(min) {
 }
 function setPlayUI(on) {
   $("#hud").hidden = !on; $("#controls").hidden = !on; $("#joy").hidden = !on;
+  for (const id of ["#woundp", "#vehp"]) if ($(id)) $(id).style.display = on ? "" : "none";
   if (on) placeStickIdle();
 }
-function rebuild(fn) {
+function rebuild(fn, seed) {
   setPlayUI(false); document.querySelectorAll(".modal").forEach(m => m.hidden = true);
   screen.innerHTML = `<div class="box"><span class="eyebrow">Минутку</span><h1>Город строится…</h1></div>`; screen.hidden = false;
-  setTimeout(() => { newWorld("title"); world._warm = true; fn(); }, 60);
+  setTimeout(() => { newWorld("title", seed); world._warm = true; fn(); }, 60);
 }
 function showTitle(fresh = true) {
   if (fresh) { newWorld("title"); world._warm = true; }
   setPlayUI(false); paused = false;
-  const best = store.get("best", null);
+  const best = store.get("best", null), sv = store.get("save", null);
   screen.innerHTML = `<div class="box">
     <span class="eyebrow">Выживание · ночь за ночью</span>
     <h1>Последний квартал</h1>
     <p>Город пал за одну неделю. Улицы полны мертвецов, припасов почти не осталось. Заходи в дома, обыскивай шкафы, ищи оружие и переживи как можно больше ночей.</p>
-    <div class="btns"><button class="big" id="start">Начать</button><button class="big ghost" id="openSettings">Настройки</button></div>
+    <div class="btns">${sv ? `<button class="big" id="cont">Продолжить · день ${sv.W.day}</button>` : ""}<button class="big${sv ? " ghost" : ""}" id="start">${sv ? "Новая игра" : "Начать"}</button><button class="big ghost" id="openSettings">Настройки</button></div>
     <div class="howto">
       <div class="glass"><b>Левый палец</b>Ходьба. Стик до упора — бег, но шумно</div>
       <div class="glass"><b>Красная кнопка</b>Удар или выстрел. Стрельба созывает толпу</div>
@@ -6674,7 +6881,8 @@ function showTitle(fresh = true) {
     ${best ? `<span class="best">Рекорд: ${fmtSurvived(best)}</span>` : ""}
   </div>`;
   screen.hidden = false;
-  $("#start").addEventListener("click", () => { unlockAudio(); startGame(); });
+  $("#start").addEventListener("click", () => { unlockAudio(); store.set("save", null); startGame(); });
+  if ($("#cont")) $("#cont").addEventListener("click", () => { unlockAudio(); continueGame(); });
   $("#openSettings").addEventListener("click", () => { unlockAudio(); openModal("setModal"); });
 }
 function startGame() {
@@ -6693,6 +6901,7 @@ function gameOver() {
   const Wd = world;
   Wd.mode = "dead";
   setPlayUI(false); document.querySelectorAll(".modal").forEach(m => m.hidden = true); paused = false;
+  store.set("save", null);
   const best = store.get("best", 0), rec = Wd.elapsed > best;
   if (rec) store.set("best", Math.floor(Wd.elapsed));
   tone(200, 1.2, "sawtooth", .05, .3);
@@ -6719,6 +6928,8 @@ function checkOrientation() {
   if (portrait && world && world.mode === "play" && !anyModal()) openModal("pauseModal");
   if (was && !portrait) placeStickIdle();
 }
+document.addEventListener("visibilitychange", () => { if (document.hidden) saveGame(); });
+window.addEventListener("pagehide", () => saveGame());
 document.addEventListener("visibilitychange", () => { if (document.hidden && world && world.mode === "play" && !anyModal()) openModal("pauseModal"); });
 
 // ================= loop =================
