@@ -1,5 +1,5 @@
 // offline cache: the game opens from the home screen without a connection; a new version is fetched in the background
-const CACHE = "kvartal-fcfbee3cf0";
+const CACHE = "kvartal-fa9b622130";
 const FILES = ["./", "index.html", "manifest.webmanifest", "icon.png", "icon-192.png", "icon-512.png",
   "lib/three.min.js", "lib/CopyShader.js", "lib/LuminosityHighPassShader.js", "lib/EffectComposer.js", "lib/RenderPass.js", "lib/ShaderPass.js", "lib/UnrealBloomPass.js", "lib/BufferGeometryUtils.js"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });

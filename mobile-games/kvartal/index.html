@@ -2316,6 +2316,7 @@ function stepMelee(p, dt) {
     if (!los(p.x, p.y, z.x, z.y, true)) continue;
     hitAny = true;
     const ux = dx / (d || 1), uy = dy / (d || 1);
+    if (z.lie > 0) z.rising = true;
     z.hp -= w.dmg * (1 + skillLv("melee") * .12) * meleeMul(); z.hit = .3; z.hitDir = Math.atan2(uy, ux); z.state = "chase";
     z.vx *= .2; z.vy *= .2;
     z.atkT = 0; z.cool = Math.max(z.cool, .5);
@@ -2344,6 +2345,7 @@ function killZombie(z, dx, dy, weapon, headshot) {
   const i = world.zombies.indexOf(z); if (i < 0) return;
   world.zombies.splice(i, 1);
   world.kills++;
+  if (z.sp) specialDeath(z, dx, dy);
   const power = { fists: 1.3, bat: 2.4, axe: 2, pistol: 1.6, rifle: 1.9, car: 3.4 }[weapon] || 1.5;
   const rd = makeRagdoll(z, dx, dy, power);
   if (weapon === "axe" && Math.random() < .5) sever(rd, pick(["armL", "armR", "legL", "legR", "head", "head"]), dx, dy);
@@ -2405,7 +2407,7 @@ function fireGun() {
   if (hit && hit.isNpc) hurtNpc(hit, w.dmg * (Math.random() < .2 ? 2.5 : 1), cx, cy, id);
   else if (hit) {
     const head = Math.random() < (hit === best ? .22 : .12);
-    hit.hp -= w.dmg * (head ? 2.5 : 1); hit.hit = .15; hit.state = "chase";
+    hit.hp -= w.dmg * (head ? 2.5 : 1) * (hit.sp === "soldier" && !head ? .35 : 1); hit.hit = .15; hit.state = "chase"; if (hit.lie > 0) hit.rising = true;
     hit.vx *= .3; hit.vy *= .3; hit.hitDir = Math.atan2(cy, cx);
     bleed(hit.x, hit.y, 6, cx, cy);
     if (hit.hp <= 0) killZombie(hit, cx, cy, id, head);
@@ -2456,7 +2458,7 @@ function woundsFrom(kind, sev = 1) {
   const p = world.player; p.wounds = p.wounds || {};
   if (kind === "zombie") {
     if (Math.random() < .35) { p.wounds.bleed = 1; toast("Кровотечение! Перевяжи рану", true); }
-    if (Math.random() < .07 && !p.wounds.bite && cfg().infect !== "off") { p.wounds.bite = world.elapsed; toast("Укус… Нужны антибиотики, и быстро", true); }
+    if (Math.random() < (cfg().infect === "scratch" ? .3 : .07) && !p.wounds.bite && cfg().infect !== "off") { p.wounds.bite = world.elapsed; toast("Укус… Нужны антибиотики, и быстро", true); }
   } else if (kind === "fall" && Math.random() < .35 * sev) { p.wounds.fracture = 1440 * 2; toast("Похоже на перелом. Не побегаешь. Нужна шина", true); }
   else if (kind === "shot" && Math.random() < .5) p.wounds.bleed = 1;
 }
@@ -2560,14 +2562,14 @@ function saveGame() {
   const p = Wd.player, M = Wd.map, r2 = v => Math.round(v * 100) / 100;
   const P = {}; for (const k of ["x", "y", "dir", "hp", "food", "water", "bat", "weapon", "owned", "mag", "inv", "gas", "notes", "skills", "wounds", "fat", "panic", "prof", "traits"]) P[k] = p[k];
   P.keys = [...p.keys]; if (p.veh && p.veh.car) P.car = p.veh.car.id; if (p.veh && p.veh.bike) P.bike = true;
-  const W = {}; for (const k of ["time", "day", "elapsed", "kills", "searched", "weather", "raining", "wet", "snow", "power", "heliAt", "radioAt", "evac", "marks", "loose", "flickerWarned", "cfg", "barr", "broken", "winHp"]) W[k] = Wd[k];
+  const W = {}; for (const k of ["time", "day", "elapsed", "kills", "searched", "weather", "raining", "wet", "snow", "power", "heliAt", "radioAt", "evac", "marks", "loose", "flickerWarned", "cfg", "barr", "broken", "winHp", "gas"]) W[k] = Wd[k];
   store.set("save", {
     v: 1, seed: Wd.seed, at: Date.now(), P, W,
     conts: M.furn.filter(f => f.cont).map(f => contState(f.cont)),
     cars: M.cars.map(c => [r2(c.x), r2(c.y), r2(c.h), r2(c.fuel), r2(c.hp), r2(c.glass), c.keyIn ? 1 : 0, c.cont ? contState(c.cont) : 0, c.alarmTried ? 1 : 0]),
     train: (M.train || []).map(t => t.cont ? contState(t.cont) : 0),
     bikes: M.props.filter(o => o.kind === "bike").map(o => [r2(o.x), r2(o.y), o.rot ? 1 : 0]),
-    zombies: Wd.zombies.map(z => [r2(z.x), r2(z.y), r2(z.hp), z.runner ? 1 : 0]),
+    zombies: Wd.zombies.map(z => [r2(z.x), r2(z.y), r2(z.hp), z.runner ? 1 : 0, z.sp || 0]),
     npcs: Wd.npcs
   });
 }
@@ -2600,7 +2602,7 @@ function applySave(S) {
   for (const [x, y, rot] of S.bikes || []) M.props.push({ dt: "prop", kind: "bike", x, y, hx: .45, hy: .12, rot: !!rot, key: x + y, var: Math.random() });
   rebuildProp("bike");
   Wd.zombies = [];
-  for (const [x, y, hp, run] of S.zombies) if (spawnZombie(0, 999, run ? 1 : 0, true)) { const z = Wd.zombies[Wd.zombies.length - 1]; z.x = z.lastX = z.tx = x; z.y = z.lastY = z.ty = y; z.hp = hp; }
+  for (const [x, y, hp, run, sp] of S.zombies) if (spawnZombie(0, 999, run ? 1 : 0, true)) { const z = Wd.zombies[Wd.zombies.length - 1]; if (sp) makeSpecial(z, sp); z.x = z.lastX = z.tx = x; z.y = z.lastY = z.ty = y; z.hp = hp; }
   Wd.npcs = S.npcs || [];
   if (Wd.power === false) for (const l of M.lamps) l.on = false;
   Wd.cfg = Wd.cfg || Object.assign({}, PRESETS.normal.v); p.prof = p.prof || "unemployed"; p.traits = p.traits || []; p.fat = p.fat || 0; p.sleep = null; sleepOverlay(false); restoreShelter();
@@ -3338,7 +3340,7 @@ function update(dt) {
     if (crossed(21)) {
       toast("Ночь. Фонарик включён, но он светит и для них тоже", true);
       const n = Math.min(230 - Wd.zombies.length, Math.round((8 + Wd.day * 4) * D.wave));
-      for (let i = 0; i < n; i++) spawnZombie(12, 26, runnerChance(Math.min(.35, .12 + Wd.day * .04)), false);
+      for (let i = 0; i < n; i++) { const n0 = Wd.zombies.length; spawnZombie(12, 26, runnerChance(Math.min(.35, .12 + Wd.day * .04)), false); if (Wd.zombies.length > n0) { const sp = rollSpecial(); if (sp && sp !== "faker") makeSpecial(Wd.zombies[Wd.zombies.length - 1], sp); } }
     }
     if (crossed(6.5)) {
       toast("Рассвет. Ночь позади");
@@ -3440,11 +3442,13 @@ function update(dt) {
     z.active = true;
     z.think -= dt; z.hit = Math.max(0, z.hit - dt); z.cool -= dt;
     const dx = p.x - z.x, dy = p.y - z.y, d = Math.hypot(dx, dy);
+    if (z.lie > 0 && fakerTick(z, dt, d)) continue;
     if (mode === "play" && z.think <= 0) {
       z.think = .25 + Math.random() * .15;
       const sight = (nf > .5 ? (flash || lamplit ? 6.5 : 3) : 7.5) * (Wd.raining ? .8 : 1) * (Wd.weather === "fog" ? .6 : 1);
       if (!p.ghost && d < sight * (p.sleep ? .6 : 1) && los(z.x, z.y, p.x, p.y)) {
         if (z.state !== "chase" && d < 12 && Math.random() < .6) groan(z, true);
+        if (z.state !== "chase" && z.sp === "screamer") screamerCall(z);
         if (p.sleep && d < 7) wake("Рядом кто-то есть!");
         z.state = "chase"; z.lx = p.x; z.ly = p.y; z.lost = 0;
       } else if (z.state === "chase") {
@@ -3479,10 +3483,12 @@ function update(dt) {
           inCar.glass = Math.max(0, inCar.glass - .18); if (!sfx(inCar.glass <= 0 ? "glass" : "crash", { vol: inCar.glass <= 0 ? .7 : .3, rate: 1.5, rv: .1 })) { thud(.3, 900); tone(1400, .05, "triangle", .02); }
           if (!(p.glassWarnT > Wd.elapsed)) { p.glassWarnT = Wd.elapsed + 6; toast(inCar.glass > 0 ? "Зомби бьют стёкла! Уезжай" : "Стекло выбито — они дотянутся до тебя", true); }
         } else if (mode === "play" && !p.ghost && (inCar ? carDist(inCar, z.x, z.y) < .5 : d < .8 && los(z.x, z.y, p.x, p.y, true))) {
-          const dmg = rand(8, 13) * (nf > .5 ? 1.15 : 1) * D.dmg;
+          const dmg = rand(8, 13) * (nf > .5 ? 1.15 : 1) * D.dmg * (z.sp === "brute" ? 1.7 : 1);
           p.hp -= dmg; p.hurtT = .3; Wd.shake = 9; hurtFlash(); if (sfx("whack", { vol: .55, rate: .8, rv: .1 })) { sfx("hurt", { vol: .7, delay: .05, cap: 2 }); groan(z, true); } else { thud(.35); tone(180, .18, "square", .03, .6); } woundsFrom("zombie");
           p.search = null;
-          const kd = d || 1; if (!inCar) moveEnt(p, dx / kd * .25, dy / kd * .25);
+          const kd = d || 1; if (!inCar) moveEnt(p, dx / kd * (z.sp === "brute" ? .7 : .25), dy / kd * (z.sp === "brute" ? .7 : .25));
+          if (z.sp === "crawler" && !inCar) { p.grabT = 1.4; toast("Ползун вцепился в ногу!"); }
+          if (z.sp === "brute" && !inCar) { p.grabT = .8; Wd.shake = 15; }
           if (p.hp <= 0) return gameOver();
         }
       }
@@ -4386,7 +4392,7 @@ function zombieLook(z) {
   const white = false;   // no white flash on hits
   return { kind: "zombie", dir: z.dir, sf: z.sf, ph: z.ph, spd: Math.hypot(z.vx, z.vy), seed: z.seed, skin: white ? "#e8e8e4" : z.skin,
     top: white ? { style: z.o.top.style, col: "#e8e8e4", col2: "#e8e8e4" } : z.o.top, bottom: z.o.bottom, hair: z.o.hair, hairCol: z.o.hairCol, shoes: z.o.shoes, hat: z.o.hat, hatCol: z.o.hatCol, female: z.o.female,
-    limp: z.limp, arms: z.arms, tilt: z.tilt, runner: z.runner, stain: z.stain, barefoot: z.limp > .4, atk: z.atkT, hit: z.hit, lostArm: z.lostArm };
+    limp: z.limp, arms: z.arms, tilt: z.tilt, runner: z.runner, stain: z.stain, barefoot: z.limp > .4, atk: z.atkT, hit: z.hit, lostArm: z.lostArm, sp: z.sp, lie: z.lie || 0 };
 }
 
 // ================= ragdolls & dismemberment =================
@@ -6017,7 +6023,7 @@ function poseChar(ch, s, time) {
   const b = ch.bones, B = n => b[BI[n]];
   b.forEach((bn, i) => { bn.rotation.set(0, 0, 0); bn.position.copy(ch.rest[i]); bn.scale.set(1, 1, 1); });
   const zombie = s.kind === "zombie", spd = s.spd, ph = s.ph;
-  const clipOn = typeof CLIPS !== "undefined" && spd > .08 && !s.ride && !s.search && !(zombie && s.limp > .3);
+  const clipOn = typeof CLIPS !== "undefined" && spd > .08 && !s.ride && !s.search && !(zombie && s.limp > .3) && s.sp !== "crawler" && !(s.lie > 0);
   const run = spd > (zombie ? 1 : 2.1), amp = clamp(spd / (zombie ? .7 : 1.6), 0, 1.25), moving = spd > .08;
   const A = (run ? .75 : .42) * amp, sw = moving ? Math.sin(ph) * A : 0;
   const kneeCurve = o => moving ? (Math.max(0, Math.sin(ph + o + 1.7)) * (run ? 1.7 : 1.0) + .06) * amp : .04;
@@ -6095,6 +6101,7 @@ function poseChar(ch, s, time) {
     B("hips").position.x = moving ? Math.sin(ph) * .015 * amp : 0;
   }
   ch.mesh.rotation.y = Math.atan2(Math.cos(s.dir), Math.sin(s.dir));
+  specialPose(ch, s);
   // weapon in hand
   const wp = ch.weapon, k = s.kind === "player" ? s.weapon : null;
   wp.bat.visible = k === "bat"; wp.axe.visible = k === "axe"; wp.pistol.visible = k === "pistol"; wp.rifle.visible = k === "rifle";
@@ -7329,6 +7336,7 @@ const HOWTO = `<ul class="tlist">
 <li><b>Убежище</b>Молоток, доски и гвозди: заколоти окна и двери. Зомби будут ломиться, но доски держат.</li>
 <li><b>Сон</b>Спи у кровати в заколоченном доме. Без сна герой слабеет и падает от усталости.</li>
 <li><b>Раны</b>Бинт останавливает кровь, шина — для перелома. Укус лечат только антибиотики, и не всегда.</li>
+<li><b>Особые зомби</b>Крикун созывает всю улицу. Громила ломает доски и сбивает с ног. Ползун хватает за ноги. Раздутый лопается облаком заразы — стреляй издалека. Солдата в броне бей в голову. Притворщик лежит среди трупов и встаёт, когда подходишь.</li>
 <li><b>Ночь</b>Ночью зомби злее и среди них бегуны. Фонарик светит и для них.</li>
 <li><b>Транспорт</b>Ключи ищи в домах рядом с машиной. Бензин сливай канистрой из брошенных машин.</li>
 </ul>`;
@@ -7492,6 +7500,7 @@ const DEV_MENU = [
   ["Режимы", [
     [() => "Бессмертие: " + (world.player.god ? "вкл" : "выкл"), () => { world.player.god = !world.player.god; }],
     [() => "Зомби не видят: " + (world.player.ghost ? "вкл" : "выкл"), () => { world.player.ghost = !world.player.ghost; }],
+    ["Особые зомби рядом", () => { const p = world.player; const types = ["screamer", "brute", "crawler", "bloater", "faker", "soldier"]; types.forEach((t, k) => { const n0 = world.zombies.length; spawnZombie(0, 999, 0, true); if (world.zombies.length > n0) { const z = world.zombies[world.zombies.length - 1]; const a = k / types.length * 6.28; z.x = z.lastX = p.x + Math.cos(a) * 4; z.y = z.lastY = p.y + Math.sin(a) * 4; makeSpecial(z, t); } }); }],
     ["Убрать зомби вокруг", () => { const p = world.player; world.zombies = world.zombies.filter(z => Math.hypot(z.x - p.x, z.y - p.y) > 18); }]
   ]],
   ["Мир", [
@@ -7544,6 +7553,118 @@ function renderDev() {
   if (menu) { const b = document.createElement("button"); b.id = "openDev"; b.textContent = "Тестовое меню"; b.addEventListener("click", openDev); menu.insertBefore(b, set ? set.nextSibling : null); }
 }
 
+// ================= special infected =================
+const ZTYPES = {
+  screamer: { name: "Крикун", w: .22 },
+  brute: { name: "Громила", w: .18 },
+  crawler: { name: "Ползун", w: .22 },
+  bloater: { name: "Раздутый", w: .18 },
+  faker: { name: "Притворщик", w: .2 },
+  soldier: { name: "Солдат", w: 0 }
+};
+const specialShare = () => { const c = cfg(); const k = { none: 0, rare: .05, often: .14, everywhere: .3 }[c.special || "rare"] ?? .05; return c.zspeed === "mutant" ? Math.max(k, .14) : k; };
+function rollSpecial() {
+  if (Math.random() >= specialShare()) return null;
+  let r = Math.random() * Object.values(ZTYPES).reduce((a, t) => a + t.w, 0);
+  for (const [k, t] of Object.entries(ZTYPES)) { r -= t.w; if (r <= 0) return k; }
+  return "screamer";
+}
+function makeSpecial(z, sp) {
+  z.sp = sp; z.runner = false;
+  if (sp === "screamer") { z.hp = 2; z.spd = rand(.62, .78); z.skin = "#b9b4a6"; z.limp = 0; z.arms = 2; z.o.top.col = pick(["#7a7468", "#8a8478", "#6a645a"]); }
+  if (sp === "brute") { z.hp = rand(10, 13); z.spd = rand(.42, .5); z.skin = "#7d8466"; z.limp = 0; z.o.top = { style: "tee", col: pick(["#3a3632", "#4a3a30", "#2e2e30"]), col2: "#3a3632" }; z.o.hair = "buzz"; }
+  if (sp === "crawler") { z.hp = 2; z.spd = rand(.24, .3); z.limp = 0; z.arms = 2; }
+  if (sp === "bloater") { z.hp = 3.5; z.spd = rand(.36, .44); z.skin = "#8a9468"; z.stain = true; z.limp = 0; z.o.top = { style: "tee", col: pick(["#9a9478", "#8a7e66"]), col2: "#9a9478" }; }
+  if (sp === "faker") { z.lie = 1; z.state = "lie"; }
+  if (sp === "soldier") { z.hp = rand(5, 6.5); z.spd = rand(.5, .66); z.o = { top: { style: "jacket", col: pick(["#4f5a3a", "#5a5e3c", "#4a4e36"]), col2: "#3f4a30" }, bottom: { style: "pants", col: pick(["#5a5e3c", "#4f5434"]) }, hair: "buzz", female: false, hat: "beanie", hatCol: "#3a4430", hairCol: "#2a2420", shoes: "#2a2622" }; }
+  return z;
+}
+// the screamer: one howl and the whole street comes running
+function screamerCall(z) {
+  const Wd = world, p = Wd.player;
+  if (z.screamAt > Wd.elapsed) return;
+  z.screamAt = Wd.elapsed + 90;
+  sfx("scream", { x: z.x, y: z.y, range: 70, vol: 1, rate: .72, cap: 3 }); sfx("moan", { x: z.x, y: z.y, range: 70, vol: .9, rate: 1.3, delay: .25 });
+  noise(z.x, z.y, 26);
+  let n = 0;
+  for (const o of Wd.zombies) {
+    if (o === z || o.state === "chase" || o.lie > 0) continue;
+    const dd = Math.hypot(o.x - z.x, o.y - z.y); if (dd > 26) continue;
+    if (dd < 12 && Math.random() < .45) { o.state = "chase"; o.lx = p.x; o.ly = p.y; o.lost = 0; } else { o.state = "investigate"; o.tx = p.x + rand(-2, 2); o.ty = p.y + rand(-2, 2); }
+    n++;
+  }
+  if (!Wd.events.has("scream")) { Wd.events.add("scream"); toast(n > 3 ? "Крикун! К тебе бегут со всей улицы" : "Крикун завопил — его слышно издалека", true); setTimeout(() => world && world.events.delete("scream"), 20000); }
+}
+// the faker lies among the dead and gets up when you come close. Returns true while it is still down
+function fakerTick(z, dt, d) {
+  const p = world.player;
+  if (!z.rising) {
+    if (world.mode === "play" && !p.ghost && !p.veh && d < 2.3) { z.rising = true; groan(z, true); sfx("scream", { x: z.x, y: z.y, vol: .55, rate: .9, cap: 2 }); }
+    else { z.vx = z.vy = 0; return true; }
+  }
+  z.lie = Math.max(0, z.lie - dt * 1.7); z.vx = z.vy = 0;
+  if (z.lie <= 0) { z.rising = false; z.state = "chase"; z.lx = p.x; z.ly = p.y; z.lost = 0; z.atkT = 0; z.cool = 0; return false; }
+  return true;
+}
+// what is left when a special one goes down
+function specialDeath(z, dx, dy) {
+  const Wd = world, p = Wd.player;
+  if (z.sp === "bloater") {
+    (Wd.gas = Wd.gas || []).push({ x: z.x, y: z.y, t: 6, hit: false });
+    sfx("splat", { x: z.x, y: z.y, range: 30, vol: 1, rate: .55 }); sfx("chop", { x: z.x, y: z.y, vol: .6, rate: .5, delay: .05 });
+    for (let k = 0; k < 18; k++) Wd.parts.push({ x: z.x, y: z.y, z: 1, vx: rand(-2.5, 2.5), vy: rand(-2.5, 2.5), vz: rand(.5, 3) });
+    if (T3.ok && typeof puff === "function") for (let k = 0; k < 16; k++) puff(z.x * U + rand(-.4, .4), rand(.3, 1.2), z.y * U + rand(-.4, .4), { col: 0x6f8a32, life: rand(3.5, 6), vy: rand(.05, .25), vx: rand(-.3, .3), vz: rand(-.3, .3), s0: .5, s1: rand(1.8, 2.8), a: .4 });
+    if (Math.hypot(z.x - p.x, z.y - p.y) < 3) toast("Облако заразы! Отойди", true);
+  }
+  if (z.sp === "soldier" && Math.random() < .5) {
+    const loot = [Math.random() < .6 ? "ammo545" : "ammo9", Math.random() < .5 ? "bandage" : "ammo9"];
+    if (Math.random() < .12) loot.push("rifle");
+    Wd.loose.push({ x0: z.x - .3, x1: z.x + .3, y0: z.y - .3, y1: z.y + .3, def: { z: 2 }, cont: { name: "Снаряжение солдата", loot, searched: false } });
+  }
+}
+// clouds, grabs and staggers: called from the survival tick
+function zombieEffectsTick(dt) {
+  const Wd = world, p = Wd.player;
+  p.grabT = Math.max(0, (p.grabT || 0) - dt); p.sickT = Math.max(0, (p.sickT || 0) - dt);
+  for (let i = (Wd.gas || []).length - 1; i >= 0; i--) {
+    const g = Wd.gas[i]; g.t -= dt;
+    if (g.t <= 0) { Wd.gas.splice(i, 1); continue; }
+    if (Math.hypot(g.x - p.x, g.y - p.y) < 1.9 && !p.veh) {
+      p.hp -= dt * 3.5; p.sickT = Math.max(p.sickT, 25);
+      if (!g.hit) { g.hit = true; if (cfg().infect !== "off" && !(p.wounds || {}).bite && Math.random() < .3) { p.wounds.bite = Wd.elapsed; toast("Ты надышался заразой… Нужны антибиотики", true); } }
+    }
+  }
+}
+const zombieSlow = () => { const p = world.player; return (p.grabT > 0 ? .35 : 1) * (p.sickT > 0 ? .86 : 1); };
+// bodies of the special ones: size and the way they lie or crawl
+function specialPose(ch, s) {
+  const m = ch.mesh; m.rotation.order = "YXZ"; m.rotation.x = 0; m.scale.set(1, 1, 1);
+  if (s.kind !== "zombie" || !s.sp) return;
+  const b = ch.bones, B = n => b[BI[n]], fx = Math.cos(s.dir), fz = Math.sin(s.dir);
+  if (s.sp === "brute") m.scale.set(1.32, 1.3, 1.32);
+  if (s.sp === "bloater") m.scale.set(1.34, 1.04, 1.34);
+  if (s.sp === "screamer") m.scale.set(.9, 1.05, .9);
+  if (s.sp === "crawler") {
+    // face down, dragging itself on its arms; the legs are gone
+    m.rotation.x = 1.42; m.position.x -= fx * .7; m.position.z -= fz * .7; m.position.y += .12;
+    B("hipL").scale.set(.001, .001, .001); B("hipR").scale.set(.001, .001, .001);
+    const ph = s.ph;
+    B("shL").rotation.set(-2.6 + Math.sin(ph) * .55, 0, .25); B("shR").rotation.set(-2.6 - Math.sin(ph) * .55, 0, -.25);
+    B("elL").rotation.x = -.3 - Math.max(0, Math.sin(ph)) * .8; B("elR").rotation.x = -.3 - Math.max(0, -Math.sin(ph)) * .8;
+    B("neck").rotation.x = -.7; B("spine").rotation.x = 0; B("chest").rotation.x = 0;
+  }
+  if (s.lie > 0) {
+    // on its back among the dead, then sitting up and rising
+    const k = s.lie;
+    m.rotation.x = -1.5 * Math.min(1, k * 1.15);
+    m.position.x += fx * .75 * k; m.position.z += fz * .75 * k; m.position.y += .1 * k;
+    for (const n of ["shL", "shR"]) B(n).rotation.set(0, 0, (n === "shL" ? .35 : -.35) * k);
+    B("elL").rotation.x = B("elR").rotation.x = -.1; B("neck").rotation.set(0, 0, .5 * k);
+    for (const n of ["hipL", "hipR", "knL", "knR", "anL", "anR"]) B(n).rotation.set(0, 0, 0);
+    B("hipL").rotation.z = .12 * k; B("hipR").rotation.z = -.08 * k;
+  }
+}
+
 // ================= survival: the survivor, sandbox, moodles, sleep, shelter =================
 // ---------- who you were before: professions and traits
 const PROFS = {
@@ -7571,18 +7692,19 @@ const hasTr = k => !!(world && world.player.traits && world.player.traits.includ
 const isProf = k => !!(world && world.player.prof === k);
 // ---------- sandbox: the rules of this world
 const SANDBOX = [
-  ["zspeed", "Зомби", [["slow", "Шаркуны"], ["mixed", "Смешанные"], ["fast", "Бегуны"]]],
-  ["pop", "Сколько их", [["low", "Мало"], ["normal", "Обычно"], ["high", "Много"]]],
-  ["loot", "Добыча", [["rare", "Редко"], ["normal", "Обычно"], ["plenty", "Щедро"]]],
-  ["infect", "Укус", [["deadly", "Смертелен"], ["cure", "Лечится"], ["off", "Не заражает"]]],
+  ["zspeed", "Зомби", [["slow", "Шаркуны"], ["mixed", "Смешанные"], ["fast", "Бегуны"], ["mutant", "Мутанты"]]],
+  ["special", "Особые зомби", [["none", "Нет"], ["rare", "Редко"], ["often", "Часто"], ["everywhere", "Повсюду"]]],
+  ["pop", "Сколько их", [["low", "Мало"], ["normal", "Обычно"], ["high", "Много"], ["horde", "Орда"]]],
+  ["loot", "Добыча", [["none", "Почти нет"], ["rare", "Редко"], ["normal", "Обычно"], ["plenty", "Щедро"]]],
+  ["infect", "Укус", [["deadly", "Смертелен"], ["cure", "Лечится"], ["off", "Не заражает"], ["scratch", "Царапины тоже"]]],
   ["power", "Свет отключат", [[3, "3-й день"], [7, "7-й день"], [14, "14-й день"], [0, "Никогда"]]],
-  ["siege", "Ломают дома", [[true, "Да"], [false, "Нет"]]]
+  ["siege", "Ломают дома", [[false, "Нет"], ["slow", "Медленно"], [true, "Да"], ["fury", "Яростно"]]]
 ];
 const PRESETS = {
-  normal: { name: "Выживание", v: { zspeed: "mixed", pop: "normal", loot: "normal", infect: "cure", power: 7, siege: true } },
-  hard: { name: "Хардкор", v: { zspeed: "mixed", pop: "high", loot: "rare", infect: "deadly", power: 3, siege: true } },
-  fast: { name: "Бегущие мертвецы", v: { zspeed: "fast", pop: "normal", loot: "normal", infect: "deadly", power: 7, siege: true } },
-  calm: { name: "Песочница", v: { zspeed: "slow", pop: "low", loot: "plenty", infect: "off", power: 0, siege: false } }
+  normal: { name: "Выживание", v: { zspeed: "mixed", special: "rare", pop: "normal", loot: "normal", infect: "cure", power: 7, siege: true } },
+  hard: { name: "Хардкор", v: { zspeed: "mixed", special: "often", pop: "high", loot: "rare", infect: "deadly", power: 3, siege: "fury" } },
+  fast: { name: "Бегущие мертвецы", v: { zspeed: "fast", special: "rare", pop: "normal", loot: "normal", infect: "deadly", power: 7, siege: true } },
+  calm: { name: "Песочница", v: { zspeed: "slow", special: "none", pop: "low", loot: "plenty", infect: "off", power: 0, siege: false } }
 };
 const cfg = () => (world && world.cfg) || PRESETS.normal.v;
 const runnerChance = base => cfg().zspeed === "slow" ? 0 : cfg().zspeed === "fast" ? 1 : base;
@@ -7680,22 +7802,35 @@ function applySurvivor() {
   // the dead: how many and how fast
   const c = Wd.cfg;
   if (c.pop === "low") Wd.zombies = Wd.zombies.filter(() => Math.random() < .5);
-  if (c.pop === "high") { const n = Math.round(Wd.zombies.length * .6); for (let i = 0; i < n; i++) spawnZombie(12); }
+  if (c.pop === "high" || c.pop === "horde") { const n = Math.round(Wd.zombies.length * (c.pop === "horde" ? 1.5 : .6)); for (let i = 0; i < n; i++) spawnZombie(12); }
   for (const z of Wd.zombies) {
     if (c.zspeed === "slow" && z.runner) { z.runner = false; z.spd = rand(.48, .7); }
     if (c.zspeed === "fast" && !z.runner) { z.runner = true; z.spd = rand(1, 1.25); z.limp = 0; }
   }
   // what is left on the shelves
   for (const f of Wd.map.furn) if (f.cont && !f.cont.searched) {
-    if (c.loot === "rare") f.cont.loot = f.cont.loot.filter(k => k.includes(":") || Math.random() < .55);
+    if (c.loot === "rare" || c.loot === "none") f.cont.loot = f.cont.loot.filter(k => k.includes(":") || Math.random() < (c.loot === "none" ? .22 : .55));
     if (c.loot === "plenty") { f.cont.loot.push(...f.cont.loot.filter(k => !k.includes(":") && Math.random() < .7)); if (!f.cont.loot.length && Math.random() < .35) f.cont.loot.push(pick(["food", "water", "bandage", "battery", "plank", "nails"])); }
   }
-  Wd.barr = {}; Wd.broken = {}; Wd.winHp = {};
+  Wd.barr = {}; Wd.broken = {}; Wd.winHp = {}; Wd.gas = [];
+  // the special infected
+  for (const z of Wd.zombies) { const sp = rollSpecial(); if (sp) makeSpecial(z, sp); }
+  const mb = Wd.map.milBase;
+  if (mb && specialShare() > 0) {
+    let n = 0;
+    for (const z of Wd.zombies) if (z.x > mb.x0 - 3 && z.x < mb.x1 + 3 && z.y > mb.y0 - 3 && z.y < mb.y1 + 3) { makeSpecial(z, "soldier"); n++; }
+    for (let t = 0; t < 400 && n < 14; t++) {
+      const x = rand(mb.x0 + 2, mb.x1 - 2), y = rand(mb.y0 + 2, mb.y1 - 2);
+      if (Wd.map.nav[Math.floor(y) * N + Math.floor(x)]) continue;
+      const z = pick(Wd.zombies); if (z.sp || Math.hypot(z.x - p.x, z.y - p.y) < 30) continue;
+      z.x = z.lastX = z.tx = x; z.y = z.lastY = z.ty = y; makeSpecial(z, "soldier"); n++;
+    }
+  }
 }
 
 // ---------- body and mind: fatigue, panic, pain
 const pain = () => { const w = world.player.wounds || {}; return (w.fracture ? (w.splint ? 20 : 45) : 0) + (w.bite ? 20 : 0) + (w.bleed ? 15 : 0) + (world.player.hp < 35 ? 20 : 0); };
-function survSpeed() { const p = world.player; let k = 1; if (p.fat > 75) k *= p.fat > 90 ? .72 : .86; return k * (1 - Math.min(.3, pain() / 250)); }
+function survSpeed() { const p = world.player; let k = zombieSlow(); if (p.fat > 75) k *= p.fat > 90 ? .72 : .86; return k * (1 - Math.min(.3, pain() / 250)); }
 const runBoost = () => (hasTr("athletic") ? 1.1 : 1) * (isProf("fireman") ? 1.05 : 1);
 const meleeMul = () => (hasTr("strong") ? 1.25 : 1) * (hasTr("weak") ? .8 : 1) * (world.player.fat > 75 ? .82 : 1);
 const aimMul = () => (1 + (world.player.panic || 0) / 90) * (isProf("police") ? .75 : 1) * (world.player.fat > 90 ? 1.3 : 1);
@@ -7703,7 +7838,7 @@ const noiseMul = () => hasTr("quiet") ? .55 : hasTr("clumsy") ? 1.45 : 1;
 const hungerMul = () => hasTr("glutton") ? 1.3 : hasTr("small") ? .75 : 1;
 function survTick(dt, rate) {
   const Wd = world, p = Wd.player, gm = dt * rate;
-  p.fat = p.fat || 0; p.panic = p.panic || 0;
+  p.fat = p.fat || 0; p.panic = p.panic || 0; zombieEffectsTick(dt);
   if (p.sleep) {
     const rest = (p.sleep.bed ? 100 / (6.5 * 60) : 100 / (10 * 60)) * (hasTr("sleepy") ? .85 : 1);
     p.fat = Math.max(0, p.fat - gm * rest); p.panic = 0;
@@ -7737,6 +7872,8 @@ function moodles() {
   if (p.fat > 55 && !p.sleep) add(p.fat > 90 ? "Валится с ног" : p.fat > 75 ? "Изнурение" : "Усталость", p.fat > 90 ? 3 : p.fat > 75 ? 2 : 1);
   if (p.panic > 25) add("Паника", p.panic > 75 ? 3 : p.panic > 50 ? 2 : 1);
   const pn = pain(); if (pn > 15 && !W.fracture) add("Боль", pn > 50 ? 3 : pn > 30 ? 2 : 1);
+  if (p.sickT > 0) add("Тошнота", 2);
+  if (p.grabT > 0) add("Схватили!", 3);
   if (W.bleed) add("Кровотечение", 3);
   if (W.bite) add((world.elapsed - W.bite) / 1440 > .35 ? "Укус · жар" : "Укус", 3);
   if (W.fracture) add(W.splint ? "Перелом · шина" : "Перелом", 2);
@@ -7808,7 +7945,7 @@ function dropPaneBox(o) {
     if (b) { gridRemove(b); return; }
   }
 }
-const plankHp = () => isProf("carpenter") ? 4.5 : 3;
+const plankHp = () => (isProf("carpenter") ? 4.5 : 3) * ({ slow: 2, fury: .5 }[cfg().siege] || 1);
 function findOpening(k) { const ax = k[0], [i, j] = k.slice(1).split(",").map(Number), M = world.map, c = ax === "h" ? M.hW[j * N + i] : M.vW[j * (N + 1) + i]; return { k, ax, i, j, c, x: ax === "h" ? i + .5 : i, y: ax === "h" ? j : j + .5 }; }
 function setBarr(o, n, side) {
   const Wd = world, B = Wd.barr = Wd.barr || {}; Wd.bbox = Wd.bbox || {};
@@ -7901,10 +8038,10 @@ function bang(o, z) {
   noise(o.x, o.y, 5);
   if (p.sleep && Math.hypot(o.x - p.x, o.y - p.y) < 16) wake("Тебя разбудил грохот!");
   if (B) {
-    B.hp -= 1;
+    B.hp -= z.sp === "brute" ? 3 : 1;
     if (B.hp <= (B.n - 1) * plankHp()) { setBarr(o, B.n - 1, B.side); sfx("chop", { x: o.x, y: o.y, vol: .6, rate: .8 }); if (!Wd.events.has("planks")) { Wd.events.add("planks"); toast("Доски трещат! Они ломятся в дом", true); setTimeout(() => world && world.events.delete("planks"), 15000); } }
   } else if (o.c === 2 && !(Wd.broken || {})[o.k]) {
-    Wd.winHp = Wd.winHp || {}; Wd.winHp[o.k] = (Wd.winHp[o.k] ?? 3) - 1;
+    Wd.winHp = Wd.winHp || {}; Wd.winHp[o.k] = (Wd.winHp[o.k] ?? ({ slow: 6, fury: 2 }[cfg().siege] || 3)) - (z.sp === "brute" ? 3 : 1);
     if (Wd.winHp[o.k] <= 0) { breakWindow(o); toast("Зомби выбили окно!", true); }
   } else z.sg = null;
 }
