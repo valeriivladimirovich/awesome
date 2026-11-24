@@ -382,6 +382,7 @@ const ICON = {
   rifle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M2 10h15l3-1h2v3h-7l-1 2h-3l-1 4H7l1-4H2z"/></svg>',
   ammo9: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 9l1.5-4L9 9v10H6zM11 9l1.5-4L14 9v10h-3zM16 9l1.5-4L19 9v10h-3z"/></svg>',
   ammo545: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 10l1.5-6L10 10v10H7zM14 10l1.5-6L17 10v10h-3z"/></svg>',
+  can: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M6 7h9l3 3v10H6z"/><path d="M9 4h4v3H9zM9 12l6 5M15 12l-6 5"/></svg>',
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>'
 };
 
@@ -392,9 +393,10 @@ const ITEMS = {
   medkit: { name: "Аптечка", desc: "+60 здоровья", c: "var(--blood)" },
   battery: { name: "Батарейка", desc: "Фонарик на 100%", c: "var(--volt)" },
   ammo9: { name: "Патроны 9 мм", desc: "Для пистолета", c: "#c9b27c", noUse: true },
-  ammo545: { name: "Патроны 5,45", desc: "Для автомата", c: "#c9b27c", noUse: true }
+  ammo545: { name: "Патроны 5,45", desc: "Для автомата", c: "#c9b27c", noUse: true },
+  can: { name: "Канистра", desc: "Слить бензин и заправить машину", c: "#c8473a", noUse: true }
 };
-const ITEM_GEN = { food: "консервы", water: "вода", bandage: "бинт", medkit: "аптечка", battery: "батарейка", ammo9: "патроны 9 мм", ammo545: "патроны 5,45" };
+const ITEM_GEN = { can: "канистра", food: "консервы", water: "вода", bandage: "бинт", medkit: "аптечка", battery: "батарейка", ammo9: "патроны 9 мм", ammo545: "патроны 5,45" };
 const WEAPONS = {
   fists: { name: "Кулаки", dmg: 1, range: .8, cd: .42, rank: 0 },
   bat: { name: "Бита", dmg: 2, range: 1, cd: .5, rank: 1 },
@@ -408,13 +410,15 @@ const LOOTS = {
   wardrobe: [["bandage", 2], ["battery", 2], ["food", 1], ["bat", .4], ["ammo9", .5], ["pistol", .12]],
   cabinet: [["bandage", 5], ["medkit", 1]],
   desk: [["battery", 4], ["bandage", 1], ["ammo9", .6]],
-  crate: [["food", 2], ["water", 2], ["battery", 2], ["bat", .8], ["axe", .5], ["ammo9", .5]],
-  workbench: [["bat", 3], ["axe", 2], ["battery", 2]],
+  crate: [["food", 2], ["water", 2], ["battery", 2], ["bat", .8], ["axe", .5], ["ammo9", .5], ["can", .5]],
+  workbench: [["bat", 3], ["axe", 2], ["battery", 2], ["can", 1.6]],
   locker: [["pistol", 1.2], ["ammo9", 3], ["rifle", .4], ["ammo545", 1.2], ["bandage", 1], ["bat", 1]],
   military: [["rifle", 1], ["ammo545", 3], ["ammo9", 1.5], ["pistol", .6], ["medkit", 1.2], ["food", 1], ["water", 1]],
   shop: [["food", 6], ["water", 5]],
   pharm: [["bandage", 5], ["medkit", 1.5]],
-  hard: [["battery", 4], ["bat", 2], ["axe", 1.5]],
+  hard: [["battery", 4], ["bat", 2], ["axe", 1.5], ["can", 1.5]],
+  glove: [["battery", 2], ["bandage", 2], ["food", 1], ["water", 1], ["ammo9", .8]],
+  freight: [["food", 4], ["water", 4], ["battery", 2], ["bandage", 2], ["can", 1], ["axe", .4], ["ammo9", .5]],
   cafe: [["food", 5], ["water", 4]],
   gun: [["ammo9", 5], ["ammo545", 2], ["pistol", .5], ["rifle", .15], ["bat", 1], ["axe", .7], ["battery", 1]]
 };
@@ -600,9 +604,14 @@ function genMap() {
   function addCar(x, y, alongY, kind = "car") {
     const big = kind === "truck" || kind === "amb" || kind === "mtruck";
     const L = alongY ? [big ? .62 : .5, big ? 1.9 : 1.22] : [big ? 1.9 : 1.22, big ? .62 : .5];
-    const car = { dt: "car", x, y, alongY, kind, c: pick(PAL.cars), wreck: kind === "car" && Math.random() < .3, burnt: kind === "car" && Math.random() < .15, key: x + y, L, ph: Math.random() * 6 };
+    const car = { dt: "car", id: M.cars.length, x, y, alongY, kind, c: pick(PAL.cars), wreck: kind === "car" && Math.random() < .3, burnt: kind === "car" && Math.random() < .15, key: x + y, L, ph: Math.random() * 6 };
+    car.h = (alongY ? Math.PI / 2 : 0) + (Math.random() < .5 ? Math.PI : 0);
+    car.body = pick(["sedan", "sedan", "hatch", "suv", "pickup"]);
+    car.hp = 1; car.glass = 1; car.fuel = Math.random() < .35 ? 0 : rand(.05, .6); car.keyIn = Math.random() < .18;
+    car.x0 = x - L[0]; car.x1 = x + L[0]; car.y0 = y - L[1]; car.y1 = y + L[1]; car.def = { z: 22 };
+    car.cont = { name: "Бардачок", loot: rollFrom("glove", 0, 2), searched: false };
     M.cars.push(car);
-    addBox(x - L[0], y - L[1], x + L[0], y + L[1], null);
+    addBox(x - L[0], y - L[1], x + L[0], y + L[1], car);
     navBox(x - L[0], y - L[1], x + L[0], y + L[1]);
     for (let j = Math.floor(y - L[1]); j < Math.ceil(y + L[1]); j++) for (let i = Math.floor(x - L[0]); i < Math.ceil(x + L[0]); i++) if (inb(i, j)) occ[T(i, j)] = 1;
     reg(car, x, y);
@@ -1291,6 +1300,36 @@ function genMap() {
     n++;
   }
 
+  // ---- car keys: in the ignition, in the glovebox, or in a house nearby
+  for (const car of M.cars) {
+    if (car.burnt) { car.fuel = 0; car.cont = null; }
+    if (car.wreck || car.burnt) { car.keyIn = false; continue; }
+    if (car.keyIn) continue;
+    const r = Math.random();
+    if (r < .55) {
+      const near = M.buildings.filter(b => Math.abs(b.cx - car.x) < 14 && Math.abs(b.cy - car.y) < 14 && (b.furn || []).some(f => f.cont));
+      if (near.length) { const b = pick(near), cs = b.furn.filter(f => f.cont); pick(cs).cont.loot.push("key:" + car.id); continue; }
+    }
+    if (r < .8) car.cont.loot.push("key:" + car.id);
+  }
+  // ---- an abandoned freight train standing on the line west of the river
+  {
+    const kinds = ["loco", "box", "hopper", "box", "tank", "box", "hopper", "box"].slice(0, ri(5, 8));
+    const lens = { loco: 11, box: 8.4, hopper: 8, tank: 8.2 }, y = ry + 1.5;
+    const total = kinds.reduce((a, k) => a + lens[k] + .45, 0);
+    let x = rand(8, rx0 - total - 3);
+    M.train = [];
+    kinds.forEach((k, n) => {
+      const t = { dt: "train", kind: k, x0: x, x1: x + lens[k], y0: y - .85, y1: y + .85, y, def: { z: 40 }, tilt: n === kinds.length - 1 && n > 3 && Math.random() < .6, col: pick(["#7a3424", "#6a3a2a", "#5e4a3a", "#7a5a2a"]) };
+      if (k === "box") t.cont = { name: "Товарный вагон", loot: rollFrom(Math.random() < .2 ? "military" : "freight", 1, 3), searched: false };
+      M.train.push(t);
+      addBox(t.x0 + .05, t.y0, t.x1 - .05, t.y1, t); navBox(t.x0, t.y0, t.x1, t.y1);
+      const o = { dt: "prop", kind: "traincar", x: (t.x0 + t.x1) / 2, y, hx: (t.x1 - t.x0) / 2, hy: .85, key: x + y, var: Math.random(), tcol: k === "loco" ? "#2b3f5e" : k === "tank" ? "#1c1c1e" : k === "hopper" ? "#8a8e92" : t.col };
+      M.props.push(o); reg(o, o.x, o.y);
+      x += lens[k] + .45;
+    });
+  }
+
   // ---- walls from edges
   const bAt = (i, j) => (i >= 0 && j >= 0 && i < N && j < N) ? M.bld[T(i, j)] : -1;
   for (let j = 0; j <= N; j++) for (let i = 0; i < N; i++) {
@@ -1558,10 +1597,11 @@ function newWorld(mode) {
     player: {
       x: START.x, y: START.y, vx: 0, vy: 0, dir: Math.PI * .25, sf: 1, hp: 100, food: 85, water: 80, bat: 100, ph: 0, spd: 0,
       weapon: "fists", owned: { fists: true }, mag: { pistol: 0, rifle: 0 }, reload: 0, flash: 0,
-      inv: { food: 1, water: 1, bandage: 0, medkit: 0, battery: 0, ammo9: 0, ammo545: 0 }, swing: 0, cool: 0, noiseT: 0, search: null, hurtT: 0
+      inv: { food: 1, water: 1, bandage: 0, medkit: 0, battery: 0, ammo9: 0, ammo545: 0, can: 0 }, keys: new Set(), gas: 0, veh: null, task: null, swing: 0, cool: 0, noiseT: 0, search: null, hurtT: 0
     },
     events: new Set()
   };
+  engineSound(false); if (T3.bikeMesh) T3.bikeMesh.visible = false;
   world.map = genMap();
   world.wet = world.raining ? 1 : 0;
   const n = Math.round(1000 * diff().zombies);
@@ -1898,10 +1938,19 @@ function updateHud() {
   const wk = p.weapon, wd = WEAPONS[wk];
   const label = wd.gun ? `${wd.name}</b><span class="ammo">${p.reload > 0 ? "перезарядка" : p.mag[wk] + " / " + (p.inv[wd.ammo] || 0)}</span>` : wd.name + "</b>";
   if ($("#weapon").dataset.w !== wk + label) { $("#weapon").innerHTML = ICON[wk] + "<b>" + label; $("#weapon").dataset.w = wk + label; }
-  const f = nearContainer(), act = $("#act");
+  const ca = contextAction(), act = $("#act");
   if (p.search) { act.hidden = false; act.innerHTML = ICON.search + "Обыскиваю…"; }
-  else if (f) { act.hidden = false; act.innerHTML = ICON.search + "Обыскать: " + f.cont.name.toLowerCase(); }
+  else if (p.task) { act.hidden = false; act.innerHTML = p.task.label + "…"; }
+  else if (ca) { act.hidden = false; act.innerHTML = (ca.search ? ICON.search : "") + ca.label; }
   else act.hidden = true;
+  // dashboard while driving or riding
+  let vp = $("#vehp");
+  if (!vp) { vp = document.createElement("div"); vp.id = "vehp"; vp.style.cssText = "position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 58px);transform:translateX(-50%);padding:6px 14px;border-radius:999px;background:rgba(12,14,20,.72);color:#e8e4da;font:600 13px Rubik,system-ui,sans-serif;z-index:4;pointer-events:none;white-space:nowrap"; $("#game").append(vp); }
+  const v = p.veh, kmh = v ? Math.round(Math.abs(v.spd) * U * 3.6) : 0;
+  vp.hidden = !v && !(p.inv.can && nearCar(1.2));
+  if (v && v.car) vp.textContent = `Бензин ${Math.round(v.car.fuel * 100)}% · ${kmh} км/ч · кузов ${Math.round(v.car.hp * 100)}% · стекло ${Math.round(v.car.glass * 100)}%`;
+  else if (v) vp.textContent = `Велосипед · ${kmh} км/ч`;
+  else if (!vp.hidden) vp.textContent = `Канистра: ${Math.round(p.gas)} л из 20`;
 }
 
 // ================= actions =================
@@ -1922,7 +1971,9 @@ function nearContainer() {
 }
 function doAction() {
   const p = world.player;
-  if (p.search || paused) return;
+  if (p.search || p.task || paused) return;
+  const ca = contextAction();
+  if (ca && !ca.search) { ca.run(); updateHud(); return; }
   const f = nearContainer();
   if (!f) return;
   p.search = { f, t: 0, dur: f.kind === "shelf" ? 1.2 : 1.5 };
@@ -1933,10 +1984,12 @@ function doAction() {
 }
 function finishSearch() {
   const p = world.player, f = p.search.f;
-  p.search = null; f.cont.searched = true; f.b.searched++; world.searched++;
+  p.search = null; f.cont.searched = true; if (f.b) f.b.searched++; world.searched++;
   if (!f.cont.loot.length) { toast(`${f.cont.name}: пусто`); updateHud(); return; }
   const got = {};
   for (const k of f.cont.loot) {
+    if (k.startsWith("key:")) { const car = world.map.cars[+k.slice(4)]; p.keys.add(car.id); toast(`Нашёл ключи: ${carName(car)}. Машина отмечена на карте`, true); continue; }
+    if (k === "can") { if (!p.inv.can) { p.inv.can = 1; p.gas = Math.round(rand(0, 5)); toast(`Нашёл канистру${p.gas ? `, в ней ${p.gas} л` : ""}. Сливай бензин из брошенных машин`, true); } else { p.gas = Math.min(20, p.gas + 5); got.can = (got.can || 0) + 1; } continue; }
     const w = WEAPONS[k];
     if (w && w.gun) {
       if (!p.owned[k]) { p.owned[k] = true; p.mag[k] = ri(2, Math.floor(w.mag / 2)); p.weapon = k; toast(`Нашёл: ${w.name.toLowerCase()}! В магазине ${p.mag[k]}. Выстрелы созывают зомби`, true); }
@@ -1955,6 +2008,7 @@ function finishSearch() {
 function attack() {
   if (!world || world.mode !== "play" || paused) return;
   const p = world.player, w = WEAPONS[p.weapon];
+  if (p.veh) { if (p.veh.car) honk(); else if (!(p.honkT > 0)) { p.honkT = 2; toast("Чтобы драться, слезь с велосипеда"); } return; }
   if (p.cool > 0) return;
   if (w.gun) return fireGun();
   p.cool = w.cd; p.swing = .3;
@@ -2001,7 +2055,7 @@ function killZombie(z, dx, dy, weapon, headshot) {
   const i = world.zombies.indexOf(z); if (i < 0) return;
   world.zombies.splice(i, 1);
   world.kills++;
-  const power = { fists: 1.3, bat: 2.4, axe: 2, pistol: 1.6, rifle: 1.9 }[weapon] || 1.5;
+  const power = { fists: 1.3, bat: 2.4, axe: 2, pistol: 1.6, rifle: 1.9, car: 3.4 }[weapon] || 1.5;
   const rd = makeRagdoll(z, dx, dy, power);
   if (weapon === "axe" && Math.random() < .5) sever(rd, pick(["armL", "armR", "legL", "legR", "head", "head"]), dx, dy);
   if ((weapon === "pistol" || weapon === "rifle") && headshot) { sever(rd, "head", dx, dy); bleed(z.x, z.y, 10, dx, dy); }
@@ -2087,6 +2141,282 @@ function cycleWeapon() {
   updateHud();
 }
 
+// ================= vehicles: cars, bicycles =================
+const CAR_COLOR_NAMES = { "#8e3d34": "бордовый", "#3b5b7a": "синий", "#c8b17d": "бежевый", "#4f5f4a": "зелёный", "#cfcfcb": "белый", "#6b4a6e": "фиолетовый", "#2f3238": "чёрный" };
+const CAR_BODY_NAMES = { sedan: "седан", hatch: "хэтчбек", suv: "внедорожник", pickup: "пикап" };
+function carName(car) {
+  if (car.kind === "police") return "полицейская машина";
+  if (car.kind === "amb") return "скорая";
+  if (car.kind === "truck") return car.paint === "#b02a26" ? "пожарная машина" : car.paint === "#e0b030" ? "школьный автобус" : "грузовик";
+  if (car.kind === "mtruck") return "армейский грузовик";
+  return (CAR_COLOR_NAMES[car.c] || "") + " " + (CAR_BODY_NAMES[car.body] || "седан");
+}
+const carDims = car => { const big = car.kind === "truck" || car.kind === "amb" || car.kind === "mtruck"; return { L: big ? 1.9 : 1.22, W: big ? .62 : .5 }; };
+const canDrive = car => !car.wreck && !car.burnt && car.hp > 0;
+const hasKey = car => car.keyIn || world.player.keys.has(car.id);
+
+// grid bookkeeping for a moving car's collision box
+function gridRemove(b) {
+  const M = world.map; M.boxes = M.boxes.filter(q => q !== b);
+  for (let gy = Math.max(0, Math.floor(b.y0 / CELL)); gy <= Math.min(NG - 1, Math.floor(b.y1 / CELL)); gy++)
+    for (let gx = Math.max(0, Math.floor(b.x0 / CELL)); gx <= Math.min(NG - 1, Math.floor(b.x1 / CELL)); gx++) { const cell = M.grid[gy * NG + gx]; const k = cell.indexOf(b); if (k >= 0) cell.splice(k, 1); }
+}
+function gridAdd(b) {
+  const M = world.map; M.boxes.push(b);
+  for (let gy = Math.max(0, Math.floor(b.y0 / CELL)); gy <= Math.min(NG - 1, Math.floor(b.y1 / CELL)); gy++)
+    for (let gx = Math.max(0, Math.floor(b.x0 / CELL)); gx <= Math.min(NG - 1, Math.floor(b.x1 / CELL)); gx++) M.grid[gy * NG + gx].push(b);
+}
+function carBoxOf(car) { return world.map.boxes.find(b => b.ref === car); }
+// distance from a point to the car's (rotated) body
+function carDist(car, x, y) {
+  const { L, W } = carDims(car), c = Math.cos(car.h), s = Math.sin(car.h), dx = x - car.x, dy = y - car.y;
+  const lx = dx * c + dy * s, ly = -dx * s + dy * c;
+  return Math.hypot(Math.max(0, Math.abs(lx) - L), Math.max(0, Math.abs(ly) - W));
+}
+function carBlocked(car, x, y, h) {
+  const { L, W } = carDims(car), c = Math.cos(h), s = Math.sin(h), r = W * .92;
+  for (const k of [-1, -.5, 0, .5, 1]) { const o = k * (L - r); if (overlaps(x + c * o, y + s * o, r)) return true; }
+  return false;
+}
+function nearCar(maxD = .6) {
+  const p = world.player; let best = null, bd = maxD;
+  for (const car of world.map.cars) { if (Math.abs(car.x - p.x) > 4 || Math.abs(car.y - p.y) > 4) continue; const d = carDist(car, p.x, p.y); if (d < bd) { bd = d; best = car; } }
+  return best;
+}
+function nearBike() {
+  const p = world.player; let best = null, bd = .9;
+  for (const o of world.map.props) if (o.kind === "bike" && Math.abs(o.x - p.x) < 1 && Math.abs(o.y - p.y) < 1) { const d = Math.hypot(o.x - p.x, o.y - p.y); if (d < bd) { bd = d; best = o; } }
+  return best;
+}
+
+// what the action button does right now
+function contextAction() {
+  const p = world.player;
+  if (p.veh) return p.veh.car ? { label: "Выйти из машины", run: exitVehicle } : { label: "Слезть с велосипеда", run: exitVehicle };
+  if (p.search || p.task) return null;
+  const car = nearCar(), f = nearContainer();
+  const own = car && canDrive(car) && hasKey(car);
+  if (f && !(own && f === car)) return { label: "Обыскать: " + f.cont.name.toLowerCase(), run: doAction, search: true };
+  if (car) {
+    if (own && car.fuel < .98 && p.gas > .5) return { label: "Залить бензин", run: () => startTask("Заливаю бензин", 2.2, () => { const put = Math.min(p.gas, (1 - car.fuel) * 40); car.fuel += put / 40; p.gas -= put; toast(`Залил ${Math.round(put)} л. В баке ${Math.round(car.fuel * 100)}%`); }) };
+    if (own) return { label: car.fuel > .01 ? "Сесть за руль" : "Сесть (бак пуст)", run: () => enterCar(car) };
+    if (p.inv.can && car.fuel > .02 && p.gas < 19.5 && !car.burnt) return { label: "Слить бензин", run: () => startTask("Сливаю бензин", 2.6, () => { const take = Math.min(car.fuel * 40, 20 - p.gas); car.fuel -= take / 40; p.gas += take; toast(`В канистре ${Math.round(p.gas)} л`); noise(p.x, p.y, 2.5); }) };
+    if (canDrive(car)) return { label: "Нет ключей", run: () => toast(`Нужны ключи: ${carName(car)}. Поищи в домах рядом или в бардачке`) };
+  }
+  const bike = nearBike();
+  if (bike) return { label: "Сесть на велосипед", run: () => mountBike(bike) };
+  return null;
+}
+function startTask(label, dur, fn) { const p = world.player; p.task = { label, t: 0, dur, fn }; thud(.1, 400); updateHud(); }
+
+// ---------- cars
+function enterCar(car) {
+  const p = world.player;
+  const b = carBoxOf(car); if (b) gridRemove(b);
+  // the glovebox gets checked on the way in
+  if (car.cont && !car.cont.searched) { p.search = { f: car, t: 0, dur: 0 }; finishSearch(); }
+  p.veh = { car, spd: 0, steer: 0, crashT: 0 };
+  p.x = car.x; p.y = car.y; p.vx = p.vy = 0; p.search = null; p.dir = car.h;
+  car.driven = true;
+  tone(300, .08, "square", .03); thud(.3, 300);
+  if (car.fuel <= .005) toast("Бак пуст. Слей бензин из других машин в канистру", true);
+  else { toast(`${carName(car)[0].toUpperCase() + carName(car).slice(1)}. Бак ${Math.round(car.fuel * 100)}%. Мотор шумит — зомби услышат`); engineSound(true); }
+  if (T3.ok) carGoLive(car);
+  updateHud();
+}
+function exitVehicle() {
+  const p = world.player, v = p.veh; if (!v) return;
+  if (v.car) {
+    const car = v.car, { L, W } = carDims(car), c = Math.cos(car.h), s = Math.sin(car.h);
+    // step out on the driver's side, else the other side, else over the bonnet
+    const spots = [[-s * (W + .45), c * (W + .45)], [s * (W + .45), -c * (W + .45)], [c * (L + .45), s * (L + .45)], [-c * (L + .45), -s * (L + .45)]];
+    const sp = spots.find(([dx, dy]) => !overlaps(car.x + dx, car.y + dy, .2)) || spots[0];
+    p.x = car.x + sp[0]; p.y = car.y + sp[1];
+    const ex = Math.abs(c) * L + Math.abs(s) * W, ey = Math.abs(s) * L + Math.abs(c) * W;
+    gridAdd({ x0: car.x - ex, y0: car.y - ey, x1: car.x + ex, y1: car.y + ey, ref: car, st: 0 });
+    car.x0 = car.x - ex; car.x1 = car.x + ex; car.y0 = car.y - ey; car.y1 = car.y + ey;
+    car.alongY = Math.abs(s) > .7; car.driven = false;
+    engineSound(false); thud(.25, 300);
+  } else {
+    const o = v.bike; o.x = p.x + Math.cos(p.dir + 1.6) * .35; o.y = p.y + Math.sin(p.dir + 1.6) * .35; o.rot = Math.abs(Math.sin(p.dir)) > .7;
+    world.map.props.push(o); rebuildProp("bike");
+    if (T3.bikeMesh) T3.bikeMesh.visible = false;
+  }
+  p.veh = null; updateHud();
+}
+function driveCar(dt, mv) {
+  const p = world.player, v = p.veh, car = v.car, { L, W } = carDims(car);
+  const alive = car.fuel > 0 && car.hp > 0;
+  let throttle = 0, want = car.h;
+  if (mv.m > 0) {
+    const a = Math.atan2(mv.dy, mv.dx), diff = angDiff(car.h, a);
+    if (Math.abs(diff) < 2.1) { throttle = mv.m; want = a; }
+    else { throttle = -mv.m * .7; want = a + Math.PI; }
+  }
+  if (!alive) throttle = 0;
+  const big = L > 1.5, top = (big ? 7 : 9.5) * (car.hp < .3 ? .55 : 1), rev = 3;
+  const target = throttle > 0 ? throttle * top : throttle * rev;
+  const accel = target * v.spd < 0 || Math.abs(target) < Math.abs(v.spd) ? 9 : (big ? 3.2 : 4.6);
+  v.spd += clamp(target - v.spd, -accel * dt, accel * dt);
+  if (!mv.m) v.spd *= Math.pow(.35, dt);
+  // steering turns faster with speed, never on the spot
+  const steerAmt = clamp(angDiff(car.h, want), -.6, .6) * (v.spd < 0 ? -1 : 1);
+  v.steer = lerp(v.steer, mv.m ? steerAmt : 0, 1 - Math.pow(.001, dt));
+  const turn = v.steer * Math.min(1, Math.abs(v.spd) / 2.5) * (big ? 1.6 : 2.4) * dt * Math.sign(v.spd || 1);
+  const nh = car.h + (v.spd >= 0 ? turn : -turn);
+  const nx = car.x + Math.cos(nh) * v.spd * dt, ny = car.y + Math.sin(nh) * v.spd * dt;
+  if (!carBlocked(car, nx, ny, nh)) { car.x = nx; car.y = ny; car.h = nh; }
+  else if (!carBlocked(car, nx, car.y, car.h)) { car.x = nx; v.spd *= .9; }
+  else if (!carBlocked(car, car.x, ny, car.h)) { car.y = ny; v.spd *= .9; }
+  else {
+    const hit = Math.abs(v.spd);
+    if (hit > 2.5 && v.crashT <= 0) { car.hp = Math.max(0, car.hp - hit * .022); car.glass = Math.max(0, car.glass - hit * .015); world.shake = Math.min(14, hit * 1.4); thud(.5, 220); noise(car.x, car.y, 9); p.hp -= Math.max(0, hit - 6) * 2; v.crashT = .4; if (car.hp <= 0) { toast("Мотор заглох. Машина разбита", true); engineSound(false); } }
+    v.spd *= -.2;
+  }
+  v.crashT -= dt;
+  // zombies: run them over at speed, shove them aside when crawling
+  const c = Math.cos(car.h), s = Math.sin(car.h);
+  for (const z of [...world.zombies]) {
+    if (Math.abs(z.x - car.x) > L + 1 || Math.abs(z.y - car.y) > L + 1) continue;
+    const d = carDist(car, z.x, z.y);
+    if (d > .18) continue;
+    const sp = Math.abs(v.spd);
+    if (sp > 2.2) {
+      const dir = v.spd >= 0 ? 1 : -1;
+      killZombie(z, c * dir, s * dir, "car", false);
+      car.glass = Math.max(0, car.glass - (sp > 6 ? .14 : .07)); car.hp = Math.max(0, car.hp - .015);
+      v.spd *= .82; world.shake = Math.max(world.shake, 6); thud(.45, 260);
+      if (car.glass < .35 && !car.crackWarn) { car.crackWarn = true; toast("Лобовое стекло трещит", true); }
+    } else {
+      const dx = z.x - car.x, dy = z.y - car.y, lx = dx * c + dy * s, ly = -dx * s + dy * c;
+      const push = Math.abs(ly) > Math.abs(lx) - (L - W) ? [-s * Math.sign(ly), c * Math.sign(ly)] : [c * Math.sign(lx), s * Math.sign(lx)];
+      moveEnt(z, push[0] * .05, push[1] * .05);
+    }
+  }
+  // fuel, engine noise, exhaust
+  if (alive) {
+    car.fuel = Math.max(0, car.fuel - dt * (.0006 + Math.abs(v.spd) * .00035));
+    if (car.fuel <= 0) { toast("Бензин кончился", true); engineSound(false); }
+    v.noiseT = (v.noiseT || 0) - dt;
+    if (v.noiseT <= 0) { v.noiseT = .5; noise(car.x, car.y, 7 + Math.abs(v.spd) * 1.1); }
+    if (T3.ok && T3.fx && Math.random() < dt * 6) puff((car.x - c * (L + .05)) * U, .45, (car.y - s * (L + .05)) * U, { col: 0x555350, life: 1.4, vy: .3, vx: -c * .4, vz: -s * .4, s0: .15, s1: .7, a: .25 });
+  }
+  engineSound(alive, Math.abs(v.spd) / top);
+  p.x = car.x; p.y = car.y; p.dir = car.h; p.spd = 0; p.vx = p.vy = 0;
+}
+function honk() {
+  const p = world.player; if (!p.veh || !p.veh.car) return;
+  if (p.honkT > 0) return; p.honkT = .6;
+  tone(415, .35, "square", .05); tone(330, .35, "square", .04);
+  noise(p.x, p.y, 20); toast("Сигнал слышно на весь квартал");
+}
+
+// engine: two detuned saws through a lowpass, pitch follows the revs
+let eng = null;
+function engineSound(on, rev = 0) {
+  if (!actx || !settings.sound) return;
+  try {
+    if (on && !eng) {
+      const g = actx.createGain(), f = actx.createBiquadFilter(), o1 = actx.createOscillator(), o2 = actx.createOscillator();
+      o1.type = o2.type = "sawtooth"; f.type = "lowpass"; f.frequency.value = 420; g.gain.value = 0;
+      o1.connect(f); o2.connect(f); f.connect(g).connect(master); o1.start(); o2.start();
+      eng = { g, f, o1, o2 };
+    }
+    if (!eng) return;
+    if (!on) { const e = eng; eng = null; e.g.gain.setTargetAtTime(0, actx.currentTime, .15); setTimeout(() => { try { e.o1.stop(); e.o2.stop(); } catch (x) {} }, 900); return; }
+    const t = actx.currentTime, hz = 34 + rev * 70;
+    eng.o1.frequency.setTargetAtTime(hz, t, .08); eng.o2.frequency.setTargetAtTime(hz * 1.51, t, .08);
+    eng.f.frequency.setTargetAtTime(300 + rev * 900, t, .1); eng.g.gain.setTargetAtTime(.035 + rev * .03, t, .1);
+  } catch (e) {}
+}
+
+// ---------- bicycle
+function mountBike(o) {
+  const p = world.player, M = world.map;
+  M.props.splice(M.props.indexOf(o), 1);
+  for (const ch of M.chunks) { const k = ch.indexOf(o); if (k >= 0) ch.splice(k, 1); }
+  rebuildProp("bike");
+  p.veh = { bike: o, spd: 0 }; p.x = o.x; p.y = o.y; p.search = null;
+  toast("Велосипед: быстро и тихо. Обыскивать и драться — только слезши");
+  updateHud();
+}
+function rideBike(dt, mv) {
+  const p = world.player, v = p.veh;
+  const target = mv.m > 0 ? 4.6 * Math.min(1, mv.m / .9) : 0;
+  v.spd += clamp(target - v.spd, -6 * dt, 2.8 * dt);
+  if (mv.m > 0) p.dir += clamp(angDiff(p.dir, Math.atan2(mv.dy, mv.dx)), -1, 1) * dt * (2 + 3 / (1 + v.spd));
+  const ox = p.x, oy = p.y, want = v.spd * dt;
+  moveEnt(p, Math.cos(p.dir) * want, Math.sin(p.dir) * want, .2);
+  const got = Math.hypot(p.x - ox, p.y - oy);
+  if (v.spd > 3.2 && got < want * .3) return fallOff("Врезался и упал с велосипеда", 6);
+  v.spd = dt > 0 ? Math.min(v.spd, got / dt + .5) : v.spd;
+  for (const z of world.zombies) if (Math.abs(z.x - p.x) < .5 && Math.abs(z.y - p.y) < .5 && Math.hypot(z.x - p.x, z.y - p.y) < .42 && v.spd > 2) { z.hp -= .6; z.hit = .3; z.hitDir = p.dir; bleed(z.x, z.y, 4); return fallOff("Сбил зомби и упал", 4); }
+  p.spd = Math.min(v.spd * .55, 2); p.ph += dt * v.spd * 4;
+  v.noiseT = (v.noiseT || 0) - dt; if (v.noiseT <= 0 && v.spd > .5) { v.noiseT = .6; noise(p.x, p.y, 2); }
+}
+function fallOff(msg, dmg) {
+  const p = world.player; exitVehicle(); p.hp -= dmg; p.hurtT = .4; world.shake = 8; thud(.4, 400); toast(msg, true);
+}
+function rebuildProp(kind) {
+  if (!T3.ok || !T3.propMeshes) return;
+  for (const m of T3.propMeshes[kind] || []) { m.parent && m.parent.remove(m); }
+  const list = world.map.props.filter(o => o.kind === kind), geo = propGeo(kind);
+  T3.propMeshes[kind] = geo && list.length ? instanced(geo, T3.mats.prop, list, o => ({ x: o.x * U, z: o.y * U, ry: o.rot ? Math.PI / 2 : 0 })) || [] : [];
+}
+
+// ---------- 3D bits for the driven car and the ridden bike
+function carGoLive(car) {
+  const rec = T3.cars.find(r => r.car === car); if (!rec) return;
+  const g = rec.g;
+  g.traverse(o => { o.matrixAutoUpdate = true; });
+  if (!rec.live) {
+    // own copies of the lamp and glass materials, so only this car lights up and cracks
+    const swap = new Map();
+    g.traverse(o => {
+      if (!o.isMesh) return;
+      const conv = m => { if (!m || !m.name) return m; if (!swap.has(m)) swap.set(m, m.clone()); return swap.get(m); };
+      o.material = Array.isArray(o.material) ? o.material.map(conv) : conv(o.material);
+    });
+    rec.mats = {}; for (const m of swap.values()) rec.mats[m.name] = m;
+    rec.wheels = []; g.traverse(o => { if (o.name === "wheel") { o.rotation.order = "YZX"; rec.wheels.push(o); } });
+    rec.live = true;
+  }
+}
+function updateVehicle3D(dt, nf) {
+  const p = world.player;
+  for (const rec of T3.cars) {
+    if (!rec.live) continue;
+    const car = rec.car, g = rec.g, driving = p.veh && p.veh.car === car, v = driving ? p.veh : null;
+    g.position.set(car.x * U, 0, car.y * U); g.rotation.set(0, -car.h, 0);
+    if (rec.mats.lightF) rec.mats.lightF.emissiveIntensity = driving && car.fuel > 0 && car.hp > 0 ? 1.5 + nf * 3 : 0;
+    if (rec.mats.lightR) rec.mats.lightR.emissiveIntensity = driving ? (v.spd > .3 && (!v.lastSpd || v.spd < v.lastSpd - .02) ? 3 : .6) : 0;
+    if (rec.mats.glassM) { const k = 1 - car.glass; rec.mats.glassM.color.setRGB(.05 + k * .55, .07 + k * .55, .09 + k * .55); rec.mats.glassM.opacity = .55 + k * .35; rec.mats.glassM.roughness = .04 + k * .5; }
+    if (v) {
+      for (const w of rec.wheels) { w.rotation.z -= v.spd * U * dt / .36; w.rotation.y = w.position.x > 0 ? -v.steer * .9 : 0; }
+      v.lastSpd = v.spd;
+    }
+  }
+  // bicycle under the rider
+  const riding = p.veh && p.veh.bike;
+  if (riding && !T3.bikeMesh) T3.bikeMesh = makeBikeMesh();
+  if (T3.bikeMesh) {
+    T3.bikeMesh.visible = !!riding;
+    if (riding) { T3.bikeMesh.position.set(p.x * U, 0, p.y * U); T3.bikeMesh.rotation.y = -p.dir; T3.bikeMesh.userData.wheels.forEach(w => { w.rotation.z -= p.veh.spd * U * dt / .34; }); }
+  }
+}
+function makeBikeMesh() {
+  const grp = new THREE.Group(), frame = new THREE.MeshStandardMaterial({ color: 0xa02a24, roughness: .4, metalness: .4 }), dark = new THREE.MeshStandardMaterial({ color: 0x18181a, roughness: .7 });
+  const wheels = [];
+  for (const x of [-.52, .52]) { const w = new THREE.Group(); w.position.set(x, .34, 0); const t = new THREE.Mesh(new THREE.TorusGeometry(.32, .03, 6, 22), dark); w.add(t); for (let k = 0; k < 4; k++) { const sp = new THREE.Mesh(new THREE.BoxGeometry(.6, .01, .01), dark); sp.rotation.z = k * Math.PI / 4; w.add(sp); } grp.add(w); wheels.push(w); }
+  const bar = (x0, y0, x1, y1, m = frame, th = .035) => { const l = Math.hypot(x1 - x0, y1 - y0), b = new THREE.Mesh(new THREE.BoxGeometry(l, th, th), m); b.position.set((x0 + x1) / 2, (y0 + y1) / 2, 0); b.rotation.z = Math.atan2(y1 - y0, x1 - x0); grp.add(b); };
+  bar(-.52, .34, -.08, .36); bar(-.08, .36, .38, .8); bar(-.52, .34, -.2, .78); bar(-.2, .78, .38, .8); bar(.52, .34, .38, .8); bar(-.08, .36, -.2, .78);
+  bar(-.28, .86, -.08, .86, dark, .07); bar(.36, .8, .36, .98, dark); const hb = new THREE.Mesh(new THREE.BoxGeometry(.03, .03, .5), dark); hb.position.set(.36, .98, 0); grp.add(hb);
+  grp.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  grp.userData.wheels = wheels;
+  T3.scene.add(grp);
+  return grp;
+}
+
 // ================= update =================
 function update(dt) {
   const Wd = world, p = Wd.player, mode = Wd.mode, D = diff();
@@ -2113,6 +2443,10 @@ function update(dt) {
 
   if (mode === "play") {
     const mv = readMove();
+    p.honkT = (p.honkT || 0) - dt;
+    if (p.task) { if (mv.m > .4 || p.veh) { p.task = null; toast("Прервано"); } else { p.task.t += dt; if (p.task.t >= p.task.dur) { const fn = p.task.fn; p.task = null; fn(); updateHud(); } } }
+    if (p.veh) { if (p.veh.car) driveCar(dt, mv); else rideBike(dt, mv); }
+    else {
     let target = 0;
     if (mv.m > 0) target = mv.m > .92 ? 2.5 : 1.6 * Math.min(1, mv.m / .85 + .1);
     if (p.search) target = 0;
@@ -2145,6 +2479,7 @@ function update(dt) {
       if (p.spd > 2.2) for (let k = 0; k < 2; k++) Wd.dust.push({ x: p.x - p.vx * .05, y: p.y - p.vy * .05, t: 0, r: rand(.08, .16), vx: rand(-.3, .3), vy: rand(-.3, .3) });
     }
     if (p.spd > .3) { p.noiseT -= dt; if (p.noiseT <= 0) { p.noiseT = .5; noise(p.x, p.y, p.spd > 2.2 ? 4.5 : 1.6); } }
+    }
     if (p.search && mv.m > .4) { p.search = null; toast("Обыск прерван"); }
     if (p.search) { p.search.t += dt; if (p.search.t >= p.search.dur) finishSearch(); }
     stepMelee(p, dt); p.cool -= dt; p.swing = Math.max(0, p.swing - dt); p.hurtT = Math.max(0, p.hurtT - dt); p.flash = Math.max(0, p.flash - dt);
@@ -2159,7 +2494,7 @@ function update(dt) {
     if (p.food <= 0 || p.water <= 0) { p.hp -= dt * 1.4; if (!Wd.events.has("starve")) { Wd.events.add("starve"); toast(p.food <= 0 ? "Голод отнимает силы. Поешь" : "Жажда отнимает силы. Попей", true); } }
     else Wd.events.delete("starve");
     if (p.food > 45 && p.water > 45 && p.hp < 100) p.hp = Math.min(100, p.hp + dt * .45);
-    if (nf > .5 && p.bat > 0) { p.bat = Math.max(0, p.bat - dt * .42 * k6); if (p.bat === 0) toast("Фонарик сел. Батарейка в рюкзаке?", true); }
+    if (nf > .5 && p.bat > 0 && !(p.veh && p.veh.car)) { p.bat = Math.max(0, p.bat - dt * .42 * k6); if (p.bat === 0) toast("Фонарик сел. Батарейка в рюкзаке?", true); }
     if (p.hp <= 0) return gameOver();
     // inside / explored
     const inB = buildingAt(p.x, p.y);
@@ -2209,7 +2544,8 @@ function update(dt) {
     }
     let tx = null, ty = null, sp = z.spd * (nf > .5 ? 1.2 : 1);
     if (z.state === "chase" && mode === "play") {
-      if (d < .6) { if (z.atkT <= 0 && z.cool <= 0) { z.atkT = z.runner ? .3 : .4; z.dir = Math.atan2(dy, dx); } }
+      const inCar = p.veh && p.veh.car;
+      if (inCar ? carDist(inCar, z.x, z.y) < .3 : d < .6) { if (z.atkT <= 0 && z.cool <= 0) { z.atkT = z.runner ? .3 : .4; z.dir = Math.atan2(dy, dx); } }
       else { const st = d > 1.3 ? flowStep(z) : null; if (st) { tx = st.x; ty = st.y; } else { tx = p.x; ty = p.y; } }
     } else if (z.state === "investigate") {
       tx = z.tx; ty = z.ty; sp *= .8;
@@ -2223,11 +2559,15 @@ function update(dt) {
       z.atkT -= dt;
       if (z.atkT <= 0) {
         z.cool = z.runner ? .9 : 1.15;
-        if (mode === "play" && d < .8 && los(z.x, z.y, p.x, p.y, true)) {
+        const inCar = mode === "play" && p.veh && p.veh.car;
+        if (inCar && carDist(inCar, z.x, z.y) < .5 && inCar.glass > 0) {
+          inCar.glass = Math.max(0, inCar.glass - .18); thud(.3, 900); tone(1400, .05, "triangle", .02);
+          if (!(p.glassWarnT > Wd.elapsed)) { p.glassWarnT = Wd.elapsed + 6; toast(inCar.glass > 0 ? "Зомби бьют стёкла! Уезжай" : "Стекло выбито — они дотянутся до тебя", true); }
+        } else if (mode === "play" && (inCar ? carDist(inCar, z.x, z.y) < .5 : d < .8 && los(z.x, z.y, p.x, p.y, true))) {
           const dmg = rand(8, 13) * (nf > .5 ? 1.15 : 1) * D.dmg;
           p.hp -= dmg; p.hurtT = .3; Wd.shake = 9; hurtFlash(); thud(.35); tone(180, .18, "square", .03, .6);
           p.search = null;
-          const kd = d || 1; moveEnt(p, dx / kd * .25, dy / kd * .25);
+          const kd = d || 1; if (!inCar) moveEnt(p, dx / kd * .25, dy / kd * .25);
           if (p.hp <= 0) return gameOver();
         }
       }
@@ -2795,6 +3135,7 @@ function drawSP(c, o, nf, time) {
       break;
     }
     case "sandbag": { const ax = !o.rot; for (let r = 0; r < 3; r++) for (let k2 = 0; k2 < 3; k2++) { const t = (k2 - 1) * .33; ell3(c, x + (ax ? t : 0), y + (ax ? 0 : t), 3 + r * 6, 9, 4.6, ["#9a8c68", "#a89a76", "#8e8060"][(r + k2) % 3]); } break; }
+    case "traincar": box3(c, x - o.hx, y - o.hy, x + o.hx, y + o.hy, 0, 75, o.tcol); break;
     case "flagpole": case "xing": case "billboard": { const p = P3(x, y, 0); c.fillStyle = "#c8ccd0"; c.fillRect(p.X - 1, p.Y - (o.kind === "flagpole" ? 90 : 50), 2, o.kind === "flagpole" ? 90 : 50); if (o.kind === "billboard") { c.fillStyle = "#e8e2d0"; c.fillRect(p.X - 30, p.Y - 80, 60, 30); } break; }
     case "pole": case "windmill": { const p = P3(x, y, 0); c.fillStyle = "#5a4a3a"; c.fillRect(p.X - 1.5, p.Y - 120, 3, 120); break; }
     case "wtower": case "gbin": case "statue": case "grave": case "goalpost": case "bleacher": case "cart": case "silo": case "hay": box3(c, x - o.hx, y - o.hy, x + o.hx, y + o.hy, 0, o.kind === "silo" ? 120 : o.kind === "bleacher" ? 30 : 18, o.kind === "silo" ? "#b8bcc2" : o.kind === "hay" ? "#c8a85a" : "#8e8b84"); break;
@@ -3721,7 +4062,7 @@ function build3D() {
   buildGround(M);
   for (const b of M.buildings) buildBuilding(M, b);
   buildTrees(M); buildProps(M); buildCars(M); buildLamps(M); buildFences(M);
-  buildCorn(M); buildPuddles(M); buildDynamic();
+  T3.propMeshes = {}; buildTrain(M); buildCorn(M); buildPuddles(M); buildDynamic();
   T3.static.updateMatrixWorld(true);
   const free = function () { this.array = null; };
   T3.static.traverse(o => { if ((o.isMesh || o.isLineSegments) && o.geometry && !o.geometry.userData.keep) { if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); for (const a of Object.values(o.geometry.attributes)) if (a.onUpload) a.onUpload(free); if (o.geometry.index) o.geometry.index.onUpload(free); } });
@@ -4205,7 +4546,7 @@ function buildProps(M) {
   for (const o of M.props) (groups[o.kind] = groups[o.kind] || []).push(o);
   for (const [k, list] of Object.entries(groups)) {
     const geo = propGeo(k); if (!geo) continue;
-    instanced(geo, T3.mats.prop, list, o => ({ x: o.x * U, z: o.y * U, ry: o.rot ? Math.PI / 2 : 0 }));
+    (T3.propMeshes = T3.propMeshes || {})[k] = instanced(geo, T3.mats.prop, list, o => ({ x: o.x * U, z: o.y * U, ry: o.rot ? Math.PI / 2 : 0 })) || [];
   }
   // power lines: three sagging wires between neighbouring poles on the same road
   const lines = {};
@@ -4271,15 +4612,15 @@ function buildCars(M) {
   for (const car of M.cars) {
     const k = car.kind === "truck" || car.kind === "amb" || car.kind === "mtruck" ? car.kind : car.kind === "police" ? "police" : "car-" + ["sedan", "sedan", "hatch", "suv", "pickup"][Math.floor(hash(car.x * 3, car.y * 7) * 5) % 5];
     if (!tpl[k]) tpl[k] = carTemplate(k);
-    const g = tpl[k].clone();
+    // clone without dragging the template's userData (materials, wheels) through JSON
+    const ud = tpl[k].userData; tpl[k].userData = {}; const g = tpl[k].clone(); tpl[k].userData = ud; g.userData = { siren: ud.siren };
     const base = car.burnt ? "#22201e" : car.wreck ? "#5e544c" : car.kind === "police" ? "#e8e8e4" : car.kind === "amb" ? "#ecebe6" : car.paint ? car.paint : car.kind === "truck" ? "#d6d8da" : car.kind === "mtruck" ? "#4f5434" : car.c;
     let pm = paints.get(base + car.burnt);
     if (!pm) { pm = tpl[k].userData.mats.paint.clone(); pm.color.copy(LC(base)); if (car.burnt || car.wreck) { pm.metalness = .1; pm.roughness = car.burnt ? 1 : .7; } paints.set(base + car.burnt, pm); }
     const tm = tpl[k].userData.mats, swap = m => m === tm.paint ? pm : car.burnt && m === tm.glassM ? CAR_HIDE() : m;
     g.traverse(o => { if (o.isMesh) o.material = Array.isArray(o.material) ? o.material.map(swap) : swap(o.material); });
-    const flip = hash(car.x, car.y) > .5 ? Math.PI : 0;
     g.position.set(car.x * U, 0, car.y * U);
-    g.rotation.y = (car.alongY ? -Math.PI / 2 : 0) + flip + (car.wreck ? (hash(car.y, car.x) - .5) * .25 : 0);
+    g.rotation.y = -car.h + (car.wreck ? (hash(car.y, car.x) - .5) * .25 : 0);
     if (car.wreck && !car.burnt) g.rotation.z = (hash(car.x * 2, car.y) - .5) * .06;
     g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     T3.static.add(g);
@@ -4707,6 +5048,14 @@ function poseChar(ch, s, time) {
       B("chest").rotation.y = lerp(.55, -.45, t); B("spine").rotation.x += .18 * t;
       if (s.weapon === "fists") { B("shR").rotation.set(lerp(-.6, -1.55, t), 0, -.05); B("elR").rotation.x = lerp(-2, -.1, t); }
     } else if (s.weapon !== "fists") { B("shR").rotation.x = Math.min(B("shR").rotation.x, -.15); B("elR").rotation.x = -.6; }
+    if (s.ride) {
+      // on the saddle: legs pedal, hands on the bars
+      const q = Math.sin(ph);
+      B("hipL").rotation.x = -1.25 + q * .45; B("hipR").rotation.x = -1.25 - q * .45; B("knL").rotation.x = 1.35 - q * .45; B("knR").rotation.x = 1.35 + q * .45;
+      B("anL").rotation.x = B("anR").rotation.x = -.1; B("spine").rotation.x = .42; B("chest").rotation.y = 0;
+      B("shL").rotation.set(-1.15, 0, .12); B("shR").rotation.set(-1.15, 0, -.12); B("elL").rotation.x = B("elR").rotation.x = -.35;
+      crouch = .02;
+    }
     if (s.search) {
       crouch = .32; const r = Math.sin(time * 6) * .15;
       B("hipL").rotation.x = B("hipR").rotation.x = -1.05; B("knL").rotation.x = B("knR").rotation.x = 1.7; B("anL").rotation.x = B("anR").rotation.x = -.6;
@@ -4965,7 +5314,7 @@ function carTemplate(kind) {
   const ext = (pts, depth, m, bevel = .06, z = 0) => { const s = new THREE.Shape(); pts.forEach(([x, y], k) => k ? s.lineTo(x, y) : s.moveTo(x, y)); const g = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: bevel > 0, bevelSize: bevel, bevelThickness: bevel, bevelSegments: 3, curveSegments: 4 }); g.translate(0, 0, -depth / 2 + z); return add(g, m, 0, 0, 0); };
   const wheels = [];
   const wheel = (x, z, r = .34, w = .24) => {
-    const wg = new THREE.Group(); wg.position.set(x, r, z); grp.add(wg);
+    const wg = new THREE.Group(); wg.name = "wheel"; wg.position.set(x, r, z); grp.add(wg);
     const tire = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 22), dark); tire.rotation.x = Math.PI / 2; tire.castShadow = true; wg.add(tire);
     const side = Math.sign(z) || 1;
     const rim = new THREE.Mesh(new THREE.CylinderGeometry(r * .62, r * .62, w + .01, 18), chrome); rim.rotation.x = Math.PI / 2; wg.add(rim);
@@ -5029,6 +5378,7 @@ function carTemplate(kind) {
     for (const x of [-2.2, -1.3, 2.25]) for (const z of [-1, 1]) wheel(x, z * .95, .44, .3);
     if (isAmb) { const red = new THREE.MeshStandardMaterial({ color: 0x400000, emissive: 0xff2020, emissiveIntensity: 0 }); box(.3, .14, 1.4, red, .85, hBox + .07, 0); grp.userData.siren = [red, red]; }
   }
+  paint.name = "paint"; glassM.name = "glassM"; lightF.name = "lightF"; lightR.name = "lightR";
   grp.userData.mats = { paint, glassM, chrome, lightF, lightR };
   mergeChildren(grp); wheels.forEach(mergeChildren);
   grp.userData.wheels = wheels;
@@ -5108,6 +5458,63 @@ function buildCorn(M) {
     instanced(q.geo(), T3.mats.furn, list, o => ({ x: o.x * U, z: o.y * U, s: o.s, ry: o.r }), false);
   }
 }
+// ================= abandoned freight train =================
+function buildTrain(M) {
+  for (const t of M.train || []) {
+    const g = new GB(), C = CA, len = (t.x1 - t.x0) * U, hl = len / 2, grp = new THREE.Group();
+    const frame = C("#26231f"), steel = C("#3a3632");
+    // two trucks with wheel sets, couplers, the underframe
+    for (const bx of [-hl + 2.3, hl - 2.3]) {
+      g.box(bx - 1.35, .3, -1.05, bx + 1.35, .78, 1.05, frame);
+      for (const ox of [-.85, .85]) for (const z of [-.8, .8]) { g.box(bx + ox - .44, .02, z - .07, bx + ox + .44, .88, z + .07, C("#1a1816")); g.box(bx + ox - .1, .35, z - .12, bx + ox + .1, .55, z + .12, steel); }
+    }
+    for (const sx of [-1, 1]) g.box(sx * hl - (sx > 0 ? 0 : -.0), .9, -.18, sx * (hl + .35), 1.15, .18, steel);
+    g.box(-hl, .9, -1.45, hl, 1.18, 1.45, frame);
+    if (t.kind === "loco") {
+      // diesel road switcher: long hood, cab, short nose, handrails
+      const body = C("#2b3f5e"), stripe = C("#d0a030"), glass = C("#141a22");
+      g.box(-hl + .5, 1.18, -1.15, hl - 4.4, 3.7, 1.15, body);
+      g.box(hl - 4.4, 1.18, -1.5, hl - 1.3, 4.25, 1.5, body); g.box(hl - 4.5, 4.25, -1.55, hl - 1.2, 4.4, 1.55, C("#22324c"));
+      g.box(hl - 1.3, 1.18, -1.2, hl - .25, 2.6, 1.2, body);
+      for (const z of [-1.51, 1.51]) { g.box(hl - 3.9, 2.9, z - .01, hl - 2.5, 3.8, z + .01, glass); g.box(hl - 2.3, 2.9, z - .01, hl - 1.6, 3.8, z + .01, glass); g.box(-hl + .5, 1.6, z * .77 - .01, hl - 4.4, 1.8, z * .77 + .01, stripe); }
+      g.box(hl - 1.31, 2.95, -1.1, hl - 1.29, 3.85, -.1, glass); g.box(hl - 1.31, 2.95, .1, hl - 1.29, 3.85, 1.1, glass);
+      g.box(hl - .3, 1.3, -1.2, hl - .2, 1.6, 1.2, stripe);
+      for (const x of [-hl + 2, -hl + 4.5, -hl + 7]) { g.box(x - .5, 3.7, -.5, x + .5, 3.95, .5, C("#20202a")); g.cyl(x, 3.95, 0, .35, .35, .05, 12, C("#111")); }
+      g.cyl(-hl + 1.4, 3.7, 0, .14, .14, .7, 8, C("#111"));
+      for (const z of [-1.42, 1.42]) { g.box(-hl + .3, 2.15, z - .02, hl - .3, 2.2, z + .02, C("#d8c070")); for (let x = -hl + .5; x < hl - .2; x += 1.6) g.box(x - .02, 1.18, z - .02, x + .02, 2.2, z + .02, C("#d8c070")); }
+      g.box(-hl + 3, .9, -1.2, hl - 6, .3, 1.2, C("#1e1c1a"));
+      g.box(hl - .24, 2.3, -.18, hl - .2, 2.5, .18, C("#fff4d0"));
+    } else if (t.kind === "box") {
+      // boxcar: ribbed rust-red body, one sliding door left open
+      const body = mulC(C(t.col || "#7a3424"), 1), rib = mulC(body, .8);
+      g.box(-hl + .15, 1.18, -1.48, hl - .15, 4.35, 1.48, body);
+      for (let x = -hl + .7; x < hl - .4; x += 1.05) for (const z of [-1.5, 1.5]) g.box(x - .05, 1.2, z - .03, x + .05, 4.3, z + .03, rib);
+      g.box(-hl + .1, 4.35, -1.52, hl - .1, 4.5, 1.52, rib);
+      g.box(-.95, 1.2, 1.49, .95, 3.7, 1.51, C("#0c0b0a"));                  // open doorway
+      g.box(.95, 1.15, 1.51, 2.9, 3.75, 1.6, rib);                           // the slid door
+      g.box(-hl + .2, 4.5, -.25, hl - .2, 4.56, .25, C("#4a4440"));
+      g.box(-hl + 1, 2.4, -1.53, -hl + 3.5, 2.9, -1.51, C("#d8d0c0"));        // faded reporting marks
+    } else if (t.kind === "hopper") {
+      const body = C("#8a8e92"), dk = mulC(body, .75);
+      g.box(-hl + .3, 1.6, -1.45, hl - .3, 3.9, 1.45, body);
+      for (let x = -hl + 1.3; x < hl - 1; x += 2.4) g.box(x - .8, 1.0, -1.1, x + .8, 1.6, 1.1, dk);
+      for (let x = -hl + .9; x < hl - .5; x += 1.4) for (const z of [-1.47, 1.47]) g.box(x - .05, 1.62, z - .03, x + .05, 3.88, z + .03, dk);
+      g.box(-hl + .3, 3.9, -1.45, hl - .3, 4.0, 1.45, dk);
+    }
+    const mesh = new THREE.Mesh(g.geo(), T3.mats.trim); mesh.castShadow = mesh.receiveShadow = true; grp.add(mesh);
+    if (t.kind === "tank") {
+      const tank = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.35, len - 1, 22, 1), new THREE.MeshStandardMaterial({ color: 0x1c1c1e, roughness: .45, metalness: .35 }));
+      tank.rotation.z = Math.PI / 2; tank.position.y = 2.55; tank.castShadow = tank.receiveShadow = true; grp.add(tank);
+      const dome = new THREE.Mesh(new THREE.CylinderGeometry(.45, .5, .5, 14), tank.material); dome.position.y = 4.05; grp.add(dome);
+      for (const x of [-hl + .6, hl - .6]) { const cap = new THREE.Mesh(new THREE.SphereGeometry(1.35, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), tank.material); cap.rotation.z = x < 0 ? Math.PI / 2 : -Math.PI / 2; cap.scale.set(1, .35, 1); cap.position.set(x, 2.55, 0); grp.add(cap); }
+    }
+    grp.position.set((t.x0 + t.x1) / 2 * U, 0, t.y * U);
+    // the last car jumped the rails
+    if (t.tilt) { grp.rotation.set(.13, .05, 0); grp.position.y = -.15; grp.position.z += .3; }
+    T3.static.add(grp);
+  }
+}
+
 function buildPuddles(M) {
   initFX();
   const list = [];
@@ -5216,10 +5623,13 @@ function render3D(time, dt) {
   // wet surfaces turn glossy
   for (const k of ["asphalt", "lot", "walk", "conc"]) T3.mats[k].roughness = lerp(k === "walk" ? .85 : .9, .22, Wd.wet);
   // flashlight & lights
-  const fOn = play && p.bat > 0 && nf > .02;
-  T3.flash.intensity = fOn ? 70 * nf * (p.bat < 15 ? .5 + Math.random() * .5 : 1) : 0;
-  if (fOn) { T3.flash.position.set(p.x * U + Math.cos(p.dir) * .3, 1.35, p.y * U + Math.sin(p.dir) * .3); T3.flash.target.position.set(p.x * U + Math.cos(p.dir) * 9, 0, p.y * U + Math.sin(p.dir) * 9); T3.flash.target.updateMatrixWorld(); }
+  const dcar = play && p.veh && p.veh.car, head = dcar && dcar.fuel > 0 && dcar.hp > 0;
+  const fOn = dcar ? head && nf > .02 : play && p.bat > 0 && nf > .02;
+  T3.flash.intensity = fOn ? (dcar ? 180 : 70) * nf * (!dcar && p.bat < 15 ? .5 + Math.random() * .5 : 1) : 0;
+  if (fOn && dcar) { const L = carDims(dcar).L; T3.flash.position.set((p.x + Math.cos(p.dir) * L) * U, .8, (p.y + Math.sin(p.dir) * L) * U); T3.flash.target.position.set((p.x + Math.cos(p.dir) * 12) * U, 0, (p.y + Math.sin(p.dir) * 12) * U); T3.flash.target.updateMatrixWorld(); }
+  else if (fOn) { T3.flash.position.set(p.x * U + Math.cos(p.dir) * .3, 1.35, p.y * U + Math.sin(p.dir) * .3); T3.flash.target.position.set(p.x * U + Math.cos(p.dir) * 9, 0, p.y * U + Math.sin(p.dir) * 9); T3.flash.target.updateMatrixWorld(); }
   T3.muzzle.intensity = play && p.flash > 0 ? 120 : 0; if (p.flash > 0) T3.muzzle.position.set(p.x * U + Math.cos(p.dir) * .7, 1.3, p.y * U + Math.sin(p.dir) * .7);
+  updateVehicle3D(dt || .016, nf);
   const cand = [];
   const cx = T3.camT.x, cz = T3.camT.z;
   if (nf > .1) for (const l of M.lamps) if (l.on && Math.abs(l.lx - cx) < 34 && Math.abs(l.lz - cz) < 34) cand.push([l.lx, 5.8, l.lz, 60 * nf * (l.ph > 8 && Math.sin(time * 23 + l.ph) > .6 ? .35 : 1), 0xffc887, 22, "lamp"]);
@@ -5270,10 +5680,10 @@ function render3D(time, dt) {
   while (T3.chars.length < need) T3.chars.push(makeChar());
   T3.chars.forEach((ch, k) => {
     if (k === 0) {
-      ch.mesh.visible = play; if (!play) return;
+      ch.mesh.visible = play && !(p.veh && p.veh.car); if (!ch.mesh.visible) return;
       dressChar(ch, playerLook(p), true, false);
       ch.mesh.position.set(p.x * U, buildingAt(p.x, p.y) ? FLOOR : 0, p.y * U);
-      poseChar(ch, { kind: "player", spd: p.spd, ph: p.ph, dir: p.dir, swing: p.swing, weapon: p.weapon, flash: p.flash, reload: p.reload, search: !!p.search, hurt: p.hurtT, seed: 1, hit: 0 }, time);
+      poseChar(ch, { kind: "player", ride: !!(p.veh && p.veh.bike), spd: p.spd, ph: p.ph, dir: p.dir, swing: p.swing, weapon: p.weapon, flash: p.flash, reload: p.reload, search: !!p.search, hurt: p.hurtT, seed: 1, hit: 0 }, time);
       return;
     }
     const v = vis[k - 1];
@@ -5713,6 +6123,13 @@ function renderMap(rebuild = true) {
     placed.push(box);
     c.fillStyle = "rgba(10,12,20,.75)"; roundRect(c, sx - w / 2, sy - fs * .8, w, fs * 1.6, 6 * md); c.fill();
     c.fillStyle = MAPC[b.type]; c.fillText(txt, sx, sy + .5);
+  }
+  for (const car of world.map.cars) {
+    if (!world.player.keys.has(car.id) && !(world.player.veh && world.player.veh.car === car)) continue;
+    const [sx, sy] = toScr(car.x, car.y);
+    c.fillStyle = "#f2a541"; c.beginPath(); c.arc(sx, sy, 5 * md, 0, 7); c.fill();
+    c.fillStyle = "rgba(10,12,20,.75)"; const tw = c.measureText("Машина").width + 8 * md; roundRect(c, sx - tw / 2, sy - fs * 2.2, tw, fs * 1.4, 5 * md); c.fill();
+    c.fillStyle = "#f2a541"; c.fillText("Машина", sx, sy - fs * 1.5);
   }
   for (const pk of world.map.parks) {
     if (!world.explored[(pk.y + 6) * N + pk.x + 6]) continue;
