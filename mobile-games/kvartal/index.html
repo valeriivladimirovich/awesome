@@ -1314,6 +1314,7 @@ function genMap() {
     }
     if (r < .8) car.cont.loot.push("key:" + car.id);
   }
+  placeNotes(M);
   // ---- an abandoned freight train standing on the line west of the river
   {
     const kinds = ["loco", "box", "hopper", "box", "tank", "box", "hopper", "box"].slice(0, ri(5, 8));
@@ -1599,7 +1600,7 @@ function newWorld(mode) {
     player: {
       x: START.x, y: START.y, vx: 0, vy: 0, dir: Math.PI * .25, sf: 1, hp: 100, food: 85, water: 80, bat: 100, ph: 0, spd: 0,
       weapon: "fists", owned: { fists: true }, mag: { pistol: 0, rifle: 0 }, reload: 0, flash: 0,
-      inv: { food: 1, water: 1, bandage: 0, medkit: 0, battery: 0, ammo9: 0, ammo545: 0, can: 0, radio: 0 }, keys: new Set(), gas: 0, veh: null, task: null, swing: 0, cool: 0, noiseT: 0, search: null, hurtT: 0
+      inv: { food: 1, water: 1, bandage: 0, medkit: 0, battery: 0, ammo9: 0, ammo545: 0, can: 0, radio: 0 }, notes: [], keys: new Set(), gas: 0, veh: null, task: null, swing: 0, cool: 0, noiseT: 0, search: null, hurtT: 0
     },
     events: new Set()
   };
@@ -1993,6 +1994,7 @@ function finishSearch() {
   const got = {};
   for (const k of f.cont.loot) {
     if (k.startsWith("key:")) { const car = world.map.cars[+k.slice(4)]; p.keys.add(car.id); toast(`Нашёл ключи: ${carName(car)}. Машина отмечена на карте`, true); continue; }
+    if (k.startsWith("note:")) { const id = +k.slice(5); setTimeout(() => showNote(id), 350); continue; }
     if (k === "radio") { if (!p.inv.radio) { p.inv.radio = 1; radioNext(true); toast("Нашёл радио. Слушай эфир: там бывает правда", true); } continue; }
     if (k === "can") { if (!p.inv.can) { p.inv.can = 1; p.gas = Math.round(rand(0, 5)); toast(`Нашёл канистру${p.gas ? `, в ней ${p.gas} л` : ""}. Сливай бензин из брошенных машин`, true); } else { p.gas = Math.min(20, p.gas + 5); got.can = (got.can || 0) + 1; } continue; }
     const w = WEAPONS[k];
@@ -2150,6 +2152,159 @@ function cycleWeapon() {
   tone(500, .06, "square", .03);
   toast("В руках: " + WEAPONS[p.weapon].name.toLowerCase());
   updateHud();
+}
+
+// ================= atmosphere: weather, sounds, notes =================
+// ---------- weather: clear, rain, thunderstorm, morning fog, snow
+function pickWeather() {
+  const Wd = world, s = settings.weather;
+  let k = "clear";
+  if (s === "rain") k = Math.random() < .35 ? "storm" : "rain";
+  else if (s === "random") { const r = Math.random(); k = r < .4 ? "clear" : r < .58 ? "rain" : r < .7 ? "storm" : r < .82 ? "fog" : Wd.day >= 4 ? "snow" : "rain"; }
+  setWeather(k);
+}
+function setWeather(k) {
+  const Wd = world;
+  Wd.weather = k; Wd.raining = k === "rain" || k === "storm";
+  if (k === "storm") toast("Надвигается гроза", true);
+  if (k === "snow") toast("Пошёл снег. Следы видно издалека", true);
+  if (k === "fog") toast("Густой туман. Видно на пару шагов", true);
+}
+function weatherTick(dt) {
+  const Wd = world;
+  Wd.snow = clamp((Wd.snow || 0) + (Wd.weather === "snow" ? dt * .02 : -dt * .004), 0, 1);
+  Wd.flashL = Math.max(0, (Wd.flashL || 0) - dt * 5);
+  if (Wd.weather === "storm") {
+    Wd.boltT = (Wd.boltT || rand(3, 8)) - dt;
+    if (Wd.boltT <= 0) {
+      Wd.boltT = rand(4, 11); Wd.flashL = 1;
+      const delay = rand(.3, 2.2), loud = 1 - delay / 2.4;
+      setTimeout(() => { thud(.25 + loud * .4, 120); setTimeout(() => thud(.18 + loud * .25, 90), 180); }, delay * 1000);
+    }
+  }
+}
+// how much extra fog: thick in the early morning, heavy on foggy days, light in snow
+function fogMul() {
+  const Wd = world, h = Wd.time / 60;
+  const morning = h > 4.5 && h < 9.5 ? Math.sin((h - 4.5) / 5 * Math.PI) : 0;
+  return 1 + morning * 1.6 + (Wd.weather === "fog" ? 3.2 : 0) + (Wd.weather === "snow" ? .9 : 0) + (Wd.weather === "storm" ? .5 : 0);
+}
+
+// ---------- sounds
+function creak() {
+  if (!actx || !settings.sound) return;
+  try {
+    const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain(), f = actx.createBiquadFilter();
+    o.type = "sawtooth"; const f0 = rand(180, 320); o.frequency.setValueAtTime(f0, t); o.frequency.linearRampToValueAtTime(f0 * rand(.6, 1.5), t + .35);
+    f.type = "bandpass"; f.frequency.value = 900; f.Q.value = 6; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.035, t + .05); g.gain.exponentialRampToValueAtTime(.0001, t + .4);
+    o.connect(f).connect(g).connect(master); o.start(t); o.stop(t + .45);
+  } catch (e) {}
+}
+function soundsTick(dt) {
+  const Wd = world, p = Wd.player;
+  // somebody else is fighting for their life somewhere out there
+  Wd.shotT = (Wd.shotT ?? rand(60, 150)) - dt;
+  if (Wd.shotT <= 0) {
+    Wd.shotT = rand(70, 200);
+    const n = ri(1, 5), far = rand(.04, .1);
+    for (let k = 0; k < n; k++) setTimeout(() => thud(far, 600), k * rand(120, 420));
+    if (Math.random() < .3) toast("Где-то далеко стреляют");
+  }
+  // old floorboards
+  if (p.spd > .5 && Wd.inside && Wd.map.ground[Math.floor(p.y) * N + Math.floor(p.x)] === WD) {
+    Wd.creakT = (Wd.creakT || 0) - dt;
+    if (Wd.creakT <= 0) { Wd.creakT = rand(1.2, 3.5); if (Math.random() < .55) { creak(); noise(p.x, p.y, 2.5); } }
+  }
+  // brushing past a parked car can set off its alarm
+  if (!p.veh && p.spd > 1.2) {
+    const car = nearCar(.26);
+    if (car && !car.alarmTried && !car.burnt && !car.wreck) { car.alarmTried = true; if (Math.random() < .3) { car.alarm = 18; toast("Сработала сигнализация!", true); } }
+  }
+  for (const car of Wd.map.cars) if (car.alarm > 0) {
+    car.alarm -= dt;
+    car.alarmBeep = (car.alarmBeep || 0) - dt;
+    if (car.alarmBeep <= 0) {
+      car.alarmBeep = .5;
+      const d = Math.hypot(car.x - p.x, car.y - p.y), v = clamp(.06 - d * .0015, .006, .06);
+      tone(Math.floor(car.alarm * 2) % 2 ? 880 : 660, .4, "square", v);
+      noise(car.x, car.y, 22);
+    }
+  }
+}
+
+// ---------- notes and diaries
+const NOTES = [
+  ["Записка на холодильнике", "Дэнни, мы у бабушки в Олд-Ридже. Ключ под ковриком. Возьми лекарства для Мэг. НЕ ходи через центр. Люблю. Мама."],
+  ["Список покупок", "Молоко. Хлеб. Батарейки (все какие есть). Пластырь. Скотч — много скотча. Доски? Спросить у Карла про доски."],
+  ["Дневник, страница 12", "Третий день без новостей. Соседка стоит у забора с утра. Просто стоит и смотрит на наши окна. Том говорит не открывать шторы."],
+  ["Дневник, страница 13", "Том вышел за водой два часа назад. Соседки у забора больше нет."],
+  ["Записка у двери", "Не стучите. Здесь никого нет. Здесь НИКОГО нет."],
+  ["Детский рисунок", "На рисунке дом, папа, мама и собака. Все держатся за руки. Внизу подпись: «Мы скоро уедем на большом вертолёте»."],
+  ["Письмо", "Сара, если ты читаешь это — я пошёл к школе, там говорили про автобусы. Жди меня три дня. Если не вернусь — иди к реке, мосты ещё держат."],
+  ["Смена в аптеке", "Люди дерутся за инсулин. Мистер Ховард ударил мальчишку банкой с витаминами. Я закрыла дверь изнутри и сижу в подсобке. Здесь тихо."],
+  ["Записка в машине", "Бензин кончился у переезда. Пошли пешком на запад. Если найдёте синий пикап у элеватора — ключи в выхлопной трубе."],
+  ["Обрывок газеты", "«…власти округа призывают сохранять спокойствие. Случаи „бешенства“ локализованы. Школы закрыты до понедельника…»"],
+  ["Дневник охотника", "Они слепнут в темноте не хуже нашего. Но слышат всё. Выстрел — и к тебе идёт вся улица. Работай топором."],
+  ["Расписка", "Я, Генри Коул, взял у Билла Мартина 2 канистры бензина и ружьё. Верну, когда всё кончится. Подпись."],
+  ["Записка на двери церкви", "Убежище переполнено. Мест нет. Да простит нас Господь."],
+  ["Тетрадь школьника", "Домашнее задание: написать про лучший день лета. Мой лучший день — когда мы с папой поймали сома у моста. Папа обещал ещё раз."],
+  ["Записка полицейского", "Патруль 4 не отвечает с вечера четверга. Оружейка открыта, ключ на гвозде. Берите, что нужно. Удачи."],
+  ["Последняя страница", "Укус небольшой. Почти не болит. Я просто посплю немного, а утром пойду к военным. Утром всё будет хорошо."],
+  ["Записка у кассы", "Еду взяли по-честному, оставили деньги в ящике. Простите. — семья Лопес"],
+  ["Объявление", "ВСЕМ ЖИТЕЛЯМ: в случае эвакуации следуйте к блокпостам на окраинах. Возьмите документы, воду и тёплую одежду. Домашних животных не берите."],
+  ["Записка из амбара", "Коровы ревут вторую ночь. Не из-за голода. Они чуют, что идёт с дороги. Ухожу с ружьём на чердак."],
+  ["Открытка", "Привет из Флориды! Солнце, пляж, никаких забот. Скоро будем дома. Целуем, Джим и Ли."]
+];
+function placeNotes(M) {
+  const order = shuffle(NOTES.map((_, k) => k));
+  let k = 0;
+  for (const b of shuffle(M.buildings.filter(b => b.type !== "shed" && (b.furn || []).some(f => f.cont)))) {
+    if (k >= order.length) break;
+    if (Math.random() < .3) { pick(b.furn.filter(f => f.cont)).cont.loot.push("note:" + order[k++]); }
+  }
+}
+function showNote(id) {
+  const p = world.player; if (!p.notes.includes(id)) p.notes.push(id);
+  let m = $("#noteModal");
+  if (!m) {
+    m = document.createElement("div"); m.className = "modal"; m.id = "noteModal"; m.hidden = true;
+    m.innerHTML = `<div class="panel" role="dialog" aria-label="Записка"><header><h2 id="noteTitle"></h2><button class="close" aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header><p id="noteText" style="font:500 16px/1.55 Georgia,serif;color:#e8e0cc;background:rgba(232,220,190,.07);border-left:3px solid #8a7a5a;padding:12px 16px;border-radius:8px;margin:4px 0 0"></p><p class="note" id="noteCount"></p></div>`;
+    $("#game").append(m); m.querySelector(".close").addEventListener("click", () => closeModals(true));
+  }
+  $("#noteTitle").textContent = NOTES[id][0]; $("#noteText").textContent = NOTES[id][1];
+  $("#noteCount").textContent = `Найдено записок: ${p.notes.length} из ${NOTES.length}`;
+  openModal("noteModal");
+}
+
+// ---------- 3D: snow, lightning, white ground
+function applyAtmosphere3D(dt, nf, cx, cz) {
+  const Wd = world, fl = Wd.flashL || 0, sn = Wd.snow || 0;
+  T3.scene.fog.density *= fogMul();
+  if (fl > 0) { T3.hemi.intensity += fl * 4.5; T3.hemi.color.setRGB(.8, .85, 1); T3.scene.fog.color.lerp(new THREE.Color(.55, .6, .7), fl * .6); }
+  // snow settles on the ground and the roofs
+  if (T3._snowDone !== Math.round(sn * 40)) {
+    T3._snowDone = Math.round(sn * 40);
+    for (const k of ["grass", "forest", "dirt", "walk", "asphalt", "lot", "conc", "sand", "shingle", "gravel"]) {
+      const m = T3.mats[k]; if (!m) continue;
+      const w = k === "asphalt" || k === "lot" ? sn * .5 : sn * .85;
+      m.color.setRGB(1 + w * 1.6, 1 + w * 1.7, 1 + w * 1.9);
+    }
+  }
+  // falling flakes around the camera
+  if (!T3.snow) {
+    const g = new THREE.BufferGeometry(), n = 900, pos = new Float32Array(n * 3);
+    T3.snowP = Array.from({ length: n }, () => [rand(-22, 22), rand(0, 16), rand(-22, 22), rand(.6, 1.3), Math.random() * 6]);
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    T3.snow = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xf4f6fa, size: .16, transparent: true, opacity: .85, depthWrite: false }));
+    T3.snow.frustumCulled = false; T3.scene.add(T3.snow);
+  }
+  const on = Wd.weather === "snow" && !(Wd.mode === "play" && Wd.inside);
+  T3.snow.visible = on;
+  if (on) {
+    const sp = T3.snow.geometry.attributes.position, t = performance.now() / 1000;
+    T3.snowP.forEach((q, k) => { q[1] -= q[3] * (dt || .016); if (q[1] < 0) { q[1] = 16; q[0] = rand(-22, 22); q[2] = rand(-22, 22); } sp.setXYZ(k, cx + q[0] + Math.sin(t * .8 + q[4]) * .4, q[1], cz + q[2] + Math.cos(t * .6 + q[4]) * .3); });
+    sp.needsUpdate = true;
+  }
 }
 
 // ================= living world: survivors, radio, helicopter, power =================
@@ -2708,13 +2863,13 @@ function update(dt) {
     if (crossed(6.5)) {
       toast("Рассвет. Ночь позади");
       for (const f of Wd.map.furn) if (f.cont && f.cont.searched && Math.random() < .04) { f.cont.searched = false; f.b.searched--; f.cont.loot = rollFrom(f.kind === "shelf" ? (f.b.type === "pharm" ? "pharm" : f.b.type === "hard" ? "hard" : "shop") : f.def.loot, 1, 1); }
-      if (settings.weather === "random") Wd.raining = Math.random() < .3;
+      pickWeather();
     }
   }
   Wd.wet = clamp(Wd.wet + (Wd.raining ? dt * .2 : -dt * .05), 0, 1);
   if (rainGain) rainGain.gain.value = Wd.raining && settings.sound ? .05 : 0;
   const nf = nightF(Wd.time);
-  if (mode === "play") updateWorldLife(dt, nf);
+  if (mode === "play") { updateWorldLife(dt, nf); weatherTick(dt); soundsTick(dt); }
 
   if (mode === "play") {
     const mv = readMove();
@@ -2803,7 +2958,7 @@ function update(dt) {
     const dx = p.x - z.x, dy = p.y - z.y, d = Math.hypot(dx, dy);
     if (mode === "play" && z.think <= 0) {
       z.think = .25 + Math.random() * .15;
-      const sight = (nf > .5 ? (flash || lamplit ? 6.5 : 3) : 7.5) * (Wd.raining ? .8 : 1);
+      const sight = (nf > .5 ? (flash || lamplit ? 6.5 : 3) : 7.5) * (Wd.raining ? .8 : 1) * (Wd.weather === "fog" ? .6 : 1);
       if (d < sight && los(z.x, z.y, p.x, p.y)) {
         if (z.state !== "chase" && d < 9 && Math.random() < .5) groan();
         z.state = "chase"; z.lx = p.x; z.ly = p.y; z.lost = 0;
@@ -5888,6 +6043,7 @@ function render3D(time, dt) {
   T3.scene.environment = nf > .5 ? T3.envNight : T3.envDay;
   const fogC = new THREE.Color().setRGB(lerp(lerp(.44, .62, gold * day), .02, nf), lerp(lerp(.47, .5, gold * day), .03, nf), lerp(lerp(.47, .42, gold * day), .05, nf));
   T3.scene.fog.color.copy(fogC); T3.scene.fog.density = (.0075 + Wd.wet * .006 + nf * .004);
+  applyAtmosphere3D(dt, nf, T3.camT.x, T3.camT.z);
   T3.scene.background = fogC;
   T3.wind.value = time;
   if (play) {
@@ -6016,7 +6172,7 @@ function render3D(time, dt) {
   const gold2 = gold * day;
   T3.grade.uniforms.uTint.value.set(lerp(lerp(.96, 1.08, gold2), .88, nf), lerp(1.0, .98, nf), lerp(lerp(.94, .84, gold2), 1.12, nf));
   T3.grade.uniforms.uSat.value = lerp(.7, .55, nf) - Wd.wet * .08;
-  T3.grade.uniforms.uExp.value = lerp(.6, 1.35, nf);
+  T3.grade.uniforms.uExp.value = lerp(.6, 1.35, nf) + (Wd.flashL || 0) * 1.8;
   T3.grade.uniforms.uTime.value = (time * 60) % 1000;
   T3.bloom.strength = lerp(.22, .75, nf); T3.bloom.threshold = lerp(.92, .6, nf);
   T3.comp.render(dt || .016);
@@ -6525,7 +6681,7 @@ function startGame() {
   if (!world || world.mode !== "title") { rebuild(startGame); return; }
   world.mode = "play"; world.time = 7 * 60; world._warm = true;
   world.zombies = world.zombies.filter(z => Math.hypot(z.x - START.x, z.y - START.y) > 9);
-  if (settings.weather === "random") world.raining = Math.random() < .2;
+  pickWeather();
   world.wet = world.raining ? 1 : 0;
   screen.hidden = true; closeModals(true);
   setPlayUI(true); updateHud();
