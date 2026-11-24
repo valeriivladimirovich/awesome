@@ -7319,7 +7319,7 @@ function showTitle(fresh = true) {
   </div>
   ${best ? `<div class="tbest">Дольше всех продержался<b>${fmtSurvived(best)}</b></div>` : ""}
   <div class="tticker"><span class="tlive"><i></i>В эфире</span><div class="tmarq"><div>${TICKER.concat(TICKER).map(t => `<span>${t}</span>`).join("")}</div></div></div>`;
-  screen.hidden = false;
+  screen.hidden = false; bloodTitle(screen.querySelector(".ttitle"));
   const click = (id, fn) => { const b = $("#" + id); if (b) b.addEventListener("click", () => { unlockAudio(); sfx("swing", { vol: .25, rate: .7 }); fn(); }); };
   click("start", () => { screen.classList.remove("titlescr"); openNewGame(); });
   click("cont", () => { screen.classList.remove("titlescr"); continueGame(); });
@@ -7414,11 +7414,11 @@ function titleCss() {
 .ngbox h1 { text-transform: uppercase; letter-spacing: .03em; font-size: 26px !important; max-width: none !important; line-height: 1.05 !important; }
 /* short landscape screens (a phone, or a page under an app bar): title on the left, menu on the right */
 @media (orientation: landscape) and (max-height: 540px) {
-  .tbox { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(210px, .7fr); grid-template-rows: auto auto auto; column-gap: 28px; row-gap: 6px;
+  .tbox { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(210px, .75fr); column-gap: 40px; grid-template-rows: auto auto auto; row-gap: 6px;
     align-content: center; max-width: none; padding: calc(var(--st) + 10px) calc(var(--sr) + 24px) calc(var(--sb) + 48px) calc(var(--sl) + 28px); }
   .tbox .talert { grid-column: 1; grid-row: 1; align-self: end; }
   .tbox .tbrand { grid-column: 1; grid-row: 2; }
-  .tbox .ttitle { font-size: clamp(24px, min(5.1vw, 13vh), 58px); }
+  .tbox .ttitle { font-size: clamp(22px, min(4.5vw, 12vh), 52px); }
   .temb svg { width: clamp(42px, 15vh, 80px); }
   .tbrand { min-width: 0; }
   .tbox .tline { grid-column: 1; grid-row: 3; align-self: start; margin: 0; font-size: 13px; }
@@ -7429,7 +7429,8 @@ function titleCss() {
 }
 @media (orientation: landscape) and (max-height: 300px) { .tbox .tline, .tm small, .tbest { display: none; } .tbox .talert { font-size: 9px; } }
 .tbox { overflow: auto; }
-@media (prefers-reduced-motion: reduce) { .tgrain, .ttitle, .tmarq > div, .talert i, .tlive i { animation: none; } }`;
+@media (prefers-reduced-motion: reduce) { .tgrain, .ttitle, .tmarq > div, .talert i, .tlive i { animation: none; } }
+${BLOOD_CSS}`;
   document.head.append(st);
 }
 function startGame() {
@@ -8144,6 +8145,33 @@ ${full ? "" : `<rect x=".75" y=".75" width="98.5" height="98.5" rx="17.5" fill="
 </svg>`;
 }
 
+// ---------- blood that runs down the letters of the title
+function bloodTitle(h1) {
+  if (!h1 || h1.dataset.blood) return; h1.dataset.blood = 1;
+  const lines = h1.innerHTML.split(/<br\s*\/?>/i);
+  h1.innerHTML = lines.map(t => `<span class="tl">${t}</span>`).join("<br>");
+  h1.querySelectorAll(".tl").forEach((ln, li) => {
+    const n = li ? 4 : 3;
+    for (let k = 0; k < n; k++) {
+      const d = document.createElement("i"); d.className = "drip";
+      const len = rand(.22, .55), dur = rand(5.5, 9.5);
+      d.style.cssText = `left:${(8 + (k + Math.random() * .7) * (84 / n)).toFixed(1)}%;--len:${len.toFixed(2)}em;animation-duration:${dur.toFixed(1)}s;animation-delay:${rand(-dur, 0).toFixed(1)}s;width:${rand(.05, .085).toFixed(3)}em`;
+      ln.append(d);
+    }
+  });
+}
+const BLOOD_CSS = `
+.ttitle[data-blood] { text-shadow: none; filter: drop-shadow(2px 2px 0 rgba(110,12,8,.75)) drop-shadow(0 6px 24px rgba(0,0,0,.85)); }
+.ttitle .tl { position: relative; display: inline-block;
+  background: linear-gradient(180deg, #ece4d6 0%, #e2d8c8 58%, #b8a89a 76%, #8a2a22 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ttitle .drip { position: absolute; top: 86%; height: 0; border-radius: 0 0 .06em .06em; background: linear-gradient(180deg, #5a0907, #9e130e 70%, #b8180f);
+  box-shadow: inset .012em 0 0 rgba(255,140,120,.25); animation-name: tdrip; animation-timing-function: cubic-bezier(.5,.05,.7,.4); animation-iteration-count: infinite; pointer-events: none; }
+.ttitle .drip::after { content: ""; position: absolute; left: 50%; bottom: -.07em; width: .14em; height: .16em; transform: translateX(-50%); border-radius: 50% 50% 50% 50% / 58% 58% 42% 42%;
+  background: radial-gradient(circle at 35% 35%, #d8402f, #8e100b 70%); animation: inherit; animation-name: tdrop; }
+@keyframes tdrip { 0% { height: 0; opacity: 1 } 55% { height: var(--len); opacity: 1 } 72% { height: calc(var(--len) + .04em); opacity: 1 } 92% { height: calc(var(--len) + .04em); opacity: .0 } 100% { height: 0; opacity: 0 } }
+@keyframes tdrop { 0%, 66% { transform: translate(-50%, 0) scale(1); opacity: 1 } 70% { transform: translate(-50%, .02em) scale(1.12, .9) } 90% { transform: translate(-50%, .9em) scale(.8, 1.2); opacity: 0 } 100% { opacity: 0 } }
+@media (prefers-reduced-motion: reduce) { .ttitle .drip { display: none; } }`;
+
 // ================= intro: tap for sound, an emergency broadcast, then the logo =================
 // a dry heartbeat and radio crackle made on the spot
 const heartbeat = v => { thud(v, 140); setTimeout(() => thud(v * .7, 110), 160); };
@@ -8177,7 +8205,7 @@ function playIntro() {
 @keyframes iglitch { 0% { transform: translate(0,0); filter: none } 33% { transform: translate(-6px,2px); filter: hue-rotate(90deg) saturate(3) } 66% { transform: translate(5px,-3px); filter: invert(1) } 100% { transform: none; filter: none } }
 #intro .itap { position: absolute; bottom: calc(var(--sb) + 18px); font: 600 12px Rubik, system-ui, sans-serif; letter-spacing: .3em; text-transform: uppercase; color: #a39a8c; opacity: 1; animation: tblink 1.6s ease-in-out infinite; transition: opacity .6s; }
 #intro.go:not(.ready) .itap { opacity: 0; animation: none; }`;
-  document.head.append(st); titleCss(); $("#game").append(o);
+  document.head.append(st); titleCss(); $("#game").append(o); bloodTitle(o.querySelector(".ttitle"));
   // the black boot cover hands over to the (equally black) intro
   recheckSize(); requestAnimationFrame(() => { const bt = $("#boot"); if (bt) { bt.style.opacity = 0; setTimeout(() => bt.remove(), 600); } });
   const lines = ["Экстренное вещание · округ Ноксвилл", "…всем жителям оставаться в своих домах.", "…не открывайте двери. Не выходите на улицу.", "…эвакуация прекращена. Помощь не придёт."];
@@ -8191,7 +8219,7 @@ function playIntro() {
     sfx("riser", { vol: .7, cap: 1 });
     later(4300, () => {
       o.classList.add("glitch"); sfx("boom", { vol: 1 }); sfx("thunder", { vol: .45, lp: 900 }); heartbeat(.35);
-      later(120, () => o.classList.add("logo")); later(1400, () => { o.classList.add("ready"); stage = 4; if (seen) later(1600, finish); });
+      later(120, () => o.classList.add("logo")); later(1400, () => { o.classList.add("ready"); stage = 4; });
     });
   };
   const finish = () => {
@@ -8217,7 +8245,7 @@ function playIntro() {
   };
   // the first tap wakes the sound; then the broadcast (first launch) or just the logo
   const begin = () => {
-    stage = 1; o.classList.add("go"); unlockAudio(); musicLv = .62;
+    stage = 1; o.classList.add("go"); unlockAudio(); musicLv = .62; o.querySelector(".itap").textContent = "Коснись экрана";
     // Android allows locking the screen sideways once the page is full screen (iPhone does not: there the game turns itself)
     try { const el = document.documentElement, fs = el.requestFullscreen || el.webkitRequestFullscreen; if (fs && !document.fullscreenElement && !/iPhone|iPad|iPod/.test(navigator.userAgent)) { const pr = fs.call(el); const lock = () => { try { const q = screen.orientation && screen.orientation.lock && screen.orientation.lock("landscape"); if (q && q.catch) q.catch(() => {}); } catch (e) {} }; if (pr && pr.then) pr.then(lock).catch(() => {}); else lock(); } } catch (e) {}
     if (seen) { later(600, showLogo); return; }
