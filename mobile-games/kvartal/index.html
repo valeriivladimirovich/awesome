@@ -386,6 +386,9 @@ const ICON = {
   radio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="3" y="9" width="18" height="11" rx="2"/><path d="M7 9l9-5M7 14h4M15 14.5h.01" stroke-linecap="round"/></svg>',
   antibio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="3" y="9" width="18" height="7" rx="3.5" transform="rotate(-35 12 12.5)"/><path d="M9.5 9.5l5 6"/></svg>',
   splint: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 3v18M16 3v18M6 8h12M6 16h12"/></svg>',
+  hammer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 7l6 6M10 4l7 7-3 3-7-7zM10 11L3.5 17.5a1.5 1.5 0 0 0 3 3L13 14"/></svg>',
+  plank: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="5.5" rx="1"/><rect x="2.5" y="13.5" width="19" height="5.5" rx="1"/><path d="M7 7.7h.01M17 16.2h.01" stroke-linecap="round" stroke-width="2.8"/></svg>',
+  nails: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 5h6M8 5v14l-1 2M14 6h6M17 6v12l-1 2"/></svg>',
   tools: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6a4 4 0 0 0 5 5l-9 9a2 2 0 0 1-3-3l9-9a4 4 0 0 0-2-2z"/></svg>',
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>'
 };
@@ -402,9 +405,12 @@ const ITEMS = {
   radio: { name: "Радио", desc: "Ловит голоса выживших и военных", c: "#9fc3e8", noUse: true },
   antibio: { name: "Антибиотики", desc: "Лечат заражённый укус, если не тянуть", c: "#7fd0a0" },
   splint: { name: "Шина", desc: "Перелом срастается вдвое быстрее", c: "#d8c090" },
-  tools: { name: "Инструменты", desc: "Чинить машины", c: "#a8aeb6", noUse: true }
+  tools: { name: "Инструменты", desc: "Чинить машины", c: "#a8aeb6", noUse: true },
+  hammer: { name: "Молоток", desc: "Заколачивать окна и двери, разбирать мебель", c: "#b8a27a", noUse: true },
+  plank: { name: "Доски", desc: "Одна доска на проём, до четырёх", c: "#a07a4a", noUse: true },
+  nails: { name: "Гвозди", desc: "Две штуки на доску", c: "#a8aeb6", noUse: true }
 };
-const ITEM_GEN = { antibio: "антибиотики", splint: "шина", tools: "инструменты", radio: "радио", can: "канистра", food: "консервы", water: "вода", bandage: "бинт", medkit: "аптечка", battery: "батарейка", ammo9: "патроны 9 мм", ammo545: "патроны 5,45" };
+const ITEM_GEN = { hammer: "молоток", plank: "доска", nails: "гвозди", antibio: "антибиотики", splint: "шина", tools: "инструменты", radio: "радио", can: "канистра", food: "консервы", water: "вода", bandage: "бинт", medkit: "аптечка", battery: "батарейка", ammo9: "патроны 9 мм", ammo545: "патроны 5,45" };
 const WEAPONS = {
   fists: { name: "Кулаки", dmg: 1, range: .8, cd: .42, rank: 0 },
   bat: { name: "Бита", dmg: 2, range: 1, cd: .5, rank: 1 },
@@ -415,16 +421,16 @@ const WEAPONS = {
 const LOOTS = {
   fridge: [["food", 5], ["water", 5]],
   counter: [["food", 4], ["water", 3], ["battery", 1]],
-  wardrobe: [["bandage", 2], ["battery", 2], ["food", 1], ["bat", .4], ["ammo9", .5], ["pistol", .12]],
+  wardrobe: [["bandage", 2], ["battery", 2], ["food", 1], ["bat", .4], ["ammo9", .5], ["pistol", .12], ["hammer", .3], ["nails", .5]],
   cabinet: [["bandage", 5], ["medkit", 1], ["antibio", .5], ["splint", .6]],
   desk: [["battery", 4], ["bandage", 1], ["ammo9", .6], ["radio", .35]],
-  crate: [["food", 2], ["water", 2], ["battery", 2], ["bat", .8], ["axe", .5], ["ammo9", .5], ["can", .5]],
-  workbench: [["bat", 3], ["axe", 2], ["battery", 2], ["can", 1.6], ["tools", 1.6]],
+  crate: [["food", 2], ["water", 2], ["battery", 2], ["bat", .8], ["axe", .5], ["ammo9", .5], ["can", .5], ["plank", 1.2], ["nails", 1], ["hammer", .4]],
+  workbench: [["bat", 3], ["axe", 2], ["battery", 2], ["can", 1.6], ["tools", 1.6], ["hammer", 2.5], ["nails", 3], ["plank", 3]],
   locker: [["pistol", 1.2], ["ammo9", 3], ["rifle", .4], ["ammo545", 1.2], ["bandage", 1], ["bat", 1], ["radio", .6]],
   military: [["rifle", 1], ["ammo545", 3], ["ammo9", 1.5], ["pistol", .6], ["medkit", 1.2], ["food", 1], ["water", 1]],
   shop: [["food", 6], ["water", 5]],
   pharm: [["bandage", 5], ["medkit", 1.5], ["antibio", 1], ["splint", .7]],
-  hard: [["battery", 4], ["bat", 2], ["axe", 1.5], ["can", 1.5], ["tools", 1.2]],
+  hard: [["battery", 4], ["bat", 2], ["axe", 1.5], ["can", 1.5], ["tools", 1.2], ["hammer", 2], ["nails", 4], ["plank", 3]],
   glove: [["battery", 2], ["bandage", 2], ["food", 1], ["water", 1], ["ammo9", .8]],
   freight: [["food", 4], ["water", 4], ["battery", 2], ["bandage", 2], ["can", 1], ["axe", .4], ["ammo9", .5]],
   cafe: [["food", 5], ["water", 4]],
@@ -1888,9 +1894,9 @@ function moveEnt(e, dx, dy, r = .17) {
   const n = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / .12));
   for (let k = 0; k < n; k++) { e.x += dx / n; e.y += dy / n; collide(e, r); }
 }
-const eH = (i, j) => (i < 0 || i >= N || j < 0 || j > N) ? 1 : world.map.hW[j * N + i];
-const eV = (i, j) => (i < 0 || i > N || j < 0 || j >= N) ? 1 : world.map.vW[j * (N + 1) + i];
-const blockE = c => c > 0 && c < 4;
+const eH = (i, j) => (i < 0 || i >= N || j < 0 || j > N) ? 1 : (world.map.hO && world.map.hO[j * N + i]) || world.map.hW[j * N + i];
+const eV = (i, j) => (i < 0 || i > N || j < 0 || j >= N) ? 1 : (world.map.vO && world.map.vO[j * (N + 1) + i]) || world.map.vW[j * (N + 1) + i];
+const blockE = c => (c > 0 && c < 4) || c === 5;
 function step4(i, j, a, b) {
   const ni = i + a, nj = j + b;
   if (ni < 0 || nj < 0 || ni >= N || nj >= N || world.map.nav[nj * N + ni]) return false;
@@ -1903,7 +1909,7 @@ const canMove = (i, j, a, b) => (a && b) ? step4(i, j, a, 0) && step4(i + a, j, 
 function los(ax, ay, bx, by, strict) {
   const d = Math.hypot(bx - ax, by - ay), n = Math.ceil(d / .2);
   let pi = Math.floor(ax), pj = Math.floor(ay);
-  const stop = e => e === 1 || (strict && e > 1 && e < 4);
+  const stop = e => e === 1 || e === 5 || (strict && e > 1 && e < 4);
   for (let k = 1; k <= n; k++) {
     const x = lerp(ax, bx, k / n), y = lerp(ay, by, k / n), ni = Math.floor(x), nj = Math.floor(y);
     if (ni !== pi) { if (stop(eV(Math.max(pi, ni), pj))) return false; pi = ni; }
@@ -2153,14 +2159,15 @@ function renderSkills(box) {
 function useItem(k) {
   const p = world.player, w = p.wounds = p.wounds || {};
   if (!p.inv[k]) return;
-  if (k === "antibio") { if (!w.bite) { toast("Сейчас не нужно. Прибереги на случай укуса"); return; } w.bite = 0; w.feverWarn = false; toast("Жар спадает. Укус заживёт", true); }
+  if (k === "antibio") { if (!w.bite) { toast("Сейчас не нужно. Прибереги на случай укуса"); return; } if (cfg().infect === "deadly") { toast("Антибиотики не берут эту заразу. Укус смертелен", true); return; } w.bite = 0; w.feverWarn = false; toast("Жар спадает. Укус заживёт", true); }
   if (k === "splint") { if (!w.fracture || w.splint) { toast(w.splint ? "Шина уже наложена" : "Переломов нет"); return; } w.splint = true; toast("Шина наложена. Идти уже легче"); }
   if (k === "bandage" || k === "medkit") { if (w.bleed) toast("Кровь остановлена"); w.bleed = 0; }
   p.inv[k]--;
   if (k === "food") p.food = Math.min(100, p.food + 35);
   if (k === "water") p.water = Math.min(100, p.water + 40);
-  if (k === "bandage") p.hp = Math.min(100, p.hp + 30);
-  if (k === "medkit") p.hp = Math.min(100, p.hp + 60);
+  const doc = isProf("doctor") ? 1.6 : 1;
+  if (k === "bandage") p.hp = Math.min(100, p.hp + 30 * doc);
+  if (k === "medkit") p.hp = Math.min(100, p.hp + 60 * doc);
   if (k === "battery") p.bat = 100;
   tone(660, .12, "triangle", .05, 1.3);
   updateHud();
@@ -2186,11 +2193,8 @@ function updateHud() {
   else act.hidden = true;
   let wp = $("#woundp");
   if (!wp) { wp = document.createElement("div"); wp.id = "woundp"; wp.style.cssText = "position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 96px);transform:translateX(-50%);display:flex;gap:6px;z-index:4;pointer-events:none"; $("#game").append(wp); }
-  const W = p.wounds || {}, chips = [];
-  if (W.bleed) chips.push("Кровотечение");
-  if (W.bite) chips.push((world.elapsed - W.bite) / 1440 > .35 ? "Укус · жар" : "Укус");
-  if (W.fracture) chips.push(W.splint ? "Перелом · шина" : "Перелом");
-  const sig = chips.join("|"); if (wp.dataset.s !== sig) { wp.dataset.s = sig; wp.innerHTML = chips.map(c => `<span style="padding:4px 10px;border-radius:999px;background:rgba(120,20,20,.8);color:#ffd8d0;font:600 12px Rubik,system-ui,sans-serif">${c}</span>`).join(""); }
+  const chips = moodles(); sleepHud();
+  const sig = chips.map(c => c.join(":")).join("|"); if (wp.dataset.s !== sig) { wp.dataset.s = sig; wp.innerHTML = chips.map(([c, l]) => `<span style="padding:4px 10px;border-radius:999px;background:${MOOD_BG[l]};color:#fff2e6;font:600 12px Rubik,system-ui,sans-serif;white-space:nowrap">${c}${l > 1 ? " " + "!".repeat(l - 1) : ""}</span>`).join(""); }
   // dashboard while driving or riding
   let vp = $("#vehp");
   if (!vp) { vp = document.createElement("div"); vp.id = "vehp"; vp.style.cssText = "position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 58px);transform:translateX(-50%);padding:6px 14px;border-radius:999px;background:rgba(12,14,20,.72);color:#e8e4da;font:600 13px Rubik,system-ui,sans-serif;z-index:4;pointer-events:none;white-space:nowrap"; $("#game").append(vp); }
@@ -2258,12 +2262,12 @@ function finishSearch() {
   updateHud();
 }
 function attack() {
-  if (!world || world.mode !== "play" || paused) return;
+  if (!world || world.mode !== "play" || paused || world.player.sleep) return;
   const p = world.player, w = WEAPONS[p.weapon];
   if (p.veh) { if (p.veh.car) honk(); else if (!(p.honkT > 0)) { p.honkT = 2; toast("Чтобы драться, слезь с велосипеда"); } return; }
   if (p.cool > 0) return;
   if (w.gun) return fireGun();
-  p.cool = w.cd; p.swing = .3;
+  p.cool = w.cd * (1 + (p.panic || 0) / 300) * (p.fat > 75 ? 1.12 : 1); p.swing = .3; p.fat = Math.min(100, (p.fat || 0) + .06);
   if (p.search) p.search = null;
   let near = null, nd = w.range + .7;
   for (const z of world.zombies) { if (Math.abs(z.x - p.x) > 3 || Math.abs(z.y - p.y) > 3) continue; const d = Math.hypot(z.x - p.x, z.y - p.y); if (d < nd && los(p.x, p.y, z.x, z.y, true)) { nd = d; near = z; } }
@@ -2291,7 +2295,7 @@ function stepMelee(p, dt) {
     if (!los(p.x, p.y, z.x, z.y, true)) continue;
     hitAny = true;
     const ux = dx / (d || 1), uy = dy / (d || 1);
-    z.hp -= w.dmg * (1 + skillLv("melee") * .12); z.hit = .3; z.hitDir = Math.atan2(uy, ux); z.state = "chase";
+    z.hp -= w.dmg * (1 + skillLv("melee") * .12) * meleeMul(); z.hit = .3; z.hitDir = Math.atan2(uy, ux); z.state = "chase";
     z.vx *= .2; z.vy *= .2;
     z.atkT = 0; z.cool = Math.max(z.cool, .5);
     bleed(z.x - ux * .12, z.y - uy * .12, 7, ux * .5, uy * .5);
@@ -2301,7 +2305,7 @@ function stepMelee(p, dt) {
   for (const n of banditsAlive()) {
     const dx = n.x - p.x, dy = n.y - p.y, d = Math.hypot(dx, dy);
     if (d > w.range + .3 || (Math.abs(angDiff(p.dir, Math.atan2(dy, dx))) > 1.15 && d > .4) || !los(p.x, p.y, n.x, n.y, true)) continue;
-    hitAny = true; hurtNpc(n, w.dmg * (1 + skillLv("melee") * .12), dx / (d || 1), dy / (d || 1), p.weapon);
+    hitAny = true; hurtNpc(n, w.dmg * (1 + skillLv("melee") * .12) * meleeMul(), dx / (d || 1), dy / (d || 1), p.weapon);
   }
   noise(p.x, p.y, hitAny ? 6 : 3.5);
   if (hitAny) addXp("melee");
@@ -2365,13 +2369,13 @@ function fireGun() {
     if (sc < bs && los(p.x, p.y, z.x, z.y)) { bs = sc; best = z; }
   }
   if (best) p.dir = Math.atan2(best.y - p.y, best.x - p.x);
-  const ang = p.dir + rand(-w.spread, w.spread), cx = Math.cos(ang), cy = Math.sin(ang);
+  const sp0 = w.spread * aimMul(), ang = p.dir + rand(-sp0, sp0), cx = Math.cos(ang), cy = Math.sin(ang);
   const cands = [...world.zombies, ...banditsAlive()].filter(z => Math.abs(z.x - p.x) < w.range + 1 && Math.abs(z.y - p.y) < w.range + 1);
   let hx = p.x, hy = p.y, hit = null, pi = Math.floor(p.x), pj = Math.floor(p.y);
   for (let t = .3; t <= w.range; t += .1) {
     const x = p.x + cx * t, y = p.y + cy * t, ni = Math.floor(x), nj = Math.floor(y);
-    if (ni !== pi) { if (eV(Math.max(pi, ni), pj) === 1) break; pi = ni; }
-    if (nj !== pj) { if (eH(pi, Math.max(pj, nj)) === 1) break; pj = nj; }
+    if (ni !== pi) { const e = eV(Math.max(pi, ni), pj); if (e === 1 || e === 5) break; pi = ni; }
+    if (nj !== pj) { const e = eH(pi, Math.max(pj, nj)); if (e === 1 || e === 5) break; pj = nj; }
     hx = x; hy = y;
     for (const z of cands) if ((z.x - x) ** 2 + (z.y - y) ** 2 < .05) { hit = z; break; }
     if (hit) break;
@@ -2421,7 +2425,7 @@ const SKILL_XP = [0, 8, 22, 45, 80, 130];
 const skillLv = k => { const xp = (world.player.skills || {})[k] || 0; let l = 0; while (l < 5 && xp >= SKILL_XP[l + 1]) l++; return l; };
 function addXp(k, n = 1) {
   const p = world.player; p.skills = p.skills || {};
-  const before = skillLv(k); p.skills[k] = (p.skills[k] || 0) + n;
+  const before = skillLv(k); p.skills[k] = (p.skills[k] || 0) + n * (hasTr("learner") ? 1.3 : 1);
   const after = skillLv(k);
   if (after > before) { toast(`Навык «${SKILLS[k]}» вырос до ${after}`, true); tone(660, .12, "triangle", .05, 1.5); setTimeout(() => tone(990, .16, "triangle", .05, 1.2), 110); }
 }
@@ -2431,7 +2435,7 @@ function woundsFrom(kind, sev = 1) {
   const p = world.player; p.wounds = p.wounds || {};
   if (kind === "zombie") {
     if (Math.random() < .35) { p.wounds.bleed = 1; toast("Кровотечение! Перевяжи рану", true); }
-    if (Math.random() < .07 && !p.wounds.bite) { p.wounds.bite = world.elapsed; toast("Укус… Нужны антибиотики, и быстро", true); }
+    if (Math.random() < .07 && !p.wounds.bite && cfg().infect !== "off") { p.wounds.bite = world.elapsed; toast("Укус… Нужны антибиотики, и быстро", true); }
   } else if (kind === "fall" && Math.random() < .35 * sev) { p.wounds.fracture = 1440 * 2; toast("Похоже на перелом. Не побегаешь. Нужна шина", true); }
   else if (kind === "shot" && Math.random() < .5) p.wounds.bleed = 1;
 }
@@ -2468,7 +2472,7 @@ function cook() {
 function repairCar(car) {
   const p = world.player;
   if (!(p.inv.tools > 0)) { toast("Нужны инструменты", true); return; }
-  startTask("Чиню машину", 4.5 - skillLv("repair") * .5, () => {
+  startTask("Чиню машину", (4.5 - skillLv("repair") * .5) * (isProf("mechanic") ? .5 : 1), () => {
     const lv = skillLv("repair");
     car.hp = Math.min(1, car.hp + .25 + lv * .06); car.glass = Math.min(1, car.glass + .2 + lv * .05);
     if (Math.random() < .25 - lv * .04) { p.inv.tools--; toast("Инструменты сломались", true); }
@@ -2533,9 +2537,9 @@ const contApply = (c, v) => { if (v === 1) { c.searched = true; c.loot = []; } e
 function saveGame() {
   const Wd = world; if (!Wd || Wd.mode !== "play") return;
   const p = Wd.player, M = Wd.map, r2 = v => Math.round(v * 100) / 100;
-  const P = {}; for (const k of ["x", "y", "dir", "hp", "food", "water", "bat", "weapon", "owned", "mag", "inv", "gas", "notes", "skills", "wounds"]) P[k] = p[k];
+  const P = {}; for (const k of ["x", "y", "dir", "hp", "food", "water", "bat", "weapon", "owned", "mag", "inv", "gas", "notes", "skills", "wounds", "fat", "panic", "prof", "traits"]) P[k] = p[k];
   P.keys = [...p.keys]; if (p.veh && p.veh.car) P.car = p.veh.car.id; if (p.veh && p.veh.bike) P.bike = true;
-  const W = {}; for (const k of ["time", "day", "elapsed", "kills", "searched", "weather", "raining", "wet", "snow", "power", "heliAt", "radioAt", "evac", "marks", "loose", "flickerWarned"]) W[k] = Wd[k];
+  const W = {}; for (const k of ["time", "day", "elapsed", "kills", "searched", "weather", "raining", "wet", "snow", "power", "heliAt", "radioAt", "evac", "marks", "loose", "flickerWarned", "cfg", "barr", "broken", "winHp"]) W[k] = Wd[k];
   store.set("save", {
     v: 1, seed: Wd.seed, at: Date.now(), P, W,
     conts: M.furn.filter(f => f.cont).map(f => contState(f.cont)),
@@ -2578,6 +2582,7 @@ function applySave(S) {
   for (const [x, y, hp, run] of S.zombies) if (spawnZombie(0, 999, run ? 1 : 0, true)) { const z = Wd.zombies[Wd.zombies.length - 1]; z.x = z.lastX = z.tx = x; z.y = z.lastY = z.ty = y; z.hp = hp; }
   Wd.npcs = S.npcs || [];
   if (Wd.power === false) for (const l of M.lamps) l.on = false;
+  Wd.cfg = Wd.cfg || Object.assign({}, PRESETS.normal.v); p.prof = p.prof || "unemployed"; p.traits = p.traits || []; p.fat = p.fat || 0; p.sleep = null; sleepOverlay(false); restoreShelter();
   screen.hidden = true; closeModals(true); setPlayUI(true); updateHud(); buildFlow();
   if (S.P.car != null && M.cars[S.P.car]) enterCar(M.cars[S.P.car]);
   if (S.P.bike) { const o = { dt: "prop", kind: "bike", x: p.x, y: p.y, hx: .45, hy: .12, key: 0, var: 0 }; M.props.push(o); mountBike(o); }
@@ -2969,11 +2974,12 @@ function heliTick(dt) {
 // ---------- power: on for a week, then the town goes dark
 function powerTick(prevDay) {
   const Wd = world;
-  if (Wd.power && Wd.day >= 7) {
+  const pd = cfg().power;
+  if (Wd.power && pd && Wd.day >= pd) {
     Wd.power = false;
     for (const l of Wd.map.lamps) l.on = false;
     toast("Электричество отключилось. Город погрузился во тьму", true);
-  } else if (Wd.power && Wd.day === 6 && Wd.time > 20 * 60 && !Wd.flickerWarned) { Wd.flickerWarned = true; toast("Свет моргает. Электричество долго не продержится", true); }
+  } else if (Wd.power && pd && Wd.day === pd - 1 && Wd.time > 20 * 60 && !Wd.flickerWarned) { Wd.flickerWarned = true; toast("Свет моргает. Электричество долго не продержится", true); }
 }
 
 function updateWorldLife(dt, nf) {
@@ -3058,6 +3064,7 @@ function nearBike() {
 // what the action button does right now
 function contextAction() {
   const p = world.player;
+  if (p.sleep) return { label: "Проснуться", run: () => wake() };
   if (p.veh) return p.veh.car ? { label: "Выйти из машины", run: exitVehicle } : { label: "Слезть с велосипеда", run: exitVehicle };
   if (p.search || p.task) return null;
   const npc = nearNpc();
@@ -3071,10 +3078,17 @@ function contextAction() {
     if (own && car.hp < .7 && p.inv.tools) return { label: "Починить машину", run: () => repairCar(car) };
     if (own) return { label: car.fuel > .01 ? "Сесть за руль" : "Сесть (бак пуст)", run: () => enterCar(car) };
     if (p.inv.can && car.fuel > .02 && p.gas < 19.5 && !car.burnt) return { label: "Слить бензин", run: () => startTask("Сливаю бензин", 2.6, () => { const take = Math.min(car.fuel * 40, 20 - p.gas); car.fuel -= take / 40; p.gas += take; toast(`В канистре ${Math.round(p.gas)} л`); noise(p.x, p.y, 2.5); }) };
+    if (canDrive(car) && isProf("mechanic") && !car.burnt) return { label: "Завести без ключа", run: () => { noise(p.x, p.y, 3); startTask("Соединяю провода", 5, () => { p.keys.add(car.id); toast("Мотор схватился. Машина твоя", true); }); } };
     if (canDrive(car)) return { label: "Нет ключей", run: () => toast(`Нужны ключи: ${carName(car)}. Поищи в домах рядом или в бардачке`) };
   }
   const bike = nearBike();
   if (bike) return { label: "Сесть на велосипед", run: () => mountBike(bike) };
+  const bedF = nearBed();
+  if (bedF && (p.fat || 0) > 60) return { label: "Лечь спать", run: () => startSleep(bedF) };
+  const sh = shelterAction(); if (sh) return sh;
+  if (bedF && (p.fat || 0) > 25) return { label: "Лечь спать", run: () => startSleep(bedF) };
+  if (!bedF && world.inside && (p.fat || 0) > 60) return { label: "Спать на полу", run: () => startSleep(null) };
+  const dm = dismantleAction(); if (dm) return dm;
   const fire = nearStoveOrFire();
   if (fire && p.inv.food > 0 && p.inv.water > 0) return { label: fire === "fire" ? "Приготовить на огне" : "Приготовить на плите", run: cook };
   return null;
@@ -3303,7 +3317,7 @@ function update(dt) {
     if (crossed(21)) {
       toast("Ночь. Фонарик включён, но он светит и для них тоже", true);
       const n = Math.min(230 - Wd.zombies.length, Math.round((8 + Wd.day * 4) * D.wave));
-      for (let i = 0; i < n; i++) spawnZombie(12, 26, Math.min(.35, .12 + Wd.day * .04), false);
+      for (let i = 0; i < n; i++) spawnZombie(12, 26, runnerChance(Math.min(.35, .12 + Wd.day * .04)), false);
     }
     if (crossed(6.5)) {
       toast("Рассвет. Ночь позади");
@@ -3324,8 +3338,8 @@ function update(dt) {
     if (p.veh) { if (p.veh.car) driveCar(dt, mv); else rideBike(dt, mv); }
     else {
     let target = 0;
-    if (mv.m > 0) target = (mv.m > .92 ? 2.5 : 1.6 * Math.min(1, mv.m / .85 + .1)) * woundsSpeed();
-    if (p.search) target = 0;
+    if (mv.m > 0) target = (mv.m > .92 ? 2.5 * runBoost() : 1.6 * Math.min(1, mv.m / .85 + .1)) * woundsSpeed() * survSpeed();
+    if (p.search || p.sleep) target = 0;
     const acc = 1 - Math.pow(.0008, dt);
     p.vx = lerp(p.vx, mv.dx * target, acc); p.vy = lerp(p.vy, mv.dy * target, acc);
     const ox = p.x, oy = p.y;
@@ -3347,14 +3361,14 @@ function update(dt) {
       }
     }
     p.spd = dt > 0 ? Math.min(Math.hypot(p.x - ox, p.y - oy) / dt, 4) : 0;
-    if (mv.m > 0 && !p.search) p.dir += angDiff(p.dir, Math.atan2(mv.dy, mv.dx)) * Math.min(1, dt * 14);
+    if (mv.m > 0 && !p.search && !p.sleep) p.dir += angDiff(p.dir, Math.atan2(mv.dy, mv.dx)) * Math.min(1, dt * 14);
     const prevPh = p.ph;
     p.ph += dt * p.spd * 7.5;
     if (Math.floor(prevPh / Math.PI) !== Math.floor(p.ph / Math.PI) && p.spd > .6) {
       footstep(p.spd > 2.2);
       if (p.spd > 2.2) for (let k = 0; k < 2; k++) Wd.dust.push({ x: p.x - p.vx * .05, y: p.y - p.vy * .05, t: 0, r: rand(.08, .16), vx: rand(-.3, .3), vy: rand(-.3, .3) });
     }
-    if (p.spd > .3) { p.noiseT -= dt; if (p.noiseT <= 0) { p.noiseT = .5; noise(p.x, p.y, p.spd > 2.2 ? 4.5 : 1.6); } }
+    if (p.spd > .3) { p.noiseT -= dt; if (p.noiseT <= 0) { p.noiseT = .5; noise(p.x, p.y, (p.spd > 2.2 ? 4.5 : 1.6) * noiseMul()); } }
     }
     if (p.search && mv.m > .4) { p.search = null; toast("Обыск прерван"); }
     if (p.search) { p.search.t += dt; if (p.search.t >= p.search.dur) finishSearch(); }
@@ -3365,8 +3379,10 @@ function update(dt) {
     }
     if (input.atk && WEAPONS[p.weapon].auto && p.cool <= 0) attack();
     const run = p.spd > 2.2, k6 = 6 / settings.dayLen;
-    p.food = Math.max(0, p.food - dt * 100 / 420 * (run ? 1.5 : 1) * D.drain * k6);
-    p.water = Math.max(0, p.water - dt * 100 / 330 * (run ? 1.6 : 1) * D.drain * k6);
+    const zz = p.sleep ? .55 : 1;
+    p.food = Math.max(0, p.food - dt * 100 / 420 * (run ? 1.5 : 1) * D.drain * k6 * hungerMul() * zz);
+    p.water = Math.max(0, p.water - dt * 100 / 330 * (run ? 1.6 : 1) * D.drain * k6 * zz);
+    survTick(dt, 1440 / (settings.dayLen * 60));
     if (p.food <= 0 || p.water <= 0) { p.hp -= dt * 1.4; if (!Wd.events.has("starve")) { Wd.events.add("starve"); toast(p.food <= 0 ? "Голод отнимает силы. Поешь" : "Жажда отнимает силы. Попей", true); } }
     else Wd.events.delete("starve");
     woundsTick(dt, 1440 / (settings.dayLen * 60));
@@ -3406,11 +3422,12 @@ function update(dt) {
     if (mode === "play" && z.think <= 0) {
       z.think = .25 + Math.random() * .15;
       const sight = (nf > .5 ? (flash || lamplit ? 6.5 : 3) : 7.5) * (Wd.raining ? .8 : 1) * (Wd.weather === "fog" ? .6 : 1);
-      if (!p.ghost && d < sight && los(z.x, z.y, p.x, p.y)) {
+      if (!p.ghost && d < sight * (p.sleep ? .6 : 1) && los(z.x, z.y, p.x, p.y)) {
         if (z.state !== "chase" && d < 12 && Math.random() < .6) groan(z, true);
+        if (p.sleep && d < 7) wake("Рядом кто-то есть!");
         z.state = "chase"; z.lx = p.x; z.ly = p.y; z.lost = 0;
       } else if (z.state === "chase") {
-        z.lost = (z.lost || 0) + .3;
+        z.lost = (z.lost || 0) + (z.sg ? .06 : .3);
         if (z.lost > 4) { z.state = "investigate"; z.tx = z.lx; z.ty = z.ly; }
       }
       // stuck check
@@ -3423,7 +3440,7 @@ function update(dt) {
     if (z.state === "chase" && mode === "play") {
       const inCar = p.veh && p.veh.car;
       if (inCar ? carDist(inCar, z.x, z.y) < .3 : d < .6) { if (z.atkT <= 0 && z.cool <= 0) { z.atkT = z.runner ? .3 : .4; z.dir = Math.atan2(dy, dx); } }
-      else { const st = d > 1.3 ? flowStep(z) : null; if (st) { tx = st.x; ty = st.y; } else { tx = p.x; ty = p.y; } }
+      else { const st = d > 1.3 ? flowStep(z) : null; if (st) { tx = st.x; ty = st.y; z.sg = null; } else { const sg = siegeTarget(z, d, dt); if (sg) { tx = sg.x; ty = sg.y; } else { tx = p.x; ty = p.y; } } }
     } else if (z.state === "investigate") {
       tx = z.tx; ty = z.ty; sp *= .8;
       if (Math.hypot(z.tx - z.x, z.ty - z.y) < .4) z.state = "wander";
@@ -6679,6 +6696,8 @@ function render3D(time, dt) {
       for (const [k, m] of Object.entries(rec.meshes)) m.material = T3.mats[rec.base[k] + (on ? "C" : "")];
     }
     T3.camera.layers.set(0);
+    // boards on a cut-away house are cut with its walls
+    if (T3.boards) { const bm = T3.mats.boardM, sm = T3.mats.shardM; if (bm && !T3.mats.boardMC) { T3.mats.boardMC = bm.clone(); T3.mats.boardMC.clippingPlanes = [T3.clip]; } if (sm && !T3.mats.shardMC) { T3.mats.shardMC = sm.clone(); T3.mats.shardMC.clippingPlanes = [T3.clip]; } for (const m of T3.boards.children) { const c = cut.has(m.userData.bid), sh = m.material === sm || m.material === T3.mats.shardMC; m.material = sh ? (c ? T3.mats.shardMC : sm) : (c ? T3.mats.boardMC : bm); } }
   }
   // characters: skinned bodies with clothing slots
   const vis = [];
@@ -7257,7 +7276,7 @@ function showTitle(fresh = true) {
     ${best ? `<span class="best">Рекорд: ${fmtSurvived(best)}</span>` : ""}
   </div>`;
   screen.hidden = false;
-  $("#start").addEventListener("click", () => { unlockAudio(); store.set("save", null); startGame(); });
+  $("#start").addEventListener("click", () => { unlockAudio(); openNewGame(); });
   if ($("#cont")) $("#cont").addEventListener("click", () => { unlockAudio(); continueGame(); });
   $("#openSettings").addEventListener("click", () => { unlockAudio(); openModal("setModal"); });
 }
@@ -7267,10 +7286,11 @@ function startGame() {
   world.zombies = world.zombies.filter(z => Math.hypot(z.x - START.x, z.y - START.y) > 9);
   pickWeather();
   world.wet = world.raining ? 1 : 0;
+  applySurvivor(); boards3D(); sleepOverlay(false);
   screen.hidden = true; closeModals(true);
   setPlayUI(true); updateHud();
   buildFlow();
-  toast("Утро, 7:00. Загляни в ближайшие дома за едой и водой");
+  toast(`${PROFS[world.player.prof].name}. Утро, 7:00. Найди еду, воду и дом, который можно заколотить`);
   tone(330, .2, "triangle", .05, 1.5);
 }
 function gameOver() {
@@ -7337,7 +7357,9 @@ const DEV_MENU = [
     ["Батарейки ×3", () => devGive("battery", 3)],
     ["Канистра, 20 л", () => devGive("can")],
     ["Инструменты", () => devGive("tools")],
-    ["Радио", () => devGive("radio")]
+    ["Радио", () => devGive("radio")],
+    ["Молоток, 8 досок, 20 гвоздей", () => { devGive("hammer"); devGive("plank", 8); devGive("nails", 20); }],
+    ["Усталость 90%", () => { world.player.fat = 90; }]
   ]],
   ["Режимы", [
     [() => "Бессмертие: " + (world.player.god ? "вкл" : "выкл"), () => { world.player.god = !world.player.god; }],
@@ -7394,6 +7416,367 @@ function renderDev() {
   if (menu) { const b = document.createElement("button"); b.id = "openDev"; b.textContent = "Тестовое меню"; b.addEventListener("click", openDev); menu.insertBefore(b, set ? set.nextSibling : null); }
 }
 
+// ================= survival: the survivor, sandbox, moodles, sleep, shelter =================
+// ---------- who you were before: professions and traits
+const PROFS = {
+  unemployed: { name: "Безработный", desc: "Ничего особенного. +8 очков на черты" },
+  police: { name: "Полицейский", desc: "Пистолет и 24 патрона. Меньше паникует, стреляет точнее" },
+  carpenter: { name: "Плотник", desc: "Молоток, доски, гвозди. Заколачивает вдвое быстрее и крепче" },
+  mechanic: { name: "Механик", desc: "Инструменты. Заводит машины без ключа, чинит быстрее" },
+  doctor: { name: "Врач", desc: "Бинты, аптечка, антибиотики. Лечит в полтора раза лучше" },
+  fireman: { name: "Пожарный", desc: "Топор. Выносливый: устаёт медленнее, бегает быстрее" }
+};
+const TRAITS = {
+  strong: { name: "Силач", cost: 4, desc: "Удар сильнее на четверть", not: "weak" },
+  athletic: { name: "Атлет", cost: 4, desc: "Бегает быстрее, устаёт меньше" },
+  quiet: { name: "Тихий шаг", cost: 3, desc: "Шаги почти не слышны", not: "clumsy" },
+  brave: { name: "Храбрец", cost: 3, desc: "Паника вдвое слабее", not: "coward" },
+  learner: { name: "Быстро учится", cost: 3, desc: "Навыки растут быстрее" },
+  small: { name: "Малоежка", cost: 2, desc: "Голод приходит медленнее", not: "glutton" },
+  weak: { name: "Хиляк", cost: -3, desc: "Удар слабее на пятую часть", not: "strong" },
+  coward: { name: "Трус", cost: -3, desc: "Паникует вдвое сильнее", not: "brave" },
+  clumsy: { name: "Неуклюжий", cost: -2, desc: "Шумно ходит", not: "quiet" },
+  sleepy: { name: "Соня", cost: -2, desc: "Устаёт быстрее" },
+  glutton: { name: "Обжора", cost: -2, desc: "Голод приходит быстрее", not: "small" }
+};
+const hasTr = k => !!(world && world.player.traits && world.player.traits.includes(k));
+const isProf = k => !!(world && world.player.prof === k);
+// ---------- sandbox: the rules of this world
+const SANDBOX = [
+  ["zspeed", "Зомби", [["slow", "Шаркуны"], ["mixed", "Смешанные"], ["fast", "Бегуны"]]],
+  ["pop", "Сколько их", [["low", "Мало"], ["normal", "Обычно"], ["high", "Много"]]],
+  ["loot", "Добыча", [["rare", "Редко"], ["normal", "Обычно"], ["plenty", "Щедро"]]],
+  ["infect", "Укус", [["deadly", "Смертелен"], ["cure", "Лечится"], ["off", "Не заражает"]]],
+  ["power", "Свет отключат", [[3, "На 3-й день"], [7, "На 7-й"], [14, "На 14-й"], [0, "Никогда"]]],
+  ["siege", "Ломают дома", [[true, "Да"], [false, "Нет"]]]
+];
+const PRESETS = {
+  normal: { name: "Выживание", v: { zspeed: "mixed", pop: "normal", loot: "normal", infect: "cure", power: 7, siege: true } },
+  hard: { name: "Хардкор", v: { zspeed: "mixed", pop: "high", loot: "rare", infect: "deadly", power: 3, siege: true } },
+  fast: { name: "Бегущие мертвецы", v: { zspeed: "fast", pop: "normal", loot: "normal", infect: "deadly", power: 7, siege: true } },
+  calm: { name: "Песочница", v: { zspeed: "slow", pop: "low", loot: "plenty", infect: "off", power: 0, siege: false } }
+};
+const cfg = () => (world && world.cfg) || PRESETS.normal.v;
+const runnerChance = base => cfg().zspeed === "slow" ? 0 : cfg().zspeed === "fast" ? 1 : base;
+
+// ---------- the new-game screen
+function newGameDefaults() { return Object.assign({ prof: "unemployed", traits: [], preset: "normal", sb: Object.assign({}, PRESETS.normal.v) }, store.get("newgame", {})); }
+function traitPoints(ng) { return (ng.prof === "unemployed" ? 8 : 0) - ng.traits.reduce((a, k) => a + TRAITS[k].cost, 0); }
+function openNewGame() {
+  const ng = newGameDefaults();
+  const render = () => {
+    const pts = traitPoints(ng);
+    const btn = (on, txt, data, sub = "") => `<button class="ngb${on ? " on" : ""}" ${data}>${txt}${sub ? `<small>${sub}</small>` : ""}</button>`;
+    screen.innerHTML = `<div class="box ngbox">
+      <span class="eyebrow">Новая игра</span><h1 style="margin:0 0 4px">Кем ты был до конца света</h1>
+      <h3>Профессия</h3><div class="nggrid">${Object.entries(PROFS).map(([k, v]) => btn(ng.prof === k, v.name, `data-prof="${k}"`, v.desc)).join("")}</div>
+      <h3>Черты <span class="pts${pts < 0 ? " bad" : ""}">очков: ${pts}</span></h3>
+      <div class="nggrid small">${Object.entries(TRAITS).map(([k, v]) => btn(ng.traits.includes(k), `${v.name} <i>${v.cost > 0 ? "−" + v.cost : "+" + -v.cost}</i>`, `data-tr="${k}"`, v.desc)).join("")}</div>
+      <h3>Мир</h3><div class="nggrid small">${Object.entries(PRESETS).map(([k, v]) => btn(ng.preset === k, v.name, `data-pre="${k}"`)).join("")}</div>
+      <div class="ngopts">${SANDBOX.map(([key, label, opts]) => `<div class="row"><span>${label}</span><div class="seg">${opts.map(([v, t]) => `<button data-sb="${key}" data-v='${JSON.stringify(v)}' aria-pressed="${ng.sb[key] === v}">${t}</button>`).join("")}</div></div>`).join("")}</div>
+      <div class="btns"><button class="big" id="ngGo"${pts < 0 ? " disabled" : ""}>Начать</button><button class="big ghost" id="ngBack">Назад</button></div>
+    </div>`;
+    screen.querySelectorAll("[data-prof]").forEach(b => b.addEventListener("click", () => { ng.prof = b.dataset.prof; render(); }));
+    screen.querySelectorAll("[data-tr]").forEach(b => b.addEventListener("click", () => {
+      const k = b.dataset.tr, i = ng.traits.indexOf(k);
+      if (i >= 0) ng.traits.splice(i, 1); else { ng.traits = ng.traits.filter(t => t !== TRAITS[k].not); ng.traits.push(k); }
+      render();
+    }));
+    screen.querySelectorAll("[data-pre]").forEach(b => b.addEventListener("click", () => { ng.preset = b.dataset.pre; ng.sb = Object.assign({}, PRESETS[ng.preset].v); render(); }));
+    screen.querySelectorAll("[data-sb]").forEach(b => b.addEventListener("click", () => { ng.sb[b.dataset.sb] = JSON.parse(b.dataset.v); ng.preset = (Object.entries(PRESETS).find(([, p]) => SANDBOX.every(([k]) => p.v[k] === ng.sb[k])) || ["custom"])[0]; render(); }));
+    $("#ngGo").addEventListener("click", () => { if (traitPoints(ng) < 0) return; store.set("newgame", ng); store.set("save", null); startGame(); });
+    $("#ngBack").addEventListener("click", () => showTitle(false));
+  };
+  if (!document.getElementById("ngcss")) {
+    const st = document.createElement("style"); st.id = "ngcss";
+    st.textContent = `.ngbox { max-height: 100%; overflow: auto; width: min(100%, 900px); text-align: left; }
+.ngbox h3 { font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; display: flex; gap: 10px; align-items: center; }
+.ngbox .pts { color: var(--amber); letter-spacing: 0; text-transform: none; font-size: 13px; } .ngbox .pts.bad { color: #ff7a6a; }
+.nggrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.nggrid.small { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); }
+.ngb { padding: 8px 10px; border-radius: 11px; background: rgba(255,255,255,.07); color: var(--ink); font: 600 14px Rubik, system-ui, sans-serif; text-align: left; border: 1.5px solid transparent; }
+.ngb small { display: block; font-weight: 400; font-size: 11.5px; color: var(--muted); margin-top: 2px; line-height: 1.3; }
+.ngb i { font-style: normal; color: var(--amber); font-size: 12px; margin-left: 4px; }
+.ngb.on { border-color: var(--amber); background: rgba(242,165,65,.14); }
+.ngopts .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 4px 0; font-size: 14px; }
+.ngopts .seg { display: flex; gap: 3px; background: rgba(255,255,255,.06); border-radius: 11px; padding: 3px; }
+.ngopts .seg button { padding: 6px 9px; border-radius: 8px; background: transparent; color: var(--muted); font-size: 13px; white-space: nowrap; }
+.ngopts .seg button[aria-pressed="true"] { background: var(--amber); color: #1b1408; font-weight: 500; }
+.ngbox .btns { margin-top: 12px; } .ngbox #ngGo[disabled] { opacity: .4; }`;
+    document.head.append(st);
+  }
+  render();
+}
+// applied once the world is ready
+function applySurvivor() {
+  const Wd = world, p = Wd.player, ng = newGameDefaults();
+  Wd.cfg = Object.assign({}, PRESETS.normal.v, ng.sb);
+  p.prof = ng.prof; p.traits = ng.traits.slice(); p.fat = 10; p.panic = 0;
+  const give = (k, n) => { p.inv[k] = (p.inv[k] || 0) + n; };
+  if (p.prof === "police") { p.owned.pistol = true; p.weapon = "pistol"; p.mag.pistol = 12; give("ammo9", 12); }
+  if (p.prof === "carpenter") { give("hammer", 1); give("plank", 6); give("nails", 16); }
+  if (p.prof === "mechanic") { give("tools", 1); }
+  if (p.prof === "doctor") { give("bandage", 3); give("medkit", 1); give("antibio", 1); }
+  if (p.prof === "fireman") { p.owned.axe = true; p.weapon = "axe"; }
+  // the dead: how many and how fast
+  const c = Wd.cfg;
+  if (c.pop === "low") Wd.zombies = Wd.zombies.filter(() => Math.random() < .5);
+  if (c.pop === "high") { const n = Math.round(Wd.zombies.length * .6); for (let i = 0; i < n; i++) spawnZombie(12); }
+  for (const z of Wd.zombies) {
+    if (c.zspeed === "slow" && z.runner) { z.runner = false; z.spd = rand(.48, .7); }
+    if (c.zspeed === "fast" && !z.runner) { z.runner = true; z.spd = rand(1, 1.25); z.limp = 0; }
+  }
+  // what is left on the shelves
+  for (const f of Wd.map.furn) if (f.cont && !f.cont.searched) {
+    if (c.loot === "rare") f.cont.loot = f.cont.loot.filter(k => k.includes(":") || Math.random() < .55);
+    if (c.loot === "plenty") { f.cont.loot.push(...f.cont.loot.filter(k => !k.includes(":") && Math.random() < .7)); if (!f.cont.loot.length && Math.random() < .35) f.cont.loot.push(pick(["food", "water", "bandage", "battery", "plank", "nails"])); }
+  }
+  Wd.barr = {}; Wd.broken = {}; Wd.winHp = {};
+}
+
+// ---------- body and mind: fatigue, panic, pain
+const pain = () => { const w = world.player.wounds || {}; return (w.fracture ? (w.splint ? 20 : 45) : 0) + (w.bite ? 20 : 0) + (w.bleed ? 15 : 0) + (world.player.hp < 35 ? 20 : 0); };
+function survSpeed() { const p = world.player; let k = 1; if (p.fat > 75) k *= p.fat > 90 ? .72 : .86; return k * (1 - Math.min(.3, pain() / 250)); }
+const runBoost = () => (hasTr("athletic") ? 1.1 : 1) * (isProf("fireman") ? 1.05 : 1);
+const meleeMul = () => (hasTr("strong") ? 1.25 : 1) * (hasTr("weak") ? .8 : 1) * (world.player.fat > 75 ? .82 : 1);
+const aimMul = () => (1 + (world.player.panic || 0) / 90) * (isProf("police") ? .75 : 1) * (world.player.fat > 90 ? 1.3 : 1);
+const noiseMul = () => hasTr("quiet") ? .55 : hasTr("clumsy") ? 1.45 : 1;
+const hungerMul = () => hasTr("glutton") ? 1.3 : hasTr("small") ? .75 : 1;
+function survTick(dt, rate) {
+  const Wd = world, p = Wd.player, gm = dt * rate;
+  p.fat = p.fat || 0; p.panic = p.panic || 0;
+  if (p.sleep) {
+    const rest = (p.sleep.bed ? 100 / (6.5 * 60) : 100 / (10 * 60)) * (hasTr("sleepy") ? .85 : 1);
+    p.fat = Math.max(0, p.fat - gm * rest); p.panic = 0;
+    if (p.sleep.bed && p.food > 30 && p.water > 30 && !(p.wounds || {}).bleed) p.hp = Math.min(100, p.hp + gm * .03);
+    if (p.hp < p.sleep.hp - 1.5) return wake("Ты проснулся от боли!");
+    p.sleep.hp = p.hp;
+    const h = Wd.time / 60;
+    if (p.fat <= 0) return wake(h >= 6 && h < 21 ? "Ты выспался" : "Ты выспался. На улице ещё темно");
+    return;
+  }
+  // about sixteen waking hours to exhaustion
+  let fr = 100 / (16 * 60) * (p.spd > 2.2 ? 1.8 : 1);
+  if (hasTr("athletic")) fr *= .85; if (hasTr("sleepy")) fr *= 1.3; if (isProf("fireman")) fr *= .8;
+  p.fat = Math.min(100, p.fat + gm * fr);
+  if (p.fat >= 100) { toast("Ты валишься с ног и засыпаешь прямо здесь…", true); startSleep(null, true); return; }
+  if (p.fat > 75 && !Wd.events.has("tired")) { Wd.events.add("tired"); toast("Ты изнурён. Найди кровать в доме и выспись", true); }
+  if (p.fat < 60) Wd.events.delete("tired");
+  // panic: the dead closing in, the hits you take; it fades when it is quiet
+  let near = 0;
+  for (const z of Wd.zombies) { if (Math.abs(z.x - p.x) > 7 || Math.abs(z.y - p.y) > 7) continue; if (z.state === "chase" && Math.hypot(z.x - p.x, z.y - p.y) < 7) near++; }
+  const mul = (hasTr("coward") ? 2 : 1) * (hasTr("brave") ? .5 : 1) * (isProf("police") ? .7 : 1) * (nightF(Wd.time) > .5 ? 1.3 : 1) * (1 - skillLv("melee") * .06);
+  if (p.hp < (p.hpPrev ?? p.hp) - 3) p.panic += 14 * mul;
+  p.hpPrev = p.hp;
+  p.panic = clamp(p.panic + (near ? (near * 5 + 3) * mul : -8) * dt, 0, 100);
+}
+function moodles() {
+  const p = world.player, W = p.wounds || {}, m = [], add = (t, l) => m.push([t, l]);
+  if (p.sleep) add("Спит", 0);
+  if (p.food < 35) add("Голод", p.food < 8 ? 3 : p.food < 20 ? 2 : 1);
+  if (p.water < 35) add("Жажда", p.water < 8 ? 3 : p.water < 20 ? 2 : 1);
+  if (p.fat > 55 && !p.sleep) add(p.fat > 90 ? "Валится с ног" : p.fat > 75 ? "Изнурение" : "Усталость", p.fat > 90 ? 3 : p.fat > 75 ? 2 : 1);
+  if (p.panic > 25) add("Паника", p.panic > 75 ? 3 : p.panic > 50 ? 2 : 1);
+  const pn = pain(); if (pn > 15 && !W.fracture) add("Боль", pn > 50 ? 3 : pn > 30 ? 2 : 1);
+  if (W.bleed) add("Кровотечение", 3);
+  if (W.bite) add((world.elapsed - W.bite) / 1440 > .35 ? "Укус · жар" : "Укус", 3);
+  if (W.fracture) add(W.splint ? "Перелом · шина" : "Перелом", 2);
+  return m;
+}
+const MOOD_BG = ["rgba(40,60,90,.85)", "rgba(150,110,30,.88)", "rgba(170,80,20,.9)", "rgba(130,20,20,.92)"];
+
+// ---------- sleep
+function nearBed() {
+  const p = world.player;
+  for (const f of world.map.furn) {
+    if (f.kind !== "bed" && f.kind !== "hbed" && f.kind !== "sofa") continue;
+    const cx = (f.x0 + f.x1) / 2, cy = (f.y0 + f.y1) / 2;
+    if (Math.abs(cx - p.x) < 1.6 && Math.abs(cy - p.y) < 1.6 && Math.hypot(cx - p.x, cy - p.y) < 1.35 && los(p.x, p.y, cx, cy, true)) return f;
+  }
+  return null;
+}
+function startSleep(bedF, forced) {
+  const p = world.player;
+  if (!forced && p.fat < 25) { toast("Спать не хочется"); return; }
+  if (!forced) for (const z of world.zombies) if (z.state === "chase" && Math.hypot(z.x - p.x, z.y - p.y) < 9) { toast("Не уснуть, когда они рядом", true); return; }
+  p.sleep = { bed: !!bedF, hp: p.hp }; p.search = null; p.task = null; p.vx = p.vy = 0;
+  if (bedF) { p.x = clamp(p.x, bedF.x0 - .3, bedF.x1 + .3); p.y = clamp(p.y, bedF.y0 - .3, bedF.y1 + .3); }
+  sleepOverlay(true); updateHud();
+}
+function wake(msg) {
+  const p = world.player; if (!p.sleep) return;
+  p.sleep = null; sleepOverlay(false);
+  if (msg) toast(msg, true);
+  updateHud();
+}
+function sleepOverlay(on) {
+  let o = $("#sleepOv");
+  if (!o) {
+    o = document.createElement("div"); o.id = "sleepOv";
+    o.style.cssText = "position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:radial-gradient(ellipse at center,rgba(6,8,14,.72),rgba(2,3,6,.94));color:#e8e4da;font:600 18px Rubik,system-ui,sans-serif;transition:opacity .6s;pointer-events:none";
+    o.innerHTML = `<div id="sleepT" style="font-size:30px;letter-spacing:.02em"></div><div id="sleepS" style="font-weight:400;color:#a9a69c;font-size:14px"></div><button class="big ghost" id="wakeBtn" style="pointer-events:auto">Проснуться</button>`;
+    $("#game").append(o); o.querySelector("#wakeBtn").addEventListener("click", () => wake());
+  }
+  o.style.opacity = on ? 1 : 0; o.style.visibility = on ? "visible" : "hidden";
+}
+function sleepHud() {
+  const p = world.player; if (!p.sleep) return;
+  const t = $("#sleepT"), s = $("#sleepS"); if (!t) return;
+  t.textContent = "Сон · " + fmtTime(world.time);
+  s.textContent = `Усталость ${Math.round(p.fat)}% · ${p.sleep.bed ? "в кровати" : "на полу — отдых хуже"}`;
+}
+
+// ---------- shelter: openings, barricades, broken windows, sieges
+function openingsOf(b) {
+  if (b.opens) return b.opens;
+  const M = world.map, o = [];
+  for (let i = b.x; i < b.x + b.w; i++) for (const [j, s] of [[b.y, -1], [b.y + b.h, 1]]) { const c = M.hW[j * N + i]; if (c === 2 || c === 4) o.push({ k: "h" + i + "," + j, ax: "h", i, j, c, b, x: i + .5, y: j, ox: i + .5, oy: j + s * .62 }); }
+  for (let j = b.y; j < b.y + b.h; j++) for (const [i, s] of [[b.x, -1], [b.x + b.w, 1]]) { const c = M.vW[j * (N + 1) + i]; if (c === 2 || c === 4) o.push({ k: "v" + i + "," + j, ax: "v", i, j, c, b, x: i, y: j + .5, ox: i + s * .62, oy: j + .5 }); }
+  return b.opens = o;
+}
+function overlayCode(o, code) {
+  const M = world.map;
+  if (!M.hO) { M.hO = new Uint8Array(M.hW.length); M.vO = new Uint8Array(M.vW.length); }
+  if (o.ax === "h") M.hO[o.j * N + o.i] = code; else M.vO[o.j * (N + 1) + o.i] = code;
+}
+// the solid box that stops bodies at a boarded opening (and the window pane's own box, once it is smashed)
+function edgeBox(o) { return o.ax === "h" ? { x0: o.i, y0: o.j - .07, x1: o.i + 1, y1: o.j + .07, ref: null, st: 0 } : { x0: o.i - .07, y0: o.j, x1: o.i + .07, y1: o.j + 1, ref: null, st: 0 }; }
+function dropPaneBox(o) {
+  const M = world.map, e = edgeBox(o), gx = Math.floor((e.x0 + e.x1) / 2 / CELL), gy = Math.floor((e.y0 + e.y1) / 2 / CELL);
+  for (let yy = gy - 1; yy <= gy + 1; yy++) for (let xx = gx - 1; xx <= gx + 1; xx++) {
+    if (xx < 0 || yy < 0 || xx >= NG || yy >= NG) continue;
+    const b = M.grid[yy * NG + xx].find(b => !b.ref && Math.abs(b.x0 - e.x0) < .01 && Math.abs(b.x1 - e.x1) < .01 && Math.abs(b.y0 - e.y0) < .01 && Math.abs(b.y1 - e.y1) < .01);
+    if (b) { gridRemove(b); return; }
+  }
+}
+const plankHp = () => isProf("carpenter") ? 4.5 : 3;
+function findOpening(k) { const ax = k[0], [i, j] = k.slice(1).split(",").map(Number), M = world.map, c = ax === "h" ? M.hW[j * N + i] : M.vW[j * (N + 1) + i]; return { k, ax, i, j, c, x: ax === "h" ? i + .5 : i, y: ax === "h" ? j : j + .5 }; }
+function setBarr(o, n, side) {
+  const Wd = world, B = Wd.barr = Wd.barr || {}; Wd.bbox = Wd.bbox || {};
+  if (n <= 0) {
+    delete B[o.k];
+    overlayCode(o, (Wd.broken || {})[o.k] ? 6 : 0);
+    if (Wd.bbox[o.k]) { gridRemove(Wd.bbox[o.k]); delete Wd.bbox[o.k]; }
+  } else {
+    const was = B[o.k];
+    B[o.k] = { n, hp: was && was.n > n ? Math.min(was.hp, n * plankHp()) : n * plankHp(), side: was ? was.side : side };
+    overlayCode(o, 5);
+    if (!Wd.bbox[o.k] && (o.c === 4 || (Wd.broken || {})[o.k])) { Wd.bbox[o.k] = edgeBox(o); gridAdd(Wd.bbox[o.k]); }
+  }
+  boards3D();
+}
+function breakWindow(o) {
+  const Wd = world; (Wd.broken = Wd.broken || {})[o.k] = true;
+  dropPaneBox(o); overlayCode(o, (Wd.barr || {})[o.k] ? 5 : 6);
+  sfx("glass", { x: o.x, y: o.y, range: 30, vol: .9 }); noise(o.x, o.y, 10);
+  for (let k = 0; k < 6; k++) Wd.parts.push({ x: o.x, y: o.y, z: 1.2, vx: rand(-1, 1), vy: rand(-1, 1), vz: rand(0, 1.5) });
+  boards3D();
+}
+// after loading a save
+function restoreShelter() {
+  const Wd = world; Wd.barr = Wd.barr || {}; Wd.broken = Wd.broken || {}; Wd.winHp = Wd.winHp || {}; Wd.bbox = {};
+  for (const k of Object.keys(Wd.broken)) { const o = findOpening(k); dropPaneBox(o); overlayCode(o, 6); }
+  for (const [k, v] of Object.entries(Wd.barr)) { const o = findOpening(k); const n = v.n, hp = v.hp; delete Wd.barr[k]; setBarr(o, n, v.side); Wd.barr[k].hp = hp; }
+  boards3D();
+}
+function nearOpening() {
+  const p = world.player; let best = null, bd = .9;
+  const seen = new Set();
+  for (const [dx, dy] of [[0, 0], [.9, 0], [-.9, 0], [0, .9], [0, -.9]]) {
+    const b = buildingAt(p.x + dx, p.y + dy); if (!b || seen.has(b)) continue; seen.add(b);
+    for (const o of openingsOf(b)) { const d = Math.hypot(o.x - p.x, o.y - p.y); if (d < bd) { bd = d; best = o; } }
+  }
+  return best;
+}
+function shelterAction() {
+  const p = world.player, o = nearOpening(); if (!o) return null;
+  const B = (world.barr || {})[o.k], what = o.c === 4 ? "дверь" : "окно";
+  const mat = p.inv.hammer && (p.inv.plank || 0) > 0 && (p.inv.nails || 0) >= 2;
+  if (mat && (!B || B.n < 4)) return { label: `Заколотить ${what}${B ? ` · ${B.n}/4` : ""}`, run: () => {
+    for (let k = 0; k < 3; k++) sfx("whack", { vol: .45, rate: 1.4, delay: k * .45, rv: .1, cap: 4 });
+    noise(p.x, p.y, 9 * noiseMul());
+    startTask("Заколачиваю", isProf("carpenter") ? 1.5 : 3, () => {
+      p.inv.plank--; p.inv.nails -= 2;
+      const side = (o.ax === "h" ? Math.sign(p.y - o.y) : Math.sign(p.x - o.x)) || 1;
+      setBarr(o, (B ? B.n : 0) + 1, side); sfx("whack", { vol: .5, rate: 1.3 });
+      if (!world.events.has("barrTip")) { world.events.add("barrTip"); toast("Доски держат зомби и закрывают обзор. До 4 досок на проём", true); }
+    });
+  } };
+  if (B && p.inv.hammer) return { label: `Снять доски · ${B.n}/4`, run: () => startTask("Отдираю доски", 2, () => { setBarr(o, B.n - 1, B.side); p.inv.plank = (p.inv.plank || 0) + 1; noise(p.x, p.y, 6); }) };
+  if (!mat && (p.inv.hammer || p.inv.plank) && !B) return { label: "Нужны молоток, доски, гвозди", run: () => toast(`Есть: молоток ${p.inv.hammer ? "✓" : "✗"}, доски ${p.inv.plank || 0}, гвозди ${p.inv.nails || 0} (2 на доску)`) };
+  return null;
+}
+// wooden furniture comes apart into planks
+const WOODY = new Set(["table", "ctable", "wardrobe", "desk", "bookshelf", "crate", "shelf", "workbench", "pew"]);
+function dismantleAction() {
+  const p = world.player; if (!p.inv.hammer) return null;
+  for (const f of world.map.furn) {
+    if (!WOODY.has(f.kind) || f.dis || (f.cont && !f.cont.searched)) continue;
+    const cx = (f.x0 + f.x1) / 2, cy = (f.y0 + f.y1) / 2;
+    if (Math.abs(cx - p.x) > 1.4 || Math.abs(cy - p.y) > 1.4 || Math.hypot(cx - p.x, cy - p.y) > 1.15 || !los(p.x, p.y, cx, cy, true)) continue;
+    return { label: "Разобрать на доски", run: () => { noise(p.x, p.y, 8 * noiseMul()); for (let k = 0; k < 3; k++) sfx("whack", { vol: .4, rate: 1.1, delay: k * .6, cap: 4 }); startTask("Разбираю", 3.5, () => { f.dis = true; const n = f.kind === "crate" || f.kind === "shelf" ? 2 : 3; p.inv.plank = (p.inv.plank || 0) + n; p.inv.nails = (p.inv.nails || 0) + ri(0, 2); toast(`+${n} доски`); }); } };
+  }
+  return null;
+}
+// a zombie that cannot reach you goes for the nearest window or door of the house you are in
+function siegeTarget(z, d, dt) {
+  const Wd = world, p = Wd.player;
+  if (!cfg().siege || d > 16) { z.sg = null; return null; }
+  const pb = buildingAt(p.x, p.y);
+  if (!pb || buildingAt(z.x, z.y) === pb) { z.sg = null; return null; }
+  if (!z.sg || z.sg.b !== pb) {
+    let best = null, bd = 1e9;
+    for (const o of openingsOf(pb)) { const dd = Math.hypot(o.ox - z.x, o.oy - z.y) + Math.hypot(o.x - p.x, o.y - p.y) * .6; if (dd < bd) { bd = dd; best = o; } }
+    z.sg = { b: pb, o: best }; z.bangT = rand(.4, 1.2);
+  }
+  const o = z.sg.o; if (!o) return null;
+  if (Math.hypot(o.ox - z.x, o.oy - z.y) > .5) return { x: o.ox, y: o.oy };
+  z.dir = Math.atan2(o.y - z.y, o.x - z.x);
+  z.bangT -= dt;
+  if (z.bangT <= 0 && z.atkT <= 0) { z.bangT = rand(1.1, 1.7); z.atkT = .35; bang(o, z); }
+  return { x: z.x, y: z.y };
+}
+function bang(o, z) {
+  const Wd = world, p = Wd.player, B = (Wd.barr || {})[o.k];
+  sfx(B ? "whack" : o.c === 2 ? "crash" : "whack", { x: o.x, y: o.y, range: 26, vol: .75, rate: B ? .75 : 1.3, rv: .12, cap: 6 });
+  noise(o.x, o.y, 5);
+  if (p.sleep && Math.hypot(o.x - p.x, o.y - p.y) < 16) wake("Тебя разбудил грохот!");
+  if (B) {
+    B.hp -= 1;
+    if (B.hp <= (B.n - 1) * plankHp()) { setBarr(o, B.n - 1, B.side); sfx("chop", { x: o.x, y: o.y, vol: .6, rate: .8 }); if (!Wd.events.has("planks")) { Wd.events.add("planks"); toast("Доски трещат! Они ломятся в дом", true); setTimeout(() => world && world.events.delete("planks"), 15000); } }
+  } else if (o.c === 2 && !(Wd.broken || {})[o.k]) {
+    Wd.winHp = Wd.winHp || {}; Wd.winHp[o.k] = (Wd.winHp[o.k] ?? 3) - 1;
+    if (Wd.winHp[o.k] <= 0) { breakWindow(o); toast("Зомби выбили окно!", true); }
+  } else z.sg = null;
+}
+
+// ---------- 3D boards over the openings
+const openingBld = o => { const b = o.ax === "h" ? buildingAt(o.i + .5, o.j + .5) || buildingAt(o.i + .5, o.j - .5) : buildingAt(o.i + .5, o.j + .5) || buildingAt(o.i - .5, o.j + .5); return b ? b.id : -1; };
+function boards3D() {
+  if (!T3.ok) return;
+  if (T3.boards) { T3.scene.remove(T3.boards); T3.boards.traverse(o => o.geometry && o.geometry.dispose()); }
+  const g = new THREE.Group(), Wd = world, mat = T3.mats.boardM || (T3.mats.boardM = new THREE.MeshStandardMaterial({ color: LC("#7a5c3c"), roughness: .85 }));
+  const geo = new THREE.BoxGeometry(1, 1, 1);
+  for (const [k, v] of Object.entries(Wd.barr || {})) {
+    const o = findOpening(k), door = o.c === 4, y0 = door ? .35 : 1.05, y1 = door ? 1.95 : 1.95;
+    for (let n = 0; n < v.n; n++) {
+      const m = new THREE.Mesh(geo, mat), h = y0 + (y1 - y0) * (n + .5) / 4, tilt = (hash(o.i * 3.1 + n, o.j * 1.7) - .5) * .5;
+      m.scale.set(U * 1.05, .16, .045); m.castShadow = true; m.receiveShadow = true; m.userData.bid = openingBld(o);
+      if (o.ax === "h") { m.position.set((o.i + .5) * U, FLOOR + h, o.j * U + v.side * .13); m.rotation.z = tilt; }
+      else { m.position.set(o.i * U + v.side * .13, FLOOR + h, (o.j + .5) * U); m.rotation.y = Math.PI / 2; m.rotation.x = tilt; }
+      g.add(m);
+    }
+  }
+  // smashed panes: a few dark shards left in the frame
+  for (const k of Object.keys(Wd.broken || {})) {
+    const o = findOpening(k), m = new THREE.Mesh(geo, T3.mats.shardM || (T3.mats.shardM = new THREE.MeshStandardMaterial({ color: 0x0a0c10, roughness: .2, metalness: .3 })));
+    m.scale.set(U * .9, .06, .03); m.userData.bid = openingBld(o);
+    if (o.ax === "h") m.position.set((o.i + .5) * U, FLOOR + 1.02, o.j * U); else { m.position.set(o.i * U, FLOOR + 1.02, (o.j + .5) * U); m.rotation.y = Math.PI / 2; }
+    g.add(m);
+  }
+  T3.boards = g; T3.scene.add(g);
+}
+
 // ================= loop =================
 let last = performance.now();
 function frame(now) {
@@ -7404,7 +7787,7 @@ function frame(now) {
   if (now - last < 1000 / target - 4) return;
   T3.fpsT = target;
   const dt = Math.min(.05, (now - last) / 1000); last = now;
-  if (!paused && world.mode !== "dead") update(dt);
+  if (!paused && world.mode !== "dead") { const reps = world.mode === "play" && world.player.sleep ? 10 : 1; for (let r = 0; r < reps; r++) { update(dt); if (world.mode !== "play" || !world.player.sleep) break; } }
   if (!paused) stepRain(dt);
   if (T3.ok) render3D(now / 1000, paused ? 0 : dt); else draw(now / 1000);
 }
