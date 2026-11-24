@@ -151,3 +151,20 @@ I — рюкзак, M — карта, Q — сменить оружие, R — �
 
 Откройте страницу в Safari → «Поделиться» → «На экран „Домой“».
 Игра будет открываться во весь экран, как приложение.
+
+## Звук
+
+Все звуки — настоящие записи, встроены в страницу (≈0,7 МБ MP3) и декодируются после первого касания.
+Звук позиционный: дальние выстрелы и стоны тише, глуше и смещены влево-вправо, в помещении всё приглушено.
+Шаги звучат по-разному на асфальте, дереве, траве, земле и снегу. Дождь, ветер и ночные сверчки идут петлями.
+
+Авторы:
+
+- Oculus Audio Pack © 2015 Oculus VR, LLC — [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/),
+  из [facebookincubator/Meta-open-sound](https://github.com/facebookincubator/Meta-open-sound):
+  удары, кости, кровь, шаги, крики и голоса, двери и мотор машины, гильзы, дождь, собаки.
+- «Zombies Sound Pack» — artisticdude, [OpenGameArt](https://opengameart.org/content/zombies-sound-pack), CC0: голоса зомби.
+- Выстрелы пистолета и автомата — [Fesliyan Studios](https://www.fesliyanstudios.com/royalty-free-sound-effects-download), royalty-free.
+- Гром, ветер, сверчки, скрип, далёкий взрыв — Freesound, CC0 (loganzsound, Kragnour, keweldog, sengjinn и др.).
+
+Звуки обрезаны, нормализованы по громкости и пережаты в моно MP3.
