@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Квартал">
-<meta name="theme-color" content="#0d1120">
+<meta name="theme-color" content="#050303">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -17,7 +17,7 @@
 <style>
 /* Layout: landscape-first full-screen isometric canvas; glass HUD along the top edge, thumb controls in the bottom corners. Single dark look by choice (a town after dark). */
 :root {
-  --night: #0d1120;
+  --night: #050303;
   --panel: rgba(17, 21, 36, .72);
   --panel-solid: #161b2c;
   --line: rgba(255, 255, 255, .13);
@@ -189,6 +189,7 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 
+<div id="boot" style="position:fixed;inset:0;z-index:99;background:#050303;transition:opacity .5s"></div>
 <div id="game">
   <canvas id="cv" aria-label="Игровое поле"></canvas>
   <div class="vignette"></div>
@@ -8086,6 +8087,7 @@ function boards3D() {
 let last = performance.now();
 function frame(now) {
   requestAnimationFrame(frame);
+  if (window.innerWidth !== lastIW || window.innerHeight !== lastIH) recheckSize();
   if (!world) return;
   // frame cap: 30 fps by default keeps the phone cool; menus and the pause screen tick at 12 fps
   const target = paused ? 12 : world.mode === "play" ? (settings.fps || 30) : 30;
@@ -8101,7 +8103,7 @@ window.addEventListener("resize", () => { resize(); if (!$("#mapModal").hidden) 
 let lastIW = 0, lastIH = 0;
 const recheckSize = () => { if (window.innerWidth !== lastIW || window.innerHeight !== lastIH || ROT !== (window.innerHeight > window.innerWidth * 1.05 && matchMedia("(pointer: coarse)").matches)) { lastIW = window.innerWidth; lastIH = window.innerHeight; resize(); } };
 window.addEventListener("orientationchange", () => { setTimeout(recheckSize, 120); setTimeout(recheckSize, 500); });
-setInterval(recheckSize, 500);
+setInterval(recheckSize, 250);
 game.classList.toggle("lefty", !!settings.lefty);
 // ================= intro: tap for sound, an emergency broadcast, then the logo =================
 // a dry heartbeat and radio crackle made on the spot
@@ -8136,6 +8138,8 @@ function playIntro() {
 #intro .itap { position: absolute; bottom: calc(var(--sb) + 18px); font: 600 12px Rubik, system-ui, sans-serif; letter-spacing: .3em; text-transform: uppercase; color: #a39a8c; opacity: 1; animation: tblink 1.6s ease-in-out infinite; transition: opacity .6s; }
 #intro.go:not(.ready) .itap { opacity: 0; animation: none; }`;
   document.head.append(st); titleCss(); $("#game").append(o);
+  // the black boot cover hands over to the (equally black) intro
+  recheckSize(); requestAnimationFrame(() => { const bt = $("#boot"); if (bt) { bt.style.opacity = 0; setTimeout(() => bt.remove(), 600); } });
   const lines = ["Экстренное вещание · округ Ноксвилл", "…всем жителям оставаться в своих домах.", "…не открывайте двери. Не выходите на улицу.", "…эвакуация прекращена. Помощь не придёт."];
   const box = o.querySelector(".ilines"), timers = [];
   const later = (ms, fn) => timers.push(setTimeout(fn, ms));
