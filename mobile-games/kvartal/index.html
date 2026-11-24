@@ -504,21 +504,31 @@ const chunkCache = new Map();
 let ROT = false;
 function applyRot() {
   const coarse = window.matchMedia && matchMedia("(pointer: coarse)").matches;
-  const iw = window.innerWidth, ih = window.innerHeight, rot = coarse && ih > iw * 1.05, s = game.style;
+  // an iPhone home-screen app can keep a stale viewport after turning (a strip the height of the status bar is left empty):
+  // there the physical screen size is the truth
+  const standalone = window.navigator.standalone === true || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+  const sw = Math.min(window.screen.width, window.screen.height), sh = Math.max(window.screen.width, window.screen.height), useScreen = standalone && coarse && sw > 0;
+  const landNow = window.matchMedia ? matchMedia("(orientation: landscape)").matches : window.innerWidth > window.innerHeight;
+  const iw = useScreen ? (landNow ? sh : sw) : window.innerWidth, ih = useScreen ? (landNow ? sw : sh) : window.innerHeight;
+  const rot = coarse && ih > iw * 1.05, s = game.style;
   ROT = rot; game.classList.toggle("rot", rot);
   if (rot) {
     Object.assign(s, { inset: "auto", left: iw + "px", top: "0px", width: ih + "px", height: iw + "px", transformOrigin: "0 0", transform: "rotate(90deg)" });
     // the screen's top (the notch) becomes the game's left edge, its bottom (home bar) the game's right edge
     s.setProperty("--sl", "max(12px, env(safe-area-inset-top, 0px))"); s.setProperty("--sr", "max(12px, env(safe-area-inset-bottom, 0px))");
     s.setProperty("--st", "calc(env(safe-area-inset-right, 0px) + 8px)"); s.setProperty("--sb", "calc(env(safe-area-inset-left, 0px) + 12px)");
+  } else if (useScreen) {
+    Object.assign(s, { inset: "auto", left: "0px", top: "0px", width: iw + "px", height: ih + "px", transformOrigin: "", transform: "" });
+    for (const k of ["--sl", "--sr", "--st", "--sb"]) s.removeProperty(k);
   } else {
     Object.assign(s, { inset: "", left: "", top: "", width: "", height: "", transformOrigin: "", transform: "" });
     for (const k of ["--sl", "--sr", "--st", "--sb"]) s.removeProperty(k);
   }
 }
 // pointer position and element box in the game's own (unrotated) coordinates
-const lpt = e => ROT ? { x: e.clientY, y: window.innerWidth - e.clientX } : { x: e.clientX, y: e.clientY };
-const lrect = el => { const r = el.getBoundingClientRect(); return ROT ? { left: r.top, top: window.innerWidth - r.right, width: r.height, height: r.width } : r; };
+const gameLeft = () => parseFloat(game.style.left) || window.innerWidth;
+const lpt = e => ROT ? { x: e.clientY, y: gameLeft() - e.clientX } : { x: e.clientX, y: e.clientY };
+const lrect = el => { const r = el.getBoundingClientRect(); return ROT ? { left: r.top, top: gameLeft() - r.right, width: r.height, height: r.width } : r; };
 function resize() {
   applyRot();
   W = game.clientWidth; H = game.clientHeight;
@@ -8134,7 +8144,8 @@ function frame(now) {
 window.addEventListener("resize", () => { resize(); if (!$("#mapModal").hidden) renderMap(false); });
 // iOS can report the old size while the phone turns (or at launch): check again after rotation and every half second
 let lastIW = 0, lastIH = 0;
-const recheckSize = () => { if (window.innerWidth !== lastIW || window.innerHeight !== lastIH || ROT !== (window.innerHeight > window.innerWidth * 1.05 && matchMedia("(pointer: coarse)").matches)) { lastIW = window.innerWidth; lastIH = window.innerHeight; resize(); } };
+let lastLand = null;
+const recheckSize = () => { const land = matchMedia("(orientation: landscape)").matches; if (window.innerWidth !== lastIW || window.innerHeight !== lastIH || land !== lastLand) { lastIW = window.innerWidth; lastIH = window.innerHeight; lastLand = land; resize(); } };
 window.addEventListener("orientationchange", () => { setTimeout(recheckSize, 120); setTimeout(recheckSize, 500); });
 setInterval(recheckSize, 250);
 game.classList.toggle("lefty", !!settings.lefty);
@@ -8253,7 +8264,7 @@ function playIntro() {
   const begin = () => {
     stage = 1; o.classList.add("go"); unlockAudio(); musicLv = .62; o.querySelector(".itap").textContent = "Коснись экрана";
     // Android allows locking the screen sideways once the page is full screen (iPhone does not: there the game turns itself)
-    try { const el = document.documentElement, fs = el.requestFullscreen || el.webkitRequestFullscreen; if (fs && !document.fullscreenElement && !/iPhone|iPad|iPod/.test(navigator.userAgent)) { const pr = fs.call(el); const lock = () => { try { const q = screen.orientation && screen.orientation.lock && screen.orientation.lock("landscape"); if (q && q.catch) q.catch(() => {}); } catch (e) {} }; if (pr && pr.then) pr.then(lock).catch(() => {}); else lock(); } } catch (e) {}
+    try { const el = document.documentElement, fs = el.requestFullscreen || el.webkitRequestFullscreen; if (fs && !document.fullscreenElement && !/iPhone|iPad|iPod/.test(navigator.userAgent)) { const pr = fs.call(el); const lock = () => { try { const so = window.screen.orientation, q = so && so.lock && so.lock("landscape"); if (q && q.catch) q.catch(() => {}); } catch (e) {} }; if (pr && pr.then) pr.then(lock).catch(() => {}); else lock(); } } catch (e) {}
     if (seen) { later(600, showLogo); return; }
     later(900, () => { stage = 2; startBeat(); typeLine(0); });
   };
