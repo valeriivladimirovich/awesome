@@ -8178,6 +8178,8 @@ function playIntro() {
   // the first tap wakes the sound; then the broadcast (first launch) or just the logo
   const begin = () => {
     stage = 1; o.classList.add("go"); unlockAudio(); musicLv = .62;
+    // Android allows locking the screen sideways once the page is full screen (iPhone does not: there the game turns itself)
+    try { const el = document.documentElement, fs = el.requestFullscreen || el.webkitRequestFullscreen; if (fs && !document.fullscreenElement && !/iPhone|iPad|iPod/.test(navigator.userAgent)) { const pr = fs.call(el); const lock = () => { try { const q = screen.orientation && screen.orientation.lock && screen.orientation.lock("landscape"); if (q && q.catch) q.catch(() => {}); } catch (e) {} }; if (pr && pr.then) pr.then(lock).catch(() => {}); else lock(); } } catch (e) {}
     if (seen) { later(600, showLogo); return; }
     later(900, () => { stage = 2; startBeat(); typeLine(0); });
   };
