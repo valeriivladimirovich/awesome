@@ -499,7 +499,27 @@ let W = 0, H = 0, dpr = 1, S = 1, K = 1, gs = 1;
 let world = null, paused = false, allowPortrait = false, frameNo = 0;
 const chunkCache = new Map();
 
+// a phone held upright gets the landscape game turned on its side: nobody has to rotate the phone
+let ROT = false;
+function applyRot() {
+  const coarse = window.matchMedia && matchMedia("(pointer: coarse)").matches;
+  const iw = window.innerWidth, ih = window.innerHeight, rot = coarse && ih > iw * 1.05, s = game.style;
+  ROT = rot; game.classList.toggle("rot", rot);
+  if (rot) {
+    Object.assign(s, { inset: "auto", left: iw + "px", top: "0px", width: ih + "px", height: iw + "px", transformOrigin: "0 0", transform: "rotate(90deg)" });
+    // the screen's top (the notch) becomes the game's left edge, its bottom (home bar) the game's right edge
+    s.setProperty("--sl", "max(12px, env(safe-area-inset-top, 0px))"); s.setProperty("--sr", "max(12px, env(safe-area-inset-bottom, 0px))");
+    s.setProperty("--st", "calc(env(safe-area-inset-right, 0px) + 8px)"); s.setProperty("--sb", "calc(env(safe-area-inset-left, 0px) + 12px)");
+  } else {
+    Object.assign(s, { inset: "", left: "", top: "", width: "", height: "", transformOrigin: "", transform: "" });
+    for (const k of ["--sl", "--sr", "--st", "--sb"]) s.removeProperty(k);
+  }
+}
+// pointer position and element box in the game's own (unrotated) coordinates
+const lpt = e => ROT ? { x: e.clientY, y: window.innerWidth - e.clientX } : { x: e.clientX, y: e.clientY };
+const lrect = el => { const r = el.getBoundingClientRect(); return ROT ? { left: r.top, top: window.innerWidth - r.right, width: r.height, height: r.width } : r; };
 function resize() {
+  applyRot();
   W = game.clientWidth; H = game.clientHeight;
   dpr = Math.min(window.devicePixelRatio || 1, settings.quality === "ultra" ? 3 : settings.quality === "high" ? 2 : 1.25);
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
@@ -1977,7 +1997,7 @@ function grade(m) {
 const input = { jx: 0, jy: 0, id: null, ox: 0, oy: 0, keys: new Set() };
 const joy = $("#joy"), stick = $("#stick"), knob = $("#knob");
 function placeStickIdle() {
-  const r = joy.getBoundingClientRect();
+  const r = lrect(joy);
   stick.style.left = (settings.lefty ? r.width - 120 : 120) + "px";
   stick.style.top = (r.height - 100) + "px";
   stick.classList.add("idle"); knob.style.transform = "";
@@ -1986,14 +2006,14 @@ joy.addEventListener("pointerdown", e => {
   if (input.id !== null) return;
   unlockAudio();
   input.id = e.pointerId; try { joy.setPointerCapture(e.pointerId); } catch (er) {}
-  const r = joy.getBoundingClientRect();
-  input.ox = e.clientX; input.oy = e.clientY;
-  stick.style.left = (e.clientX - r.left) + "px"; stick.style.top = (e.clientY - r.top) + "px";
+  const r = lrect(joy), q = lpt(e);
+  input.ox = q.x; input.oy = q.y;
+  stick.style.left = (q.x - r.left) + "px"; stick.style.top = (q.y - r.top) + "px";
   stick.classList.remove("idle");
 });
 joy.addEventListener("pointermove", e => {
   if (e.pointerId !== input.id) return;
-  let dx = e.clientX - input.ox, dy = e.clientY - input.oy;
+  const q = lpt(e); let dx = q.x - input.ox, dy = q.y - input.oy;
   const d = Math.hypot(dx, dy), max = 50;
   if (d > max) { dx *= max / d; dy *= max / d; }
   knob.style.transform = `translate(${dx}px, ${dy}px)`;
@@ -7131,7 +7151,7 @@ function buildFog() {
 function renderMap(rebuild = true) {
   if (!world) return;
   if (rebuild) { mapState.base = buildMapBase(); mapState.fog = buildFog(); }
-  const r = mapCv.getBoundingClientRect(), md = Math.min(window.devicePixelRatio || 1, 2);
+  const r = lrect(mapCv), md = Math.min(window.devicePixelRatio || 1, 2);
   mapCv.width = Math.max(1, Math.round(r.width * md)); mapCv.height = Math.max(1, Math.round(r.height * md));
   const c = mctx, cw = mapCv.width, chh = mapCv.height;
   c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = "#0c0f1a"; c.fillRect(0, 0, cw, chh);
@@ -7200,7 +7220,7 @@ function renderMap(rebuild = true) {
 // touch gestures: one finger pans, two fingers pinch-zoom around their midpoint, double tap zooms in
 const mPtrs = new Map();
 let mGest = null, lastTap = 0;
-const mapBase = () => { const r = mapCv.getBoundingClientRect(); return { r, base: Math.max(Math.min(r.width, r.height), Math.max(r.width, r.height) * .6) / (N * 1.45) }; };
+const mapBase = () => { const r = lrect(mapCv); return { r, base: Math.max(Math.min(r.width, r.height), Math.max(r.width, r.height) * .6) / (N * 1.45) }; };
 const scrToWorld = (sx, sy, sc) => [(sx + sy) * Math.SQRT1_2 / sc, (sy - sx) * Math.SQRT1_2 / sc];
 function mapGestureStart() {
   const { r, base } = mapBase(), pts = [...mPtrs.values()];
@@ -7221,12 +7241,12 @@ function mapGestureMove() {
 }
 mapCv.addEventListener("pointerdown", e => {
   e.preventDefault();
-  mPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  mPtrs.set(e.pointerId, lpt(e));
   try { mapCv.setPointerCapture(e.pointerId); } catch (er) {}
   const now = performance.now();
   if (mPtrs.size === 1 && now - lastTap < 300) {
     // double tap: zoom in around the tapped point
-    const { r, base } = mapBase(), mx = e.clientX - r.left - r.width / 2, my = e.clientY - r.top - r.height / 2;
+    const { r, base } = mapBase(), q = lpt(e), mx = q.x - r.left - r.width / 2, my = q.y - r.top - r.height / 2;
     const [wx0, wy0] = scrToWorld(mx, my, base * mapState.zoom), px = mapState.cx + wx0, py = mapState.cy + wy0;
     mapState.zoom = clamp(mapState.zoom * 2, 1, 8);
     const [wx1, wy1] = scrToWorld(mx, my, base * mapState.zoom);
@@ -7235,7 +7255,7 @@ mapCv.addEventListener("pointerdown", e => {
   } else lastTap = now;
   mapGestureStart();
 });
-mapCv.addEventListener("pointermove", e => { if (!mPtrs.has(e.pointerId)) return; mPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); mapGestureMove(); });
+mapCv.addEventListener("pointermove", e => { if (!mPtrs.has(e.pointerId)) return; mPtrs.set(e.pointerId, lpt(e)); mapGestureMove(); });
 const endPtr = e => { mPtrs.delete(e.pointerId); mapGestureStart(); };
 mapCv.addEventListener("pointerup", endPtr); mapCv.addEventListener("pointercancel", endPtr);
 mapCv.addEventListener("wheel", e => { e.preventDefault(); mapState.zoom = clamp(mapState.zoom * (e.deltaY < 0 ? 1.2 : 1 / 1.2), 1, 6); renderMap(false); }, { passive: false });
@@ -7430,12 +7450,8 @@ function gameOver() {
   $("#menu").addEventListener("click", () => rebuild(() => showTitle(false)));
 }
 function checkOrientation() {
-  const coarse = window.matchMedia && matchMedia("(pointer: coarse)").matches;
-  const portrait = H > W * 1.05 && coarse && !allowPortrait;
-  const r = $("#rotate"), was = !r.hidden;
-  r.hidden = !portrait;
-  if (portrait && world && world.mode === "play" && !anyModal()) openModal("pauseModal");
-  if (was && !portrait) placeStickIdle();
+  const r = $("#rotate"); if (r) r.hidden = true;
+  if (world && world.mode === "play") placeStickIdle();
 }
 document.addEventListener("visibilitychange", () => { if (document.hidden) saveGame(); });
 window.addEventListener("pagehide", () => saveGame());
@@ -7559,7 +7575,7 @@ const SANDBOX = [
   ["pop", "Сколько их", [["low", "Мало"], ["normal", "Обычно"], ["high", "Много"]]],
   ["loot", "Добыча", [["rare", "Редко"], ["normal", "Обычно"], ["plenty", "Щедро"]]],
   ["infect", "Укус", [["deadly", "Смертелен"], ["cure", "Лечится"], ["off", "Не заражает"]]],
-  ["power", "Свет отключат", [[3, "На 3-й день"], [7, "На 7-й"], [14, "На 14-й"], [0, "Никогда"]]],
+  ["power", "Свет отключат", [[3, "3-й день"], [7, "7-й день"], [14, "14-й день"], [0, "Никогда"]]],
   ["siege", "Ломают дома", [[true, "Да"], [false, "Нет"]]]
 ];
 const PRESETS = {
@@ -7571,6 +7587,27 @@ const PRESETS = {
 const cfg = () => (world && world.cfg) || PRESETS.normal.v;
 const runnerChance = base => cfg().zspeed === "slow" ? 0 : cfg().zspeed === "fast" ? 1 : base;
 
+// ---------- portraits for the professions: small busts, one detail that tells who they were
+const PORTRAIT = (() => {
+  const bust = (body, head, extra = "", skin = "#c99a78") => `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><radialGradient id="pbg" cx="50%" cy="38%" r="70%"><stop offset="0" stop-color="#3a2a24"/><stop offset="1" stop-color="#140e0c"/></radialGradient></defs>
+<rect width="64" height="64" rx="12" fill="url(#pbg)"/>${body}<path d="M27 40h10v6H27z" fill="${skin}" opacity=".9"/><ellipse cx="32" cy="30" rx="9.5" ry="11" fill="${skin}"/><path d="M26.5 31.5h3M34.5 31.5h3" stroke="#2a1c16" stroke-width="1.6" stroke-linecap="round"/>${head}${extra}<rect width="64" height="64" rx="12" fill="none" stroke="rgba(208,69,58,.35)"/></svg>`;
+  const shoulders = c => `<path d="M8 64c1-12 9-19 24-19s23 7 24 19z" fill="${c}"/>`;
+  return {
+    unemployed: bust(`<path d="M18 30c0-11 6-18 14-18s14 7 14 18l2 34H16z" fill="#4b5058"/>${shoulders("#5a6068")}<path d="M29 46l-1 9M35 46l1 9" stroke="#c9ccd0" stroke-width="1.4"/>`,
+      `<path d="M23 24c1-7 5-10 9-10s8 3 9 10c-3-3-6-4-9-4s-6 1-9 4z" fill="#3a2e28"/><path d="M26 37c2 2 4 3 6 3s4-1 6-3" stroke="#6a5446" stroke-width="2.2" fill="none" opacity=".7"/>`),
+    police: bust(`${shoulders("#1f3354")}<path d="M28 45l4 6 4-6" fill="#c9d2e0"/><path d="M42 52l2.5 1.5 2.5-1.5-.6 2.8 2 2-2.8.2-1.1 2.6-1.1-2.6-2.8-.2 2-2z" fill="#e0b84a"/>`,
+      `<path d="M21 23c2-6 6-9 11-9s9 3 11 9z" fill="#18263f"/><path d="M19 23.5h26l-2.5 3.5H21.5z" fill="#0e1828"/><circle cx="32" cy="19" r="2.2" fill="#e0b84a"/>`),
+    carpenter: bust(`${shoulders("#8a3a2a")}<path d="M14 54h36M20 49v15M44 49v15M32 46v18" stroke="#5a2418" stroke-width="2"/><path d="M47 38l9 9-3 3-9-9z" fill="#b8a27a"/><path d="M45 36l5-5 4 4-5 5z" fill="#6a6e74"/>`,
+      `<path d="M21 25c0-7 5-12 11-12s11 5 11 12z" fill="#e0a82e"/><path d="M19 25h26v2.5H19z" fill="#c08a1e"/><path d="M31 13h2v12h-2z" fill="#c08a1e"/>`),
+    mechanic: bust(`${shoulders("#3d5566")}<path d="M24 46v18M40 46v18" stroke="#2c3e4a" stroke-width="3"/><circle cx="24" cy="51" r="1.5" fill="#c9ccd0"/><circle cx="40" cy="51" r="1.5" fill="#c9ccd0"/><path d="M9 40l7 7M8 38a3 3 0 1 0 4 4" stroke="#a8aeb6" stroke-width="2.6" stroke-linecap="round" fill="none"/>`,
+      `<path d="M22 24c1-6 5-10 10-10s9 4 10 10z" fill="#a8302a"/><path d="M22 24h18l-1 2.5H22z" fill="#7a2420"/><path d="M27 34c1 1 2 1 3 0" stroke="#3a2a22" stroke-width="1.2"/><path d="M36 35l3 1" stroke="#2a2a2a" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>`),
+    doctor: bust(`${shoulders("#e4e1da")}<path d="M27 45l5 8 5-8z" fill="#3d8a86"/><path d="M26 46c-3 6-1 11 3 12M38 46c3 6 1 11-3 12" stroke="#2a2a2a" stroke-width="1.6" fill="none"/><circle cx="32" cy="58.5" r="2.4" fill="#8a8f96"/><path d="M45 50h6M48 47v6" stroke="#c23b3b" stroke-width="2.4"/>`,
+      `<path d="M22 27c-1-9 4-14 10-14s11 5 10 14c-2-5-5-7-10-7s-8 2-10 7z" fill="#5a3a24"/><path d="M26 30.5h4.5v2.5H26zM33.5 30.5H38v2.5h-4.5z" fill="none" stroke="#1c1c1c" stroke-width="1"/>`),
+    fireman: bust(`${shoulders("#7a6a42")}<path d="M10 55h44M10 59h44" stroke="#e0c02e" stroke-width="2.2"/><path d="M10 57h44" stroke="#d8dadc" stroke-width="1"/>`,
+      `<path d="M20 25c0-8 5-13 12-13s12 5 12 13z" fill="#b02a26"/><path d="M15 25c5-2 29-2 34 0l-2 3c-6-1.5-24-1.5-30 0z" fill="#8a1e1a"/><path d="M29 15h6v7h-6z" fill="#e0c02e"/><path d="M26 38c2 1 4 2 6 2s4-1 6-2" stroke="#5a4636" stroke-width="1.4" fill="none" opacity=".6"/>`, "", "#b98a68")
+  };
+})();
+
 // ---------- the new-game screen
 function newGameDefaults() { return Object.assign({ prof: "unemployed", traits: [], preset: "normal", sb: Object.assign({}, PRESETS.normal.v) }, store.get("newgame", {})); }
 function traitPoints(ng) { return (ng.prof === "unemployed" ? 8 : 0) - ng.traits.reduce((a, k) => a + TRAITS[k].cost, 0); }
@@ -7581,11 +7618,11 @@ function openNewGame() {
     const btn = (on, txt, data, sub = "") => `<button class="ngb${on ? " on" : ""}" ${data}>${txt}${sub ? `<small>${sub}</small>` : ""}</button>`;
     screen.innerHTML = `<div class="box ngbox">
       <span class="eyebrow">Новая игра</span><h1 style="margin:0 0 4px">Кем ты был до конца света</h1>
-      <h3>Профессия</h3><div class="nggrid">${Object.entries(PROFS).map(([k, v]) => btn(ng.prof === k, v.name, `data-prof="${k}"`, v.desc)).join("")}</div>
+      <h3>Профессия</h3><div class="nggrid profs">${Object.entries(PROFS).map(([k, v]) => `<button class="ngb prof${ng.prof === k ? " on" : ""}" data-prof="${k}"><span class="pimg">${PORTRAIT[k]}</span><span class="ptx">${v.name}<small>${v.desc}</small></span></button>`).join("")}</div>
       <h3>Черты <span class="pts${pts < 0 ? " bad" : ""}">очков: ${pts}</span></h3>
       <div class="nggrid small">${Object.entries(TRAITS).map(([k, v]) => btn(ng.traits.includes(k), `${v.name} <i>${v.cost > 0 ? "−" + v.cost : "+" + -v.cost}</i>`, `data-tr="${k}"`, v.desc)).join("")}</div>
       <h3>Мир</h3><div class="nggrid small">${Object.entries(PRESETS).map(([k, v]) => btn(ng.preset === k, v.name, `data-pre="${k}"`)).join("")}</div>
-      <div class="ngopts">${SANDBOX.map(([key, label, opts]) => `<div class="row"><span>${label}</span><div class="seg">${opts.map(([v, t]) => `<button data-sb="${key}" data-v='${JSON.stringify(v)}' aria-pressed="${ng.sb[key] === v}">${t}</button>`).join("")}</div></div>`).join("")}</div>
+      <div class="ngopts">${SANDBOX.map(([key, label, opts]) => `<div class="row"><span>${label}</span><div class="seg" style="--n:${opts.length}">${opts.map(([v, t]) => `<button data-sb="${key}" data-v='${JSON.stringify(v)}' aria-pressed="${ng.sb[key] === v}">${t}</button>`).join("")}</div></div>`).join("")}</div>
       <div class="btns"><button class="big" id="ngGo"${pts < 0 ? " disabled" : ""}>Начать</button><button class="big ghost" id="ngBack">Назад</button></div>
     </div>`;
     screen.querySelectorAll("[data-prof]").forEach(b => b.addEventListener("click", () => { ng.prof = b.dataset.prof; render(); }));
@@ -7610,9 +7647,14 @@ function openNewGame() {
 .ngb small { display: block; font-weight: 400; font-size: 11.5px; color: var(--muted); margin-top: 2px; line-height: 1.3; }
 .ngb i { font-style: normal; color: var(--amber); font-size: 12px; margin-left: 4px; }
 .ngb.on { border-color: var(--amber); background: rgba(242,165,65,.14); }
-.ngopts .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 4px 0; font-size: 14px; }
-.ngopts .seg { display: flex; gap: 3px; background: rgba(255,255,255,.06); border-radius: 11px; padding: 3px; }
-.ngopts .seg button { padding: 6px 9px; border-radius: 8px; background: transparent; color: var(--muted); font-size: 13px; white-space: nowrap; }
+.ngopts { display: grid; gap: 6px; }
+.ngopts .row { display: grid; grid-template-columns: minmax(110px, 170px) 1fr; align-items: center; gap: 12px; font-size: 14px; }
+.ngopts .seg { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; background: rgba(255,255,255,.06); border-radius: 11px; padding: 3px; }
+.ngopts .seg button { min-width: 0; padding: 7px 4px; border-radius: 8px; background: transparent; color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+.nggrid.profs { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.ngb.prof { display: grid; grid-template-columns: 58px 1fr; gap: 10px; align-items: center; padding: 8px; }
+.ngb.prof .pimg svg { width: 58px; height: 58px; display: block; }
+.ngb.prof.on .pimg svg rect:last-child { stroke: var(--amber); stroke-width: 2; }
 .ngopts .seg button[aria-pressed="true"] { background: var(--amber); color: #1b1408; font-weight: 500; }
 .ngbox .btns { margin-top: 12px; } .ngbox #ngGo[disabled] { opacity: .4; }`;
     document.head.append(st);
