@@ -1,6 +1,6 @@
 // offline cache. The page itself is fetched fresh whenever there is a connection (so updates show at once);
 // the saved copy is used only offline or when the network is too slow. Libraries and icons come from the cache.
-const CACHE = "kvartal-6dd6b1027d";
+const CACHE = "kvartal-41eac35021";
 const FILES = ["./", "index.html", "manifest.webmanifest", "app-icon-180.png", "app-icon-192.png", "app-icon-512.png",
   "lib/three.min.js", "lib/CopyShader.js", "lib/LuminosityHighPassShader.js", "lib/EffectComposer.js", "lib/RenderPass.js", "lib/ShaderPass.js", "lib/UnrealBloomPass.js", "lib/BufferGeometryUtils.js"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });

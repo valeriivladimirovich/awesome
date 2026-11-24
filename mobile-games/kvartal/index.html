@@ -423,16 +423,16 @@ const WEAPONS = {
 const LOOTS = {
   fridge: [["food", 5], ["water", 5]],
   counter: [["food", 4], ["water", 3], ["battery", 1]],
-  wardrobe: [["bandage", 2], ["battery", 2], ["food", 1], ["bat", .4], ["ammo9", .5], ["pistol", .12], ["hammer", .3], ["nails", .5]],
+  wardrobe: [["bag_school", .7], ["bag_sport", .5], ["bandage", 2], ["battery", 2], ["food", 1], ["bat", .4], ["ammo9", .5], ["pistol", .12], ["hammer", .3], ["nails", .5]],
   cabinet: [["bandage", 5], ["medkit", 1], ["antibio", .5], ["splint", .6]],
   desk: [["battery", 4], ["bandage", 1], ["ammo9", .6], ["radio", .35]],
-  crate: [["food", 2], ["water", 2], ["battery", 2], ["bat", .8], ["axe", .5], ["ammo9", .5], ["can", .5], ["plank", 1.2], ["nails", 1], ["hammer", .4]],
+  crate: [["bag_school", .3], ["food", 2], ["water", 2], ["battery", 2], ["bat", .8], ["axe", .5], ["ammo9", .5], ["can", .5], ["plank", 1.2], ["nails", 1], ["hammer", .4]],
   workbench: [["bat", 3], ["axe", 2], ["battery", 2], ["can", 1.6], ["tools", 1.6], ["hammer", 2.5], ["nails", 3], ["plank", 3]],
-  locker: [["pistol", 1.2], ["ammo9", 3], ["rifle", .4], ["ammo545", 1.2], ["bandage", 1], ["bat", 1], ["radio", .6]],
-  military: [["rifle", 1], ["ammo545", 3], ["ammo9", 1.5], ["pistol", .6], ["medkit", 1.2], ["food", 1], ["water", 1]],
+  locker: [["bag_sport", .6], ["pistol", 1.2], ["ammo9", 3], ["rifle", .4], ["ammo545", 1.2], ["bandage", 1], ["bat", 1], ["radio", .6]],
+  military: [["bag_army", 1], ["rifle", 1], ["ammo545", 3], ["ammo9", 1.5], ["pistol", .6], ["medkit", 1.2], ["food", 1], ["water", 1]],
   shop: [["food", 6], ["water", 5]],
   pharm: [["bandage", 5], ["medkit", 1.5], ["antibio", 1], ["splint", .7]],
-  hard: [["battery", 4], ["bat", 2], ["axe", 1.5], ["can", 1.5], ["tools", 1.2], ["hammer", 2], ["nails", 4], ["plank", 3]],
+  hard: [["bag_hike", .8], ["battery", 4], ["bat", 2], ["axe", 1.5], ["can", 1.5], ["tools", 1.2], ["hammer", 2], ["nails", 4], ["plank", 3]],
   glove: [["battery", 2], ["bandage", 2], ["food", 1], ["water", 1], ["ammo9", .8]],
   freight: [["food", 4], ["water", 4], ["battery", 2], ["bandage", 2], ["can", 1], ["axe", .4], ["ammo9", .5]],
   cafe: [["food", 5], ["water", 4]],
@@ -2171,7 +2171,7 @@ let hurtTimer = 0;
 function hurtFlash() { const h = $("#hurt"); h.style.transition = "none"; h.style.opacity = "1"; clearTimeout(hurtTimer); hurtTimer = setTimeout(() => { h.style.transition = ""; h.style.opacity = "0"; }, 60); }
 function renderBag() {
   const p = world.player, box = $("#items");
-  box.innerHTML = ""; renderSkills(box);
+  box.innerHTML = ""; renderSkills(box); bagWeightLine(box);
   for (const [k, it] of Object.entries(ITEMS)) {
     const n = p.inv[k] || 0;
     const b = document.createElement(it.noUse ? "div" : "button");
@@ -2252,14 +2252,14 @@ function nearContainer() {
   for (let gy = Math.max(0, Math.floor((p.y - r) / CELL)); gy <= Math.min(NG - 1, Math.floor((p.y + r) / CELL)); gy++)
     for (let gx = Math.max(0, Math.floor((p.x - r) / CELL)); gx <= Math.min(NG - 1, Math.floor((p.x + r) / CELL)); gx++)
       for (const b of g[gy * NG + gx]) {
-        const f = b.ref; if (!f || !f.cont || f.cont.searched) continue;
+        const f = b.ref; if (!f || !f.cont) continue;
         const d = Math.hypot(p.x - clamp(p.x, b.x0, b.x1), p.y - clamp(p.y, b.y0, b.y1));
         if (d >= bd) continue;
         // no looting through walls or windows: the reach must not cross a wall edge
         if (!los(p.x, p.y, clamp(p.x, b.x0 + .06, b.x1 - .06), clamp(p.y, b.y0 + .06, b.y1 - .06), true)) continue;
         bd = d; best = f;
       }
-  for (const f of world.loose || []) { if (f.cont.searched) continue; const d = Math.hypot(p.x - clamp(p.x, f.x0, f.x1), p.y - clamp(p.y, f.y0, f.y1)); if (d < bd) { bd = d; best = f; } }
+  for (const f of world.loose || []) { if (f.cont.pile && !(f.cont.items || []).length) continue; const d = Math.hypot(p.x - clamp(p.x, f.x0, f.x1), p.y - clamp(p.y, f.y0, f.y1)); if (d < bd) { bd = d; best = f; } }
   return best;
 }
 function doAction() {
@@ -2269,6 +2269,7 @@ function doAction() {
   if (ca && !ca.search) { ca.run(); updateHud(); return; }
   const f = nearContainer();
   if (!f) return;
+  if (f.cont.searched) { openLoot(f); return; }
   p.search = { f, t: 0, dur: (f.kind === "shelf" ? 1.2 : 1.5) * (1 - skillLv("search") * .1) };
   p.dir = Math.atan2((f.y0 + f.y1) / 2 - p.y, (f.x0 + f.x1) / 2 - p.x);
   noise(p.x, p.y, 3.5);
@@ -2276,6 +2277,13 @@ function doAction() {
   updateHud();
 }
 function finishSearch() {
+  const p = world.player, f = p.search.f;
+  p.search = null;
+  if (!f.cont.searched) { f.cont.searched = true; if (f.b) f.b.searched++; world.searched++; addXp("search"); }
+  materialize(f.cont); tone(520, .08, "triangle", .04, 1.4);
+  openLoot(f); updateHud();
+}
+function finishSearchOld() {
   const p = world.player, f = p.search.f;
   p.search = null; f.cont.searched = true; if (f.b) f.b.searched++; world.searched++;
   if (!f.cont.loot.length) { toast(`${f.cont.name}: пусто`); updateHud(); return; }
@@ -2574,12 +2582,12 @@ function victory() {
 }
 
 // ---------- saving: the city regrows from its seed, then the changes are replayed
-const contState = c => c.searched ? 1 : c.loot;
-const contApply = (c, v) => { if (v === 1) { c.searched = true; c.loot = []; } else if (Array.isArray(v)) { c.searched = false; c.loot = v; } };
+const contState = c => c.searched ? ((c.items || []).length ? { i: c.items } : 1) : c.loot;
+const contApply = (c, v) => { if (v === 1) { c.searched = true; c.loot = []; c.items = []; } else if (Array.isArray(v)) { c.searched = false; c.loot = v; c.items = null; } else if (v && v.i) { c.searched = true; c.loot = []; c.items = v.i; } };
 function saveGame() {
   const Wd = world; if (!Wd || Wd.mode !== "play") return;
   const p = Wd.player, M = Wd.map, r2 = v => Math.round(v * 100) / 100;
-  const P = {}; for (const k of ["x", "y", "dir", "hp", "food", "water", "bat", "weapon", "owned", "mag", "inv", "gas", "notes", "skills", "wounds", "fat", "panic", "prof", "traits"]) P[k] = p[k];
+  const P = {}; for (const k of ["x", "y", "dir", "hp", "food", "water", "bat", "weapon", "owned", "mag", "inv", "gas", "notes", "skills", "wounds", "fat", "panic", "prof", "traits", "bag"]) P[k] = p[k];
   P.keys = [...p.keys]; if (p.veh && p.veh.car) P.car = p.veh.car.id; if (p.veh && p.veh.bike) P.bike = true;
   const W = {}; for (const k of ["time", "day", "elapsed", "kills", "searched", "weather", "raining", "wet", "snow", "power", "heliAt", "radioAt", "evac", "marks", "loose", "flickerWarned", "cfg", "barr", "broken", "winHp", "gas"]) W[k] = Wd[k];
   store.set("save", {
@@ -3114,7 +3122,7 @@ function contextAction() {
   if (npc && npc.kind === "wounded") return npc.helped ? { label: "Поговорить", run: () => toast(pick(["«Тайник на карте. Бери всё, мне уже не надо»", "«Отлежусь и уйду к реке. Удачи тебе»", "«Не верь всему, что говорят по радио»"])) } : { label: "Перевязать раненого", run: () => helpWounded(npc) };
   const car = nearCar(), f = nearContainer();
   const own = car && canDrive(car) && hasKey(car);
-  if (f && !(own && f === car)) return { label: "Обыскать: " + f.cont.name.toLowerCase(), run: doAction, search: true };
+  if (f && !f.cont.searched && !(own && f === car)) return { label: "Обыскать: " + f.cont.name.toLowerCase(), run: doAction, search: true };
   if (car) {
     if (own && car.fuel < .98 && p.gas > .5) return { label: "Залить бензин", run: () => startTask("Заливаю бензин", 2.2, () => { const put = Math.min(p.gas, (1 - car.fuel) * 40); car.fuel += put / 40; p.gas -= put; toast(`Залил ${Math.round(put)} л. В баке ${Math.round(car.fuel * 100)}%`); }) };
     if (own && car.hp < .7 && p.inv.tools) return { label: "Починить машину", run: () => repairCar(car) };
@@ -3131,6 +3139,7 @@ function contextAction() {
   if (bedF && (p.fat || 0) > 25) return { label: "Лечь спать", run: () => startSleep(bedF) };
   if (!bedF && world.inside && (p.fat || 0) > 60) return { label: "Спать на полу", run: () => startSleep(null) };
   const dm = dismantleAction(); if (dm) return dm;
+  if (f && f.cont.searched && !(own && f === car)) return { label: "Открыть: " + f.cont.name.toLowerCase() + ((f.cont.items || []).length ? " · " + f.cont.items.length : ""), run: () => openLoot(f) };
   const fire = nearStoveOrFire();
   if (fire && p.inv.food > 0 && p.inv.water > 0) return { label: fire === "fire" ? "Приготовить на огне" : "Приготовить на плите", run: cook };
   return null;
@@ -3142,7 +3151,7 @@ function enterCar(car) {
   const p = world.player;
   const b = carBoxOf(car); if (b) gridRemove(b);
   // the glovebox gets checked on the way in
-  if (car.cont && !car.cont.searched) { p.search = { f: car, t: 0, dur: 0 }; finishSearch(); }
+  if (car.cont && !car.cont.searched) { car.cont.searched = true; const n = materialize(car.cont).length; lootAll(car.cont); if (n) toast("Бардачок: забрал всё, что было"); }
   p.veh = { car, spd: 0, steer: 0, crashT: 0 };
   p.x = car.x; p.y = car.y; p.vx = p.vy = 0; p.search = null; p.dir = car.h;
   car.driven = true;
@@ -4405,7 +4414,7 @@ function drawPersonRaw(c, x, y, o, time) {
 const PLAYER_OUTFIT = { top: { style: "jacket", col: "#6b5440", col2: "#7d8590" }, bottom: { style: "jeans", col: "#3a4558" }, hair: "short", hairCol: "#2f2219", shoes: "#3a2c22", female: false, hat: null };
 function playerLook(p) {
   return Object.assign({ kind: "player", dir: p.dir, sf: p.sf, ph: p.ph, spd: p.spd, seed: 1, skin: p.hurtT > 0 ? "#f0a898" : "#d2a584",
-    pack: "#4f553a", swing: p.swing, weapon: p.weapon, flash: p.flash }, PLAYER_OUTFIT);
+    pack: p.bag && typeof BAGS !== "undefined" && BAGS[p.bag] ? BAGS[p.bag].col : null, swing: p.swing, weapon: p.weapon, flash: p.flash }, PLAYER_OUTFIT);
 }
 function zombieLook(z) {
   const white = false;   // no white flash on hits
@@ -7719,6 +7728,223 @@ function specialPose(ch, s) {
   }
 }
 
+// ================= loot window, weight and bags =================
+// weight of one unit, kg
+const IWT = { food: .4, water: 1, bandage: .1, medkit: .8, battery: .1, ammo9: .015, ammo545: .02, can: 1, radio: .8, antibio: .1, splint: .5, tools: 2.5, hammer: 1, plank: 1, nails: .01,
+  bat: 1.2, axe: 2, pistol: 1, rifle: 3.6, key: 0, note: 0 };
+const BAGS = {
+  bag_school: { name: "Школьный рюкзак", cap: 8, wt: .6, col: "#3a5a8a" },
+  bag_sport: { name: "Спортивная сумка", cap: 12, wt: .9, col: "#2a2a2e" },
+  bag_hike: { name: "Туристический рюкзак", cap: 18, wt: 1.4, col: "#7a4a24" },
+  bag_army: { name: "Армейский рюкзак", cap: 24, wt: 1.8, col: "#4f553a" }
+};
+const POCKETS = 6;
+const capacity = () => { const p = world.player; return POCKETS + (p.bag ? BAGS[p.bag].cap : 0) + (hasTr("strong") ? 3 : 0) - (hasTr("weak") ? 2 : 0) + (isProf("fireman") ? 2 : 0); };
+function carried() {
+  const p = world.player; let w = p.bag ? BAGS[p.bag].wt : 0;
+  for (const [k, n] of Object.entries(p.inv)) if (n > 0 && IWT[k] != null) w += IWT[k] * n;
+  for (const k of Object.keys(WEAPONS)) if (k !== "fists" && p.owned[k]) w += IWT[k] || 0;
+  if (p.inv.can) w += (p.gas || 0) * .75;
+  return w;
+}
+const loadRatio = () => carried() / capacity();
+const kg = v => (Math.round(v * 10) / 10).toLocaleString("ru-RU", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+// a container's raw loot becomes stacks the first time it is opened
+function materialize(c) {
+  if (c.items) return c.items;
+  const items = [], add = (k, n, extra) => { const s = items.find(i => i.k === k && !extra && !i.mag && i.gas == null && !i.id); if (s && !extra) s.n += n; else items.push(Object.assign({ k, n }, extra || {})); };
+  for (const k of c.loot || []) {
+    if (k.startsWith("key:")) { add("key", 1, { id: +k.slice(4) }); continue; }
+    if (k.startsWith("note:")) { add("note", 1, { id: +k.slice(5) }); continue; }
+    if (k === "can") { add("can", 1, { gas: Math.round(rand(0, 6)) }); continue; }
+    const w = WEAPONS[k];
+    if (w && w.gun) { add(k, 1, { mag: ri(2, Math.floor(w.mag / 2)) }); continue; }
+    if (w) { add(k, 1, { wpn: 1 }); continue; }
+    if (k === "ammo9") { add(k, ri(5, 12)); continue; }
+    if (k === "ammo545") { add(k, ri(8, 20)); continue; }
+    if (k === "nails") { add(k, ri(6, 20)); continue; }
+    if (BAGS[k]) { add(k, 1, { bag: 1 }); continue; }
+    add(k, 1);
+  }
+  c.items = items; c.loot = [];
+  return items;
+}
+const itemName = it => it.k === "key" ? "Ключи: " + carName(world.map.cars[it.id]) : it.k === "note" ? "Записка" : BAGS[it.k] ? BAGS[it.k].name : WEAPONS[it.k] ? WEAPONS[it.k].name : (ITEMS[it.k] || {}).name || it.k;
+const itemWt = it => it.k === "can" ? 1 + (it.gas || 0) * .75 : BAGS[it.k] ? BAGS[it.k].wt : (IWT[it.k] || 0) * (it.n || 1);
+const itemIcon = k => k === "key" ? ICON_X.key : k === "note" ? ICON_X.note : BAGS[k] ? ICON_X.bag : ICON[k] || ICON_X.box;
+// what the player carries, as the same kind of stacks
+function playerStacks() {
+  const p = world.player, out = [];
+  for (const k of Object.keys(WEAPONS)) if (k !== "fists" && p.owned[k]) out.push(Object.assign({ k, n: 1, wpn: 1 }, WEAPONS[k].gun ? { mag: p.mag[k] || 0 } : {}));
+  for (const [k, n] of Object.entries(p.inv)) if (n > 0 && k !== "can") out.push({ k, n });
+  if (p.inv.can) out.push({ k: "can", n: 1, gas: Math.round(p.gas || 0) });
+  return out;
+}
+// moving one stack from the container to the player
+function takeItem(c, idx) {
+  const p = world.player, it = c.items[idx]; if (!it) return;
+  if (it.k === "key") { const car = world.map.cars[it.id]; p.keys.add(car.id); toast(`Ключи: ${carName(car)}. Машина отмечена на карте`, true); }
+  else if (it.k === "note") { if (!p.notes.includes(it.id)) p.notes.push(it.id); setTimeout(() => showNote(it.id), 200); }
+  else if (BAGS[it.k]) {
+    const old = p.bag; p.bag = it.k; c.items.splice(idx, 1);
+    if (old) c.items.push({ k: old, n: 1, bag: 1 });
+    toast(`Надел: ${BAGS[it.k].name.toLowerCase()}. Можно унести ${capacity()} кг`, true); return;
+  } else if (it.k === "can") {
+    if (p.inv.can) { const pour = Math.min(20 - p.gas, it.gas || 0); p.gas += pour; it.gas -= pour; toast(pour ? `Перелил ${pour} л в свою канистру` : "Канистра уже есть"); if (it.gas > 0) return; }
+    else { p.inv.can = 1; p.gas = it.gas || 0; }
+  } else if (WEAPONS[it.k]) {
+    const w = WEAPONS[it.k];
+    if (p.owned[it.k]) {
+      if (w.gun && it.mag) { p.inv[w.ammo] = (p.inv[w.ammo] || 0) + it.mag; toast(`Разрядил: +${it.mag} патронов`); it.mag = 0; }
+      else toast(`${w.name} уже есть`);
+      return;
+    }
+    p.owned[it.k] = true; if (w.gun) p.mag[it.k] = it.mag || 0;
+    const cur = WEAPONS[p.weapon]; if (w.rank > cur.rank) p.weapon = it.k;
+  } else {
+    if (it.k === "radio" && !p.inv.radio) radioNext(true);
+    p.inv[it.k] = (p.inv[it.k] || 0) + it.n;
+  }
+  c.items.splice(idx, 1);
+}
+// and back: the player stashes a stack in the container
+function stashItem(c, st) {
+  const p = world.player, items = materialize(c);
+  if (WEAPONS[st.k]) {
+    p.owned[st.k] = false; const w = WEAPONS[st.k];
+    items.push(Object.assign({ k: st.k, n: 1 }, w.gun ? { mag: p.mag[st.k] || 0 } : { wpn: 1 }));
+    if (w.gun) p.mag[st.k] = 0;
+    if (p.weapon === st.k) p.weapon = Object.keys(WEAPONS).filter(k => p.owned[k]).sort((a, b) => WEAPONS[b].rank - WEAPONS[a].rank)[0] || "fists";
+    return;
+  }
+  if (st.k === "can") { items.push({ k: "can", n: 1, gas: Math.round(p.gas || 0) }); p.inv.can = 0; p.gas = 0; return; }
+  if (BAGS[st.k]) return;
+  p.inv[st.k] = 0;
+  const s = items.find(i => i.k === st.k && !i.id && i.gas == null); if (s) s.n += st.n; else items.push({ k: st.k, n: st.n });
+}
+// the glovebox on entering a car: everything goes into the pockets without a window
+function lootAll(c) { const items = materialize(c); while (items.length) { const n = items.length; takeItem(c, 0); if (items.length === n) items.splice(0, 1); } }
+
+// ---------- the window
+const CONT_ICON = { fridge: "fridge", counter: "drawers", cabinet: "drawers", desk: "drawers", wardrobe: "wardrobe", locker: "wardrobe", crate: "crate", mcrate: "crate", workbench: "crate", shelf: "shelf", bookshelf: "shelf", checkout: "drawers" };
+const ICON_X = {
+  fridge: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M5 9.5h14M8 5.5v2M8 12.5v4"/></svg>',
+  drawers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="16" rx="1.5"/><path d="M3.5 9.5h17M3.5 15h17M10.5 7h3M10.5 12.3h3M10.5 17.6h3"/></svg>',
+  wardrobe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="2.5" width="16" height="19" rx="1.5"/><path d="M12 2.5v19M10 11v2M14 11v2"/></svg>',
+  crate: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="1"/><path d="M3 6l2.5-3h13L21 6M3 6l18 14M21 6L3 20"/></svg>',
+  shelf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 3v18M20 3v18M4 8h16M4 14h16M4 20h16"/><rect x="6.5" y="4.5" width="3" height="3.5"/><rect x="11" y="10.5" width="4" height="3.5"/><rect x="7" y="16.5" width="3" height="3.5"/></svg>',
+  car: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 15v-3l2.5-5h13L21 12v3z"/><path d="M3 15v3h3v-2M21 15v3h-3v-2M6 15h12"/><circle cx="7" cy="13" r="1"/><circle cx="17" cy="13" r="1"/></svg>',
+  pile: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 19h18M5 19l2-6 4 2 3-5 5 9"/></svg>',
+  box: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>',
+  bag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8 7V5a4 4 0 0 1 8 0v2"/><rect x="4.5" y="7" width="15" height="14" rx="3"/><path d="M8 13h8v4H8z"/></svg>',
+  key: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="8" cy="8" r="4.5"/><path d="M11.5 11.5L20 20M16.5 16.5l2-2M18.5 18.5l1.5-1.5"/></svg>',
+  note: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 11h7M9 14.5h7M9 18h4"/></svg>'
+};
+let lootC = null;
+function contIcon(f) { if (f.cont && /машин|бардач|багаж/i.test(f.cont.name || "")) return ICON_X.car; if (world.map.cars.includes(f)) return ICON_X.car; if ((world.loose || []).includes(f)) return ICON_X.pile; return ICON_X[CONT_ICON[f.kind]] || ICON_X.box; }
+function openLoot(f) {
+  lootC = f; materialize(f.cont);
+  let m = $("#lootModal");
+  if (!m) {
+    m = document.createElement("div"); m.className = "modal"; m.id = "lootModal"; m.hidden = true;
+    m.innerHTML = `<div class="panel lootp" role="dialog" aria-label="Обыск"><header><h2 id="lootT">Обыск</h2><button class="close" aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
+      <div class="lootcols"><section class="lside" data-side="c"><div class="lhead"><span class="lic" id="lootIc"></span><b id="lootName"></b><small id="lootW"></small></div><div class="lgrid" id="lootGrid"></div><button class="lall" id="lootAll">Взять всё</button></section>
+      <section class="lside" data-side="p"><div class="lhead"><span class="lic" id="bagIc"></span><b id="bagName"></b><small id="bagW"></small></div><div class="lbar"><i id="bagBar"></i></div><div class="lgrid" id="bagGrid"></div></section></div>
+      <p class="note">Перетащи вещь или нажми на неё. Пока окно открыто, время стоит.</p></div>`;
+    $("#game").append(m); m.querySelector(".close").addEventListener("click", () => closeModals(true));
+    m.querySelector("#lootAll").addEventListener("click", () => { const c = lootC.cont, p = world.player; for (let i = c.items.length - 1; i >= 0; i--) { const it = c.items[i]; if (BAGS[it.k] && p.bag && BAGS[it.k].cap <= BAGS[p.bag].cap) continue; takeItem(c, i); } renderLoot(); updateHud(); });
+    const st = document.createElement("style");
+    st.textContent = `.lootp { width: min(100%, 900px); max-height: 100%; display: grid; grid-template-rows: auto 1fr auto; gap: 8px; }
+.lootcols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; min-height: 0; }
+.lside { display: grid; grid-template-rows: auto auto 1fr auto; gap: 6px; min-height: 0; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; padding: 8px; transition: border-color .15s, background .15s; }
+.lside.hot { border-color: var(--amber); background: rgba(242,165,65,.08); }
+.lhead { display: flex; align-items: center; gap: 8px; font-size: 14px; } .lhead b { flex: 1; } .lhead small { color: var(--muted); font-variant-numeric: tabular-nums; }
+.lic svg { width: 26px; height: 26px; color: var(--amber); display: block; }
+.lbar { height: 5px; border-radius: 3px; background: rgba(255,255,255,.08); overflow: hidden; } .lbar i { display: block; height: 100%; background: #7fd0a0; transition: width .2s; } .lbar i.heavy { background: var(--amber); } .lbar i.over { background: #e0453a; }
+.lgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; align-content: start; overflow: auto; min-height: 90px; }
+.lit { position: relative; display: grid; justify-items: center; gap: 2px; padding: 7px 4px 5px; border-radius: 10px; background: rgba(255,255,255,.07); color: var(--ink); font-size: 10.5px; line-height: 1.15; text-align: center; touch-action: none; user-select: none; -webkit-user-select: none; }
+.lit svg { width: 24px; height: 24px; color: var(--c, var(--amber)); }
+.lit .n { position: absolute; top: 3px; right: 5px; font-weight: 700; font-size: 11px; color: var(--amber); }
+.lit .w { color: var(--muted); font-size: 9.5px; }
+.lit.eq { outline: 1.5px solid var(--amber); }
+.lempty { grid-column: 1 / -1; color: var(--muted); font-size: 13px; padding: 14px 4px; text-align: center; }
+.lall { padding: 8px; border-radius: 10px; background: var(--amber); color: #1b1408; font-weight: 700; font-size: 14px; }
+.lghost { position: absolute; z-index: 40; pointer-events: none; transform: translate(-50%, -50%) scale(1.08); opacity: .92; box-shadow: 0 8px 24px rgba(0,0,0,.6); }`;
+    document.head.append(st);
+  }
+  renderLoot(); openModal("lootModal");
+}
+function tile(it, side, idx, eq) {
+  const b = document.createElement("div"); b.className = "lit" + (eq ? " eq" : "");
+  const c = (ITEMS[it.k] || {}).c; if (c) b.style.setProperty("--c", c); if (BAGS[it.k]) b.style.setProperty("--c", BAGS[it.k].col === "#2a2a2e" ? "#a8aeb6" : BAGS[it.k].col);
+  const extra = it.mag != null && WEAPONS[it.k] && WEAPONS[it.k].gun ? ` · ${it.mag} пат.` : it.k === "can" ? ` · ${it.gas || 0} л` : "";
+  b.innerHTML = `${itemIcon(it.k)}${it.n > 1 ? `<span class="n">${it.n}</span>` : ""}<span>${itemName(it)}${extra}</span><span class="w">${kg(itemWt(it))} кг</span>`;
+  b.dataset.side = side; b.dataset.idx = idx;
+  dragify(b, () => moveTile(side, idx));
+  return b;
+}
+function moveTile(side, idx) {
+  if (!lootC) return;
+  const c = lootC.cont;
+  if (side === "c") takeItem(c, idx);
+  else if (side === "p") { const st = playerStacks()[idx]; if (st) stashItem(c, st); }
+  else if (side === "bag") { const p = world.player; if (p.bag) { c.items.push({ k: p.bag, n: 1, bag: 1 }); p.bag = null; } }
+  sfx("swing", { vol: .15, rate: 1.6, cap: 2 });
+  renderLoot(); updateHud();
+}
+// tap or drag a tile to the other side
+function dragify(el, act) {
+  let start = null, ghost = null;
+  el.addEventListener("pointerdown", e => { start = lpt(e); el.setPointerCapture && el.setPointerCapture(e.pointerId); });
+  el.addEventListener("pointermove", e => {
+    if (!start) return; const q = lpt(e);
+    if (!ghost && Math.hypot(q.x - start.x, q.y - start.y) > 8) { ghost = el.cloneNode(true); ghost.classList.add("lghost"); ghost.style.width = el.offsetWidth + "px"; $("#game").append(ghost); el.style.opacity = .35; }
+    if (ghost) {
+      ghost.style.left = q.x + "px"; ghost.style.top = q.y + "px";
+      document.querySelectorAll("#lootModal .lside").forEach(s => { const r = lrect(s); s.classList.toggle("hot", s.dataset.side !== el.dataset.side.replace("bag", "p") && q.x >= r.left && q.x <= r.left + r.width && q.y >= r.top && q.y <= r.top + r.height); });
+    }
+  });
+  const end = e => {
+    if (!start) return; const q = lpt(e), was = !!ghost; start = null;
+    if (ghost) { ghost.remove(); ghost = null; el.style.opacity = ""; }
+    const hot = document.querySelector("#lootModal .lside.hot"); document.querySelectorAll("#lootModal .lside").forEach(s => s.classList.remove("hot"));
+    if (!was || hot) act();
+  };
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", () => { start = null; if (ghost) { ghost.remove(); ghost = null; el.style.opacity = ""; } });
+}
+function renderLoot() {
+  const f = lootC, c = f.cont, p = world.player;
+  $("#lootT").textContent = c.name; $("#lootIc").innerHTML = contIcon(f); $("#lootName").textContent = c.name;
+  $("#lootW").textContent = kg(c.items.reduce((a, i) => a + itemWt(i), 0)) + " кг";
+  const g = $("#lootGrid"); g.innerHTML = "";
+  if (!c.items.length) g.innerHTML = `<div class="lempty">Пусто. Сюда можно сложить свои вещи</div>`;
+  c.items.forEach((it, i) => g.append(tile(it, "c", i)));
+  $("#lootAll").hidden = !c.items.length;
+  const cap = capacity(), w = carried(), r = w / cap;
+  $("#bagIc").innerHTML = ICON_X.bag; $("#bagName").textContent = p.bag ? BAGS[p.bag].name : "Карманы";
+  $("#bagW").textContent = `${kg(w)} / ${cap} кг`;
+  const bar = $("#bagBar"); bar.style.width = Math.min(100, r * 100) + "%"; bar.className = r > 1 ? "over" : r > .8 ? "heavy" : "";
+  const bg = $("#bagGrid"); bg.innerHTML = "";
+  if (p.bag) bg.append(tile({ k: p.bag, n: 1, bag: 1 }, "bag", 0, true));
+  playerStacks().forEach((it, i) => bg.append(tile(it, "p", i)));
+}
+// the bag window gets a weight line and a way to drop things on the ground
+function bagWeightLine(box) {
+  const cap = capacity(), w = carried(), r = w / cap, p = world.player;
+  const d = document.createElement("div"); d.className = "item"; d.style.gridColumn = "1 / -1"; d.style.display = "block";
+  d.innerHTML = `<b>${p.bag ? BAGS[p.bag].name : "Только карманы"} · ${kg(w)} из ${cap} кг${r > 1 ? " — перегруз!" : ""}</b><div class="lbar" style="margin:6px 0"><i style="width:${Math.min(100, r * 100)}%" class="${r > 1 ? "over" : r > .8 ? "heavy" : ""}"></i></div><small>Перегруз замедляет и утомляет. Лишнее можно выложить в шкаф, багажник или на землю.</small>`;
+  const btn = document.createElement("button"); btn.className = "lall"; btn.style.marginTop = "6px"; btn.textContent = "Выложить вещи на землю";
+  btn.addEventListener("click", () => { closeModals(true); openLoot(groundPile()); });
+  d.append(btn); box.prepend(d);
+}
+function groundPile() {
+  const p = world.player, W = world;
+  let f = (W.loose || []).find(o => Math.hypot((o.x0 + o.x1) / 2 - p.x, (o.y0 + o.y1) / 2 - p.y) < .9 && o.cont.pile);
+  if (!f) { f = { x0: p.x - .3, x1: p.x + .3, y0: p.y - .3, y1: p.y + .3, def: { z: 2 }, cont: { name: "Вещи на земле", loot: [], items: [], searched: true, pile: true } }; (W.loose = W.loose || []).push(f); }
+  return f;
+}
+
 // ================= survival: the survivor, sandbox, moodles, sleep, shelter =================
 // ---------- who you were before: professions and traits
 const PROFS = {
@@ -7849,10 +8075,10 @@ function openNewGame() {
 function applySurvivor() {
   const Wd = world, p = Wd.player, ng = newGameDefaults();
   Wd.cfg = Object.assign({}, PRESETS.normal.v, ng.sb);
-  p.prof = ng.prof; p.traits = ng.traits.slice(); p.fat = 10; p.panic = 0;
+  p.prof = ng.prof; p.traits = ng.traits.slice(); p.fat = 10; p.panic = 0; p.bag = null;
   const give = (k, n) => { p.inv[k] = (p.inv[k] || 0) + n; };
   if (p.prof === "police") { p.owned.pistol = true; p.weapon = "pistol"; p.mag.pistol = 12; give("ammo9", 12); }
-  if (p.prof === "carpenter") { give("hammer", 1); give("plank", 6); give("nails", 16); }
+  if (p.prof === "carpenter") { give("hammer", 1); give("plank", 4); give("nails", 16); p.bag = "bag_sport"; }
   if (p.prof === "mechanic") { give("tools", 1); }
   if (p.prof === "doctor") { give("bandage", 3); give("medkit", 1); give("antibio", 1); }
   if (p.prof === "fireman") { p.owned.axe = true; p.weapon = "axe"; }
@@ -7887,7 +8113,7 @@ function applySurvivor() {
 
 // ---------- body and mind: fatigue, panic, pain
 const pain = () => { const w = world.player.wounds || {}; return (w.fracture ? (w.splint ? 20 : 45) : 0) + (w.bite ? 20 : 0) + (w.bleed ? 15 : 0) + (world.player.hp < 35 ? 20 : 0); };
-function survSpeed() { const p = world.player; let k = zombieSlow(); if (p.fat > 75) k *= p.fat > 90 ? .72 : .86; return k * (1 - Math.min(.3, pain() / 250)); }
+function survSpeed() { const p = world.player; let k = zombieSlow(); const lr = loadRatio(); if (lr > 1) k *= Math.max(.45, 1 - (lr - 1) * .7); if (p.fat > 75) k *= p.fat > 90 ? .72 : .86; return k * (1 - Math.min(.3, pain() / 250)); }
 const runBoost = () => (hasTr("athletic") ? 1.1 : 1) * (isProf("fireman") ? 1.05 : 1);
 const meleeMul = () => (hasTr("strong") ? 1.25 : 1) * (hasTr("weak") ? .8 : 1) * (world.player.fat > 75 ? .82 : 1);
 const aimMul = () => (1 + (world.player.panic || 0) / 90) * (isProf("police") ? .75 : 1) * (world.player.fat > 90 ? 1.3 : 1);
@@ -7907,7 +8133,7 @@ function survTick(dt, rate) {
     return;
   }
   // about sixteen waking hours to exhaustion
-  let fr = 100 / (16 * 60) * (p.spd > 2.2 ? 1.8 : 1);
+  let fr = 100 / (16 * 60) * (p.spd > 2.2 ? 1.8 : 1) * (1 + Math.max(0, loadRatio() - 1) * 1.5);
   if (hasTr("athletic")) fr *= .85; if (hasTr("sleepy")) fr *= 1.3; if (isProf("fireman")) fr *= .8;
   p.fat = Math.min(100, p.fat + gm * fr);
   if (p.fat >= 100) { toast("Ты валишься с ног и засыпаешь прямо здесь…", true); startSleep(null, true); return; }
@@ -7930,6 +8156,7 @@ function moodles() {
   if (p.panic > 25) add("Паника", p.panic > 75 ? 3 : p.panic > 50 ? 2 : 1);
   const pn = pain(); if (pn > 15 && !W.fracture) add("Боль", pn > 50 ? 3 : pn > 30 ? 2 : 1);
   if (p.sickT > 0) add("Тошнота", 2);
+  { const lr = loadRatio(); if (lr > 1) add("Перегруз", lr > 1.6 ? 3 : lr > 1.3 ? 2 : 1); }
   if (p.grabT > 0) add("Схватили!", 3);
   if (W.bleed) add("Кровотечение", 3);
   if (W.bite) add((world.elapsed - W.bite) / 1440 > .35 ? "Укус · жар" : "Укус", 3);
