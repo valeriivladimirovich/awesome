@@ -7736,6 +7736,8 @@ function traitPoints(ng) { return ((PROFS[ng.prof] || PROFS.unemployed).pts) - n
 function openNewGame() {
   const ng = newGameDefaults();
   const render = () => {
+    // keep the scroll position: tapping an option must not jump back to the top
+    const prevBox = screen.querySelector(".ngbox"), keepY = prevBox ? prevBox.scrollTop : 0, keepS = screen.scrollTop;
     const pts = traitPoints(ng);
     const btn = (on, txt, data, sub = "") => `<button class="ngb${on ? " on" : ""}" ${data}>${txt}${sub ? `<small>${sub}</small>` : ""}</button>`;
     screen.innerHTML = `<div class="box ngbox">
@@ -7760,6 +7762,7 @@ function openNewGame() {
     screen.querySelectorAll("[data-sb]").forEach(b => b.addEventListener("click", () => { ng.sb[b.dataset.sb] = JSON.parse(b.dataset.v); ng.preset = (Object.entries(PRESETS).find(([, p]) => SANDBOX.every(([k]) => p.v[k] === ng.sb[k])) || ["custom"])[0]; render(); }));
     $("#ngGo").addEventListener("click", () => { if (traitPoints(ng) < 0) return; store.set("newgame", ng); store.set("save", null); startGame(); });
     $("#ngBack").addEventListener("click", () => showTitle(false));
+    const box = screen.querySelector(".ngbox"); if (box) box.scrollTop = keepY; screen.scrollTop = keepS;
   };
   if (!document.getElementById("ngcss")) {
     const st = document.createElement("style"); st.id = "ngcss";
