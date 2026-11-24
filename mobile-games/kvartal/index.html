@@ -481,7 +481,8 @@ const SP = {
   planter: [.5, .25, 1], mailbox: [.1, .1, 1], swingpost: [.08, .08, 1], sandbag: [.5, .22, 1], firebarrel: [.25, .25, 1],
   flagpole: [.08, .08, 1], statue: [.4, .4, 1], grave: [.22, .1, 1], goalpost: [1.3, .08, 0], bleacher: [2.6, .55, 1],
   cart: [.28, .18, 0], billboard: [.15, .15, 1], silo: [1.05, 1.05, 1], hay: [.42, .42, 1], xing: [.08, .08, 1],
-  pole: [.08, .08, 1], wtower: [1.4, 1.4, 1], windmill: [.45, .45, 1], gbin: [1.25, 1.25, 1]
+  pole: [.08, .08, 1], wtower: [1.4, 1.4, 1], windmill: [.45, .45, 1], gbin: [1.25, 1.25, 1],
+  wire: [.9, .28, 1], tower: [.75, .75, 1], towerfall: [1.9, .75, 1], tentfall: [2, 1.4, 0], heliwreck: [2.4, 1, 1], container: [1.7, .68, 1], jersey: [.85, .18, 1]
 };
 
 // ================= canvas & sizing =================
@@ -655,6 +656,8 @@ function genMap() {
     dealer: { floor: TL, roof: "flat", name: "Автосалон", sign: "#2f5f9a" }, diner: { floor: TL, roof: "flat", name: "Закусочная", sign: "#c8473a" },
     bar: { floor: WD, roof: "flat", name: "Бар", sign: "#7a3a2a" }, gun: { floor: WD, roof: "flat", name: "Оружейный", sign: "#4a4a3a" },
     bank: { floor: TL, roof: "flat", name: "Банк", sign: "#2a5a8a" }, trailer: { floor: WD, roof: "flat" }, garage: { floor: CN, roof: "flat" },
+    barracks: { floor: CN, roof: "flat", name: "Казарма", sign: "#4f5a3a", wallC: ["#8a8a78", "#6a6a5a"] }, armory: { floor: CN, roof: "flat", name: "Оружейная", sign: "#5a3a2a", wallC: ["#7a7a6a", "#5a5a4a"] },
+    hq: { floor: TL, roof: "flat", name: "Штаб", sign: "#3a4a5a", wallC: ["#8a8a7a", "#6a6a5a"] }, booth: { floor: CN, roof: "flat", wallC: ["#9a9a88", "#7a7a68"] },
     barn: { floor: CN, roof: "gable", name: "Амбар", wallC: ["#9a3428", "#7a2a20"], roofC: "#4b4c57" }
   };
   function building(x, y, w, h, type, doors, opts = {}) {
@@ -831,6 +834,16 @@ function genMap() {
       for (let yy = b.y + 2; yy + .42 <= b.y + b.h - 1.2; yy += 1.1)
         for (const xx of [b.x + .4, b.x + b.w - 2.5]) if (canPlace(b, xx, yy, xx + 2.1, yy + .42)) addFurn(b, "pew", xx, yy, xx + 2.1, yy + .42, "N");
       tryPlace(b, room, "plant", { side: "N" }); tryPlace(b, room, "cabinet", { side: "W" });
+    } else if (b.type === "barracks") {
+      for (let xx = b.x + .3; xx + .6 <= b.x + b.w - .3; xx += 1.3) if (canPlace(b, xx, b.y + .1, xx + .6, b.y + 1.2)) addFurn(b, "bed", xx, b.y + .1, xx + .6, b.y + 1.2, "N");
+      for (let k = 0; k < 3; k++) tryPlace(b, room, "locker", { side: "S", loot: "military" });
+    } else if (b.type === "armory") {
+      for (let k = 0; k < 3; k++) tryPlace(b, room, "locker", { side: "N", loot: "military" });
+      tryPlace(b, room, "mcrate", { side: "E" }); tryPlace(b, room, "mcrate", { side: "S" });
+    } else if (b.type === "hq") {
+      tryPlace(b, room, "desk", { side: "N" }); tryPlace(b, room, "desk", { side: "E" }); tryPlace(b, room, "table"); tryPlace(b, room, "cabinet", { side: "S", loot: "desk" }); tryPlace(b, room, "bookshelf", { side: "S" });
+    } else if (b.type === "booth") {
+      tryPlace(b, room, "desk", { side: "E" });
     } else if (b.type === "court") {
       const rooms = splitRooms(b, 2); prepClear(b); rooms.sort((a, c) => c.w * c.h - a.w * a.h);
       rooms.forEach((r, k) => { if (k === 0) { tryPlace(b, r, "table"); for (let n = 0; n < 4; n++) tryPlace(b, r, "pew"); } else { tryPlace(b, r, "desk"); tryPlace(b, r, "bookshelf"); tryPlace(b, r, "cabinet", { loot: "desk" }); } });
@@ -1132,7 +1145,7 @@ function genMap() {
     }
   };
   GEN.railblock = (bx, by) => GEN.indus(bx, by);
-  GEN.rural = () => {};
+  GEN.rural = () => {}; GEN.mil = () => {};
 
   // ---- zone plan (18 x 18 blocks)
   const NB = ROADS.length - 1, plan = [];
@@ -1140,6 +1153,7 @@ function genMap() {
   const set = (c, r, k) => { if (plan[r] && plan[r][c] === null) plan[r][c] = k; };
   for (let r = 0; r < NB; r++) plan[r][RIV] = "river";
   // the countryside: everything outside the town limits is farmland, woods and ponds (filled in below)
+  for (const [c, r] of [[16, 9], [17, 9], [16, 10], [17, 10]]) plan[r][c] = "mil";
   for (let r = 0; r < NB; r++) for (let c = 0; c < NB; c++) if (ruralBlock(c, r)) set(c, r, "rural");
   for (let c = 0; c < NB; c++) if (c !== RIV) set(c, RAIL, "railblock");
   // downtown: courthouse square in the middle, Main Street around it
@@ -1232,11 +1246,72 @@ function genMap() {
       const h = building(hx, by + 6, 4, 4, "house", [["S", hx + ri(1, 2)]], { floors: 2 }); h.wallC = ["#ece8de", "#c8c2b4"]; furnishHouse(h);
       const b = building(gx, by + 1, 5, 6, "barn", [["S", gx + 2]], { win: .1 }); furnishCom(b);
       addProp("silo", flip ? bx + 6.5 : bx + 11, by + 2.5); addProp("silo", flip ? bx + 6.5 : bx + 11, by + 5);
-      for (let k = 0; k < ri(1, 3); k++) { const i = (flip ? bx + 9 : bx + 2) + k * 1.2, j = by + 11; addProp("gbin", Math.min(i, bx + 11), j - .3); }
+      for (let k = 0; k < ri(1, 2); k++) addProp("gbin", gx + 1.3 + k * 2.6, by + 9.4);
       addProp("windmill", flip ? bx + 11 : bx + .8, by + 11); addProp("hay", flip ? bx + 6.4 : bx + 11.3, by + 8);
       if (Math.random() < .7) { const car = addCar(flip ? bx + 6.5 : bx + 5.5, by + 9.2, true); car.wreck = Math.random() < .2; }
       for (const [i, j] of [[hx - 1, by + 5], [hx + 4, by + 5], [hx - 1, by + 10]]) if (isFree(i, j)) addTree(i + .5, j + .5, "tree", rand(1.1, 1.4));
     }
+  }
+  // ---- the army base east of the river: overrun, burnt, half of it on the ground
+  {
+    const x0 = ROADS[16] + 3, x1 = N - 7, y0 = ROADS[9] + 3, y1 = ROADS[11] - 2, cy = Math.floor((y0 + y1) / 2);
+    M.milBase = { x0, y0, x1, y1, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 };
+    M.milEdge = new Set();
+    for (let j = y0; j < y1; j++) for (let i = x0; i < x1; i++) { const inner = i > x0 + 2 && i < x1 - 3 && j > y0 + 2 && j < y1 - 3; M.ground[T(i, j)] = inner ? CN : Math.random() < .3 ? DT : GR; occ[T(i, j)] = 0; }
+    // access road from the county road to the gate
+    for (let i = ROADS[16] + 2; i < x0 + 3; i++) for (let j = cy - 1; j <= cy + 1; j++) { M.ground[T(i, j)] = CN; occ[T(i, j)] = 1; }
+    // chain-link perimeter with breaches where the horde pushed through
+    const breaches = [];
+    for (let n = 0; n < 5; n++) breaches.push({ side: pick(["N", "S", "E"]), at: rand(.15, .85), len: ri(2, 4) });
+    const broken = (side, k, len) => breaches.some(b => b.side === side && Math.abs(k / len - b.at) * len < b.len / 2);
+    for (let i = x0; i < x1; i++) for (const [j, side] of [[y0, "N"], [y1, "S"]]) {
+      if (broken(side, i - x0, x1 - x0)) { M.decor.push({ t: "fencefall", x0: i, y: j, axis: "x", dir: side === "N" ? -1 : 1 }); continue; }
+      setH(i, j, 3, true); M.milEdge.add("h" + i + "," + j);
+    }
+    for (let j = y0; j < y1; j++) for (const [i, side] of [[x0, "W"], [x1, "E"]]) {
+      if (side === "W" && Math.abs(j - cy) <= 1) continue;   // the gate
+      if (side === "E" && broken("E", j - y0, y1 - y0)) { M.decor.push({ t: "fencefall", x0: i, y: j, axis: "y", dir: 1 }); continue; }
+      setV(i, j, 3, true); M.milEdge.add("v" + i + "," + j);
+    }
+    for (let i = x0 + 1; i < x1 - 1; i += 3) { if (Math.random() < .6) addProp("wire", i + .5, y0 - .6); if (Math.random() < .6) addProp("wire", i + .5, y1 + .6); }
+    // gate: barrier, guard booth, sandbags, concrete blocks
+    addProp("barrier", x0 + .3, cy + .5, { rot: true });
+    const booth = building(x0 + 1, cy + 2, 2, 2, "booth", [["N", x0 + 1]], { win: .8 }); furnishCom(booth);
+    for (let k = 0; k < 4; k++) { addProp("sandbag", x0 + 3.5, cy - 3 - k * .9 + .5, { rot: true }); }
+    addProp("jersey", x0 - 1.5, cy - 1.2); addProp("jersey", x0 - 1.5, cy + 2.2);
+    // watchtowers in three corners, the fourth lies across the grass
+    addProp("tower", x0 + 1.3, y0 + 1.3); addProp("tower", x1 - 1.3, y0 + 1.3); addProp("tower", x1 - 1.3, y1 - 1.3);
+    addProp("towerfall", x0 + 3.5, y1 - 1.6);
+    // barracks, armoury, headquarters, tents
+    const b1 = building(x0 + 4, y0 + 4, 9, 4, "barracks", [["S", x0 + 8]], { win: .5 }); furnishCom(b1);
+    const b2 = building(x0 + 4, y0 + 10, 9, 4, "barracks", [["S", x0 + 6]], { win: .5 }); furnishCom(b2);
+    const arm = building(x1 - 10, y0 + 4, 5, 4, "armory", [["W", y0 + 6]], { win: .1 }); furnishCom(arm);
+    const hq = building(x1 - 10, y0 + 10, 6, 5, "hq", [["W", y0 + 12]], { win: .6 }); furnishCom(hq);
+    const t1 = building(x0 + 4, y1 - 9, 4, 3, "tent", [["N", x0 + 5]], { win: 0 }); furnishCom(t1);
+    const t2 = building(x0 + 9, y1 - 9, 4, 3, "tent", [["N", x0 + 10]], { win: 0 }); furnishCom(t2);
+    addProp("tentfall", x0 + 15.5, y1 - 7.5);
+    // helipad with what is left of a helicopter
+    M.decor.push({ t: "helipad", x: x1 - 6, y: y1 - 6 });
+    addProp("heliwreck", x1 - 5.6, y1 - 5.4); addProp("firebarrel", x1 - 4.4, y1 - 6.2);
+    // trucks, containers, sandbag nests, scorch marks
+    const tr1 = addCar(x0 + 17, y1 - 4.5, false, "mtruck"); tr1.burnt = true; tr1.wreck = true;
+    const tr2 = addCar(x0 + 21.5, y0 + 2.6, false, "mtruck"); tr2.wreck = true;
+    addProp("container", x1 - 2.3, y0 + 5, { rot: true }); addProp("container", x1 - 2.3, y0 + 9, { rot: true });
+    for (let k = 0; k < 5; k++) addProp("sandbag", x0 + 15 + k * .95, y0 + 9);
+    for (let k = 0; k < 9; k++) M.decor.push({ t: "scorch", x: rand(x0 + 2, x1 - 2), y: rand(y0 + 2, y1 - 2), r: rand(.4, .9) });
+    for (let k = 0; k < 3; k++) { const i = x0 + ri(3, x1 - x0 - 4), j = y0 + ri(3, y1 - y0 - 4); if (isFree(i, j)) addProp("firebarrel", i + .5, j + .5); }
+    // the radio in the headquarters still works
+    const desk = (hq.furn || []).find(f => f.cont); if (desk) desk.cont.loot.push("radio");
+  }
+  // ---- roadblocks at a few downtown crossings: concrete, sandbags, an abandoned cruiser
+  for (let n = 0; n < 6; n++) {
+    const a = ROADS[ri(4, 13)], c = ROADS[ri(4, 13)];
+    if (M.ground[T(a, c)] !== RD) continue;
+    const north = Math.random() < .5, y = north ? c - 2.6 : c + 4.6;
+    for (const x of [a - .2, a + 1, a + 2.2]) if (isFree(Math.floor(x), Math.floor(y))) addProp("jersey", x, y);
+    for (const x of [a - 1.5, a + 3.5]) if (isFree(Math.floor(x), Math.floor(y))) addProp("sandbag", x, y);
+    const cy2 = north ? c - 5 : c + 7;
+    if (areaFree(a + .5, cy2 - 1.3, a + 1.5, cy2 + 1.3)) addCar(a + 1, cy2, true, Math.random() < .6 ? "police" : "car");
   }
   // power lines along the county roads
   for (const k of KEEP) {
@@ -1628,6 +1703,18 @@ function newWorld(mode, seed) {
     for (let s2 = 0; s2 < 200 && !rd.sleep; s2++) stepRagdoll(rd, 1 / 60);
     rd.sleep = true; rd.spurts = []; rd.old = true;
     world.rags.push(rd); world.decals.push({ x: rd.x, y: rd.y, r: rand(.45, .7) });
+  }
+  const mb = world.map.milBase;
+  if (mb) {
+    const army = () => ({ top: { style: "jacket", col: pick(["#4f5a3a", "#5a5e3c", "#4a4e36"]), col2: "#5a5e3c" }, bottom: { style: "pants", col: pick(["#5a5e3c", "#4f5434"]) }, hair: "buzz", female: Math.random() < .15, hat: "beanie", hatCol: "#3f4a30", hairCol: "#2a2420", shoes: "#2a2622" });
+    for (let k = 0; k < 30; k++) { const z = zombieAt(rand(mb.x0 + 2, mb.x1 - 2), rand(mb.y0 + 2, mb.y1 - 2)); if (z) { z.o = army(); z.hp += 1.5; } }
+    for (let k = 0; k < 14; k++) {
+      const x = rand(mb.x0 + 2, mb.x1 - 2), y = rand(mb.y0 + 2, mb.y1 - 2); if (overlaps(x, y, .3)) continue;
+      const fake = { x, y, dir: Math.random() * 6.28, arms: 2, runner: false, lostArm: 0, o: army(), skin: pick(PAL.skinZ), seed: 1, stain: true, limp: 0, tilt: 0, vx: 0, vy: 0, hit: 0, atkT: 0, ph: 0, sf: 1 };
+      const rd = makeRagdoll(fake, Math.cos(fake.dir), Math.sin(fake.dir), rand(.8, 1.6));
+      for (let s2 = 0; s2 < 200 && !rd.sleep; s2++) stepRagdoll(rd, 1 / 60);
+      rd.sleep = true; rd.spurts = []; rd.old = true; world.rags.push(rd); world.decals.push({ x: rd.x, y: rd.y, r: rand(.45, .7) });
+    }
   }
   world.parts.length = 0;
   if (T3.ok) build3D();
@@ -3774,6 +3861,7 @@ function drawSP(c, o, nf, time) {
     case "traincar": box3(c, x - o.hx, y - o.hy, x + o.hx, y + o.hy, 0, 75, o.tcol); break;
     case "flagpole": case "xing": case "billboard": { const p = P3(x, y, 0); c.fillStyle = "#c8ccd0"; c.fillRect(p.X - 1, p.Y - (o.kind === "flagpole" ? 90 : 50), 2, o.kind === "flagpole" ? 90 : 50); if (o.kind === "billboard") { c.fillStyle = "#e8e2d0"; c.fillRect(p.X - 30, p.Y - 80, 60, 30); } break; }
     case "pole": case "windmill": { const p = P3(x, y, 0); c.fillStyle = "#5a4a3a"; c.fillRect(p.X - 1.5, p.Y - 120, 3, 120); break; }
+    case "wire": case "tower": case "towerfall": case "tentfall": case "heliwreck": case "container": case "jersey":
     case "wtower": case "gbin": case "statue": case "grave": case "goalpost": case "bleacher": case "cart": case "silo": case "hay": box3(c, x - o.hx, y - o.hy, x + o.hx, y + o.hy, 0, o.kind === "silo" ? 120 : o.kind === "bleacher" ? 30 : 18, o.kind === "silo" ? "#b8bcc2" : o.kind === "hay" ? "#c8a85a" : "#8e8b84"); break;
     case "mailbox": { const p = P3(x, y, 0); c.fillStyle = "#4a3a2c"; c.fillRect(p.X - 1, p.Y - 16, 2.5, 16); c.fillStyle = "#3b5a7a"; roundRect(c, p.X - 6, p.Y - 22, 12, 7, 3); c.fill(); c.fillStyle = "#c9433a"; c.fillRect(p.X + 4, p.Y - 26, 1.5, 5); break; }
   }
@@ -4781,6 +4869,24 @@ function buildGround(M) {
         for (let x = x0; x <= x1; x += 1.2) rugs.box(x - .1, .38, z - .1 + o, x + .1, .9, z + .1 + o, cc);
         for (let x = x0 + 2; x < x1; x += 6) rugs.box(x - .5, -3, z - .4 + o * 3, x + .5, -.9, z + .4 + o * 3, CA("#7a7670"));
       }
+      else if (d.t === "fencefall") {
+        // a section of chain-link flattened by the crowd, posts bent over
+        // a mesh of thin wires lying in the grass, with the bent post
+        const L = U, o = d.dir * 2.2, wireC = CA("#5a6068"), x0 = d.x0 * U, z0 = d.y * U;
+        for (let k = 0; k <= 6; k++) {
+          const t = k / 6;
+          if (d.axis === "x") { rugs.box(x0 + t * L - .015, .02, Math.min(z0, z0 + o), x0 + t * L + .015, .05, Math.max(z0, z0 + o), wireC); rugs.box(x0, .02, z0 + o * t - .015, x0 + L, .05, z0 + o * t + .015, wireC); }
+          else { rugs.box(Math.min(x0, x0 + o), .02, z0 + t * L - .015, Math.max(x0, x0 + o), .05, z0 + t * L + .015, wireC); rugs.box(x0 + o * t - .015, .02, z0, x0 + o * t + .015, .05, z0 + L, wireC); }
+        }
+        if (d.axis === "x") rugs.box(x0 - .05, .02, Math.min(z0, z0 + o * .95), x0 + .05, .14, Math.max(z0, z0 + o * .95), CA("#7a8088"));
+        else rugs.box(Math.min(x0, x0 + o * .95), .02, z0 - .05, Math.max(x0, x0 + o * .95), .14, z0 + .05, CA("#7a8088"));
+      }
+      else if (d.t === "scorch") { rugs.cyl(d.x * U, .012, d.y * U, d.r * U, d.r * U, .004, 16, CA("#3a3630")); rugs.cyl(d.x * U, .016, d.y * U, d.r * U * .6, d.r * U * .6, .004, 14, CA("#24211e")); }
+      else if (d.t === "helipad") {
+        rugs.cyl(d.x * U, .01, d.y * U, 4.6, 4.6, .03, 28, CA("#7a7872")); rugs.cyl(d.x * U, .02, d.y * U, 3.9, 3.9, .03, 28, CA("#d8b440")); rugs.cyl(d.x * U, .03, d.y * U, 3.6, 3.6, .03, 28, CA("#7a7872"));
+        const x = d.x * U, z = d.y * U, wh = CA("#e8e4da");
+        rugs.box(x - 1.2, .05, z - 1.5, x - .8, .07, z + 1.5, wh); rugs.box(x + .8, .05, z - 1.5, x + 1.2, .07, z + 1.5, wh); rugs.box(x - .8, .05, z - .2, x + .8, .07, z + .2, wh);
+      }
       else if (d.t === "truss") {
         // steel railroad truss
         const st = CA("#5a4a3a"), x0 = d.x0 * U, x1 = d.x1 * U;
@@ -5130,6 +5236,53 @@ function propGeo(kind) {
     case "planter": g.box(-.9, 0, -.4, .9, .55, .4, C("#8a8478")); g.box(-.85, .55, -.35, .85, .62, .35, C("#3a2a1a")); break;
     case "mailbox": g.box(-.04, 0, -.04, .04, 1.05, .04, C("#4a3a2c")); g.box(-.18, 1.05, -.12, .22, 1.3, .12, C("#3b5a7a")); g.box(.2, 1.2, .1, .23, 1.45, .12, C("#c9433a")); break;
     case "sandbag": for (let r = 0; r < 3; r++) for (let k = 0; k < 3; k++) { const x = -.6 + k * .42 + (r % 2) * .2; g.box(x, r * .24, -.22, x + .4, r * .24 + .22, .22, C(["#9a8c68", "#a89a76", "#8e8060"][(r + k) % 3])); } break;
+    case "wire": {
+      // concertina wire: loops of razor wire along the fence
+      for (let x = -1.5; x <= 1.5; x += .3) for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2, b2 = (k + 1) / 10 * Math.PI * 2; g.box(x - .01, .45 + Math.sin(a) * .42, Math.cos(a) * .42 - .01, x + .01, .45 + Math.sin(a) * .42 + .03, Math.cos(a) * .42 + .01 + (Math.cos(b2) - Math.cos(a)) * .42 * 0, C("#9aa0a6")); }
+      break;
+    }
+    case "tower": {
+      for (const [x, z] of [[-1.1, -1.1], [1.1, -1.1], [-1.1, 1.1], [1.1, 1.1]]) g.box(x - .1, 0, z - .1, x + .1, 6.8, z + .1, C("#6a5a48"));
+      for (const y of [2.2, 4.4]) { g.box(-1.1, y, -1.15, 1.1, y + .1, -1.05, C("#5a4a38")); g.box(-1.1, y, 1.05, 1.1, y + .1, 1.15, C("#5a4a38")); }
+      g.box(-1.4, 5.4, -1.4, 1.4, 5.6, 1.4, C("#7a6a52"));
+      for (const s2 of [-1, 1]) { g.box(-1.4, 5.6, s2 * 1.35 - .04, 1.4, 6.6, s2 * 1.35 + .04, C("#5a6a4a")); g.box(s2 * 1.35 - .04, 5.6, -1.4, s2 * 1.35 + .04, 6.6, 1.4, C("#5a6a4a")); }
+      g.box(-1.6, 7.6, -1.6, 1.6, 7.8, 1.6, C("#4a5a3a")); for (const [x, z] of [[-1.3, -1.3], [1.3, -1.3], [-1.3, 1.3], [1.3, 1.3]]) g.box(x - .05, 6.6, z - .05, x + .05, 7.6, z + .05, C("#5a4a38"));
+      g.box(1.1, 6.3, -.15, 1.6, 6.6, .15, C("#2a2a2e"));
+      break;
+    }
+    case "towerfall": {
+      // the same tower, toppled onto its side
+      for (const [y, z] of [[.15, -1.1], [.15, 1.1], [2.3, -1.1], [2.3, 1.1]]) g.box(-3.4, y - .1, z - .1, 3.4, y + .1, z + .1, C("#5a4a38"));
+      g.box(2.6, 0, -1.4, 2.85, 2.7, 1.4, C("#6a5a48")); g.box(2.85, 0, -1.4, 3.85, 2.7, -1.3, C("#5a6a4a")); g.box(2.85, 0, 1.3, 3.85, 2.7, 1.4, C("#5a6a4a"));
+      g.box(3.9, 0, -1.6, 4.1, 3.1, 1.6, C("#4a5a3a"));
+      break;
+    }
+    case "tentfall": {
+      g.box(-3.4, 0, -2.3, 3.2, .35, 2.4, C("#565a38")); g.box(-2.6, .35, -1.5, 1.8, .6, 1.2, C("#4e5232")); g.box(-1, .6, -.6, 1.4, .8, .7, C("#5e6240"));
+      g.box(1.9, .1, -.05, 3.8, 2.2, .05, C("#4a3a2a"));
+      break;
+    }
+    case "heliwreck": {
+      // burnt fuselage on its side, broken tail, a bent rotor blade
+      const k = C("#262624"), k2 = C("#333330");
+      g.box(-2.2, 0, -1.1, 1.8, 1.9, 1.1, k); g.box(1.8, .1, -.9, 2.8, 1.5, .9, k2); g.box(-2.2, 1.9, -.4, .8, 2.3, .4, k2);
+      g.box(-5.6, .1, -.25, -2.2, .6, .25, k); g.box(-7.2, 0, .3, -5.4, .5, .7, k2); g.box(-7.4, .5, .4, -6.9, 1.8, .5, k);
+      g.box(-1, .02, 1.8, 4.6, .12, 2.1, C("#1c1c1e")); g.box(-4.6, .02, -2.6, .2, .12, -2.3, C("#1c1c1e"));
+      g.box(2.4, .6, -.95, 2.81, 1.4, .95, C("#1a2028"));
+      break;
+    }
+    case "container": {
+      const col = C("#7a3a2a"), dk = mulC(col, .8);
+      g.box(-3.05, 0, -1.22, 3.05, 2.6, 1.22, col);
+      for (let x = -2.8; x <= 2.8; x += .4) { g.box(x - .05, .05, -1.26, x + .05, 2.55, -1.22, dk); g.box(x - .05, .05, 1.22, x + .05, 2.55, 1.26, dk); }
+      g.box(3.05, .05, -1.15, 3.1, 2.55, 1.15, dk); g.box(3.1, .3, -.6, 3.14, 2.3, -.55, C("#9aa0a6")); g.box(3.1, .3, .55, 3.14, 2.3, .6, C("#9aa0a6"));
+      break;
+    }
+    case "jersey": {
+      const cc = C("#b4b0a6"); g.box(-1.5, 0, -.3, 1.5, .3, .3, cc); g.box(-1.5, .3, -.18, 1.5, .55, .18, cc); g.box(-1.5, .55, -.1, 1.5, .82, .1, cc);
+      g.box(-1.3, .4, .181, -.5, .52, .19, C("#c8473a")); g.box(.5, .4, .181, 1.3, .52, .19, C("#c8473a"));
+      break;
+    }
     case "pole": {
       g.cyl(0, 0, 0, .14, .1, 8.2, 8, C("#5a4a3a")); g.box(-1, 7.45, -.07, 1, 7.6, .07, C("#4a3a2c"));
       for (const x of [-.85, 0, .85]) g.cyl(x, x ? 7.6 : 8.2, 0, .05, .05, .16, 6, C("#c8d0d8"));
@@ -5222,9 +5375,21 @@ function flameTex() {
   const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
 }
 function buildFences(M) {
-  const posts = [], rails = [];
-  for (let j = 0; j <= N; j++) for (let i = 0; i < N; i++) if (M.hW[j * N + i] === 3) { for (let k = 0; k < 6; k++) posts.push({ x: (i + (k + .5) / 6) * U, z: j * U, ry: 0 }); rails.push({ x: (i + .5) * U, z: j * U, ry: 0 }); }
-  for (let j = 0; j < N; j++) for (let i = 0; i <= N; i++) if (M.vW[j * (N + 1) + i] === 3) { for (let k = 0; k < 6; k++) posts.push({ x: i * U, z: (j + (k + .5) / 6) * U, ry: Math.PI / 2 }); rails.push({ x: i * U, z: (j + .5) * U, ry: Math.PI / 2 }); }
+  const posts = [], rails = [], chain = [], mil = M.milEdge || new Set();
+  for (let j = 0; j <= N; j++) for (let i = 0; i < N; i++) if (M.hW[j * N + i] === 3 && mil.has("h" + i + "," + j)) chain.push({ x: (i + .5) * U, z: j * U, ry: 0 });
+  for (let j = 0; j < N; j++) for (let i = 0; i <= N; i++) if (M.vW[j * (N + 1) + i] === 3 && mil.has("v" + i + "," + j)) chain.push({ x: i * U, z: (j + .5) * U, ry: Math.PI / 2 });
+  if (chain.length) {
+    const fr = new GB(), st = CA("#8a9098");
+    fr.cyl(-U / 2, 0, 0, .05, .05, 2.5, 6, st); fr.box(-U / 2, 2.4, -.03, U / 2, 2.46, .03, st); fr.box(-U / 2, .05, -.02, U / 2, .09, .02, st);
+    for (const k of [0, 1, 2]) fr.box(-U / 2, 2.6 + k * .14, -.18 - k * .08, U / 2, 2.62 + k * .14, -.16 - k * .08, CA("#6a7078"));
+    fr.box(-U / 2 - .02, 2.46, -.03, -U / 2 + .02, 3.0, -.4, st);
+    instanced(fr.geo(), T3.mats.prop, chain, o => o);
+    const mesh = new THREE.PlaneGeometry(U, 2.35); mesh.translate(0, 1.22, 0);
+    T3.chainMat = T3.chainMat || new THREE.MeshStandardMaterial({ color: 0x8c939a, transparent: true, opacity: .38, roughness: .6, metalness: .5, side: THREE.DoubleSide, depthWrite: false });
+    instanced(mesh, T3.chainMat, chain, o => o, false);
+  }
+  for (let j = 0; j <= N; j++) for (let i = 0; i < N; i++) if (M.hW[j * N + i] === 3 && !mil.has("h" + i + "," + j)) { for (let k = 0; k < 6; k++) posts.push({ x: (i + (k + .5) / 6) * U, z: j * U, ry: 0 }); rails.push({ x: (i + .5) * U, z: j * U, ry: 0 }); }
+  for (let j = 0; j < N; j++) for (let i = 0; i <= N; i++) if (M.vW[j * (N + 1) + i] === 3 && !mil.has("v" + i + "," + j)) { for (let k = 0; k < 6; k++) posts.push({ x: i * U, z: (j + (k + .5) / 6) * U, ry: Math.PI / 2 }); rails.push({ x: i * U, z: (j + .5) * U, ry: Math.PI / 2 }); }
   const pg = new GB(); pg.box(-.05, 0, -.02, .05, .95, .02, CA("#a3825a")); pg.box(-.05, .95, -.02, .05, 1.0, .02, CA("#8a6a48"));
   const rg = new GB(); rg.box(-U / 2, .3, -.03, U / 2, .38, .03, CA("#6e5236")); rg.box(-U / 2, .7, -.03, U / 2, .78, .03, CA("#6e5236"));
   instanced(pg.geo(), T3.mats.prop, posts, o => o);
@@ -6706,7 +6871,7 @@ function stepRain(dt) {
 // ================= map overlay =================
 const mapCv = $("#mapcv"), mctx = mapCv.getContext("2d");
 const mapState = { zoom: 3.4, cx: N / 2, cy: N / 2, base: null, fog: null, drag: null };
-const MAPC = { court: "#b8b0c8", church: "#e8e2d0", fire: "#d9584a", school: "#d0a030", motel: "#c86a8a", market: "#45b27a", dealer: "#4f8fd0", diner: "#d9584a", bar: "#a0603a", gun: "#9a9a7a", bank: "#4f6fc0", trailer: "#b8a890", garage: "#9a8a78", barn: "#a0402f", house: "#c9a77a", shed: "#9a7a58", shop: "#d9584a", hard: "#e0953a", pharm: "#45b27a", clinic: "#45b27a", cafe: "#a07ab8", gasshop: "#4f8fd0", ware: "#8a8f98", police: "#4f6fc0" };
+const MAPC = { barracks: "#8a9a6a", armory: "#c07a5a", hq: "#8a9ab0", booth: "#9a9a88", court: "#b8b0c8", church: "#e8e2d0", fire: "#d9584a", school: "#d0a030", motel: "#c86a8a", market: "#45b27a", dealer: "#4f8fd0", diner: "#d9584a", bar: "#a0603a", gun: "#9a9a7a", bank: "#4f6fc0", trailer: "#b8a890", garage: "#9a8a78", barn: "#a0402f", house: "#c9a77a", shed: "#9a7a58", shop: "#d9584a", hard: "#e0953a", pharm: "#45b27a", clinic: "#45b27a", cafe: "#a07ab8", gasshop: "#4f8fd0", ware: "#8a8f98", police: "#4f6fc0" };
 function openMap() { if (!world || world.mode !== "play") return; mapState.cx = world.player.x; mapState.cy = world.player.y; openModal("mapModal"); }
 function buildMapBase() {
   const M = world.map, s = 4, c = document.createElement("canvas"); c.width = c.height = N * s;
@@ -6788,6 +6953,7 @@ function renderMap(rebuild = true) {
     c.fillStyle = "rgba(10,12,20,.75)"; const tw = c.measureText("Машина").width + 8 * md; roundRect(c, sx - tw / 2, sy - fs * 2.2, tw, fs * 1.4, 5 * md); c.fill();
     c.fillStyle = "#f2a541"; c.fillText("Машина", sx, sy - fs * 1.5);
   }
+  if (world.map.milBase) { const mb = world.map.milBase; if (world.explored[Math.floor(mb.cy) * N + Math.floor(mb.cx)]) { const [sx, sy] = toScr(mb.cx, mb.cy - 3); c.fillStyle = "rgba(10,12,20,.8)"; const tw = c.measureText("Военная база").width + 10 * md; roundRect(c, sx - tw / 2, sy - fs * .8, tw, fs * 1.6, 6 * md); c.fill(); c.fillStyle = "#c8d0a0"; c.fillText("Военная база", sx, sy + .5); } }
   for (const pk of world.map.parks) {
     if (!world.explored[(pk.y + 6) * N + pk.x + 6]) continue;
     const [sx, sy] = toScr(pk.x + 6, pk.y + 6); c.fillStyle = "rgba(220,240,200,.85)"; c.fillText("Парк", sx, sy - fs * 1.6);
