@@ -320,7 +320,7 @@ const angDiff = (a, b) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2;
 
 
 // ================= settings =================
-const DEF = { sound: true, volume: 70, difficulty: "normal", dayLen: 6, weather: "random", zoom: "mid", quality: "high", lefty: false };
+const DEF = { sound: true, volume: 70, difficulty: "normal", dayLen: 6, weather: "random", zoom: "mid", quality: "high", fps: 30, lefty: false };
 const settings = Object.assign({}, DEF, store.get("settings", {}));
 const DIFF = {
   easy: { zombies: .7, dmg: .65, drain: .75, wave: .6 },
@@ -2072,6 +2072,7 @@ const SETTINGS_UI = [
   { key: "weather", label: "Погода", opts: [["clear", "Ясно"], ["random", "Как повезёт"], ["rain", "Дождь"]] },
   { key: "zoom", label: "Камера", opts: [["near", "Ближе"], ["mid", "Средне"], ["far", "Дальше"]] },
   { key: "quality", label: "Графика", opts: [["low", "Экономно"], ["high", "Красиво"], ["ultra", "Ультра"]] },
+  { key: "fps", label: "Кадры в секунду", opts: [[30, "30 — меньше греется"], [60, "60 — плавнее"]] },
   { key: "lefty", label: "Кнопки удара", opts: [[false, "Справа"], [true, "Слева"]] }
 ];
 function renderSettings() {
@@ -3405,7 +3406,7 @@ function update(dt) {
     if (mode === "play" && z.think <= 0) {
       z.think = .25 + Math.random() * .15;
       const sight = (nf > .5 ? (flash || lamplit ? 6.5 : 3) : 7.5) * (Wd.raining ? .8 : 1) * (Wd.weather === "fog" ? .6 : 1);
-      if (d < sight && los(z.x, z.y, p.x, p.y)) {
+      if (!p.ghost && d < sight && los(z.x, z.y, p.x, p.y)) {
         if (z.state !== "chase" && d < 12 && Math.random() < .6) groan(z, true);
         z.state = "chase"; z.lx = p.x; z.ly = p.y; z.lost = 0;
       } else if (z.state === "chase") {
@@ -3439,7 +3440,7 @@ function update(dt) {
         if (inCar && carDist(inCar, z.x, z.y) < .5 && inCar.glass > 0) {
           inCar.glass = Math.max(0, inCar.glass - .18); if (!sfx(inCar.glass <= 0 ? "glass" : "crash", { vol: inCar.glass <= 0 ? .7 : .3, rate: 1.5, rv: .1 })) { thud(.3, 900); tone(1400, .05, "triangle", .02); }
           if (!(p.glassWarnT > Wd.elapsed)) { p.glassWarnT = Wd.elapsed + 6; toast(inCar.glass > 0 ? "Зомби бьют стёкла! Уезжай" : "Стекло выбито — они дотянутся до тебя", true); }
-        } else if (mode === "play" && (inCar ? carDist(inCar, z.x, z.y) < .5 : d < .8 && los(z.x, z.y, p.x, p.y, true))) {
+        } else if (mode === "play" && !p.ghost && (inCar ? carDist(inCar, z.x, z.y) < .5 : d < .8 && los(z.x, z.y, p.x, p.y, true))) {
           const dmg = rand(8, 13) * (nf > .5 ? 1.15 : 1) * D.dmg;
           p.hp -= dmg; p.hurtT = .3; Wd.shake = 9; hurtFlash(); if (sfx("whack", { vol: .55, rate: .8, rv: .1 })) { sfx("hurt", { vol: .7, delay: .05, cap: 2 }); groan(z, true); } else { thud(.35); tone(180, .18, "square", .03, .6); } woundsFrom("zombie");
           p.search = null;
@@ -4817,7 +4818,7 @@ function init3D() {
     const camera = new THREE.PerspectiveCamera(34, 1, .5, 400);
     const hemi = new THREE.HemisphereLight(0xc8d8ff, 0x4a4436, .6); scene.add(hemi);
     const sun = new THREE.DirectionalLight(0xffffff, 3); sun.castShadow = true;
-    sun.shadow.camera.left = -26; sun.shadow.camera.right = 26; sun.shadow.camera.top = 26; sun.shadow.camera.bottom = -26; sun.shadow.camera.near = 1; sun.shadow.camera.far = 160;
+    sun.shadow.camera.left = -26; sun.shadow.camera.right = 26; sun.shadow.camera.top = 26; sun.shadow.camera.bottom = -26; sun.shadow.camera.near = 1; sun.shadow.camera.far = 80;
     sun.shadow.bias = -.0004; sun.shadow.normalBias = .03; sun.shadow.camera.layers.enable(1);
     scene.add(sun); scene.add(sun.target);
     const flash = new THREE.SpotLight(0xfff0d0, 0, 26, .42, .55, 1.6); flash.castShadow = true; flash.shadow.mapSize.set(1024, 1024); flash.shadow.bias = -.0005; flash.shadow.camera.layers.enable(1);
@@ -4918,6 +4919,9 @@ function resize3D() {
   T3.r.setPixelRatio(pr); T3.r.setSize(W, H, false);
   T3.camera.aspect = W / H; T3.camera.updateProjectionMatrix();
   const sm = settings.quality === "ultra" ? 4096 : 2048;
+  // the sun's shadow box only has to cover what the camera sees: smaller box, fewer casters, sharper shadows
+  const sc = T3.sun.shadow.camera, hs = { near: 14, mid: 17, far: 23 }[settings.zoom] || 17;
+  if (sc.right !== hs) { sc.left = -hs; sc.right = hs; sc.top = hs; sc.bottom = -hs; sc.updateProjectionMatrix(); }
   if (T3.sun.shadow.mapSize.x !== sm) { T3.sun.shadow.mapSize.set(sm, sm); if (T3.sun.shadow.map) { T3.sun.shadow.map.dispose(); T3.sun.shadow.map = null; } }
   T3.comp.setPixelRatio(pr); T3.comp.setSize(W, H);
   T3.bloom.resolution.set(W * pr / 2, H * pr / 2);
@@ -6533,8 +6537,9 @@ function dynRes(dt) {
   T3.ft = T3.ft ? lerp(T3.ft, dt, .04) : dt; T3.dynT = (T3.dynT || 0) + dt;
   if (T3.dynT < 1.5) return;
   T3.dynT = 0; const k = T3.dynK || 1;
-  if (T3.ft > 1 / 42 && k > .55) T3.dynK = Math.max(.55, k - .1);
-  else if (T3.ft < 1 / 57 && k < 1) T3.dynK = Math.min(1, k + .05);
+  const fT = 1 / (T3.fpsT || 60);
+  if (T3.ft > fT * 1.4 && k > .55) T3.dynK = Math.max(.55, k - .1);
+  else if (T3.ft < fT * 1.08 && k < 1) T3.dynK = Math.min(1, k + .05);
   if (T3.dynK !== k) resize3D();
 }
 function render3D(time, dt) {
@@ -6556,10 +6561,10 @@ function render3D(time, dt) {
   const sd = _p.set(Math.cos(az) * .6, Math.max(.12, elev), Math.sin(az) * .6 + .35).normalize();
   const gold = clamp(1 - elev * 2.2, 0, 1);
   if (nf < .6) {
-    T3.sun.position.copy(T3.camT).addScaledVector(sd, 80); T3.sun.color.setRGB(1, lerp(.97, .66, gold), lerp(.92, .45, gold));
+    T3.sun.position.copy(T3.camT).addScaledVector(sd, 42); T3.sun.color.setRGB(1, lerp(.97, .66, gold), lerp(.92, .45, gold));
     T3.sun.intensity = (2.1 * day + .02) * (1 - Wd.wet * .7);
   } else {
-    T3.sun.position.copy(T3.camT).add(_p.set(-30, 60, 20)); T3.sun.color.setRGB(.55, .65, 1); T3.sun.intensity = .18;
+    T3.sun.position.copy(T3.camT).add(_p.set(-18, 36, 12)); T3.sun.color.setRGB(.55, .65, 1); T3.sun.intensity = .18;
   }
   T3.sun.target.position.copy(T3.camT); T3.sun.target.updateMatrixWorld();
   T3.hemi.intensity = lerp(.6, .04, nf) * (1 - Wd.wet * .25);
@@ -6580,6 +6585,7 @@ function render3D(time, dt) {
   // flashlight & lights
   const dcar = play && p.veh && p.veh.car, head = dcar && dcar.fuel > 0 && dcar.hp > 0;
   const fOn = dcar ? head && nf > .02 : play && p.bat > 0 && nf > .02;
+  T3.flash.shadow.autoUpdate = !!fOn;
   T3.flash.intensity = fOn ? (dcar ? 180 : 70) * nf * (!dcar && p.bat < 15 ? .5 + Math.random() * .5 : 1) : 0;
   if (fOn && dcar) { const L = carDims(dcar).L; T3.flash.position.set((p.x + Math.cos(p.dir) * L) * U, .8, (p.y + Math.sin(p.dir) * L) * U); T3.flash.target.position.set((p.x + Math.cos(p.dir) * 12) * U, 0, (p.y + Math.sin(p.dir) * 12) * U); T3.flash.target.updateMatrixWorld(); }
   else if (fOn) { T3.flash.position.set(p.x * U + Math.cos(p.dir) * .3, 1.35, p.y * U + Math.sin(p.dir) * .3); T3.flash.target.position.set(p.x * U + Math.cos(p.dir) * 9, 0, p.y * U + Math.sin(p.dir) * 9); T3.flash.target.updateMatrixWorld(); }
@@ -6699,6 +6705,9 @@ function render3D(time, dt) {
   T3.grade.uniforms.uExp.value = lerp(.6, 1.35, nf) + (Wd.flashL || 0) * 1.8;
   T3.grade.uniforms.uTime.value = (time * 60) % 1000;
   T3.bloom.strength = lerp(.22, .75, nf); T3.bloom.threshold = lerp(.92, .6, nf);
+  // the sun's shadow map is the most expensive pass: at 60 fps redraw it every other frame
+  T3.r.shadowMap.autoUpdate = false; T3.shN = (T3.shN || 0) + 1;
+  T3.r.shadowMap.needsUpdate = (settings.fps || 30) < 45 || T3.shN % 2 === 0 || !(dt > 0);
   T3.comp.render(dt || .016);
   overlay2D(time, nf);
 }
@@ -7218,6 +7227,7 @@ function startGame() {
 }
 function gameOver() {
   const Wd = world;
+  if (Wd.player.god && Wd.mode === "play") { Wd.player.hp = 100; return; }
   Wd.mode = "dead";
   setPlayUI(false); document.querySelectorAll(".modal").forEach(m => m.hidden = true); paused = false;
   store.set("save", null);
@@ -7251,12 +7261,101 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) saveG
 window.addEventListener("pagehide", () => saveGame());
 document.addEventListener("visibilitychange", () => { if (document.hidden && world && world.mode === "play" && !anyModal()) openModal("pauseModal"); });
 
+// ================= test menu: hand yourself gear while testing =================
+function devGive(k, n = 1) {
+  const p = world.player;
+  if (WEAPONS[k]) { p.owned[k] = true; p.weapon = k; p.reload = 0; if (WEAPONS[k].gun) p.mag[k] = WEAPONS[k].mag; return; }
+  if (k === "can") { p.inv.can = 1; p.gas = 20; return; }
+  p.inv[k] = (p.inv[k] || 0) + n;
+}
+const DEV_MENU = [
+  ["Оружие", [
+    ["Бита", () => devGive("bat")],
+    ["Топор", () => devGive("axe")],
+    ["Пистолет + 48 патронов", () => { devGive("pistol"); devGive("ammo9", 48); }],
+    ["Автомат + 150 патронов", () => { devGive("rifle"); devGive("ammo545", 150); }],
+    ["Патроны 9 мм ×50", () => devGive("ammo9", 50)],
+    ["Патроны 5,45 ×150", () => devGive("ammo545", 150)]
+  ]],
+  ["Лечение и еда", [
+    ["Полностью вылечить", () => { const p = world.player; p.hp = 100; p.food = 100; p.water = 100; p.bat = 100; p.wounds = {}; }],
+    ["Бинты ×5", () => devGive("bandage", 5)],
+    ["Аптечки ×3", () => devGive("medkit", 3)],
+    ["Антибиотики ×2", () => devGive("antibio", 2)],
+    ["Шины ×2", () => devGive("splint", 2)],
+    ["Еда и вода ×5", () => { devGive("food", 5); devGive("water", 5); }]
+  ]],
+  ["Снаряжение", [
+    ["Батарейки ×3", () => devGive("battery", 3)],
+    ["Канистра, 20 л", () => devGive("can")],
+    ["Инструменты", () => devGive("tools")],
+    ["Радио", () => devGive("radio")]
+  ]],
+  ["Режимы", [
+    [() => "Бессмертие: " + (world.player.god ? "вкл" : "выкл"), () => { world.player.god = !world.player.god; }],
+    [() => "Зомби не видят: " + (world.player.ghost ? "вкл" : "выкл"), () => { world.player.ghost = !world.player.ghost; }],
+    ["Убрать зомби вокруг", () => { const p = world.player; world.zombies = world.zombies.filter(z => Math.hypot(z.x - p.x, z.y - p.y) > 18); }]
+  ]],
+  ["Мир", [
+    ["+3 часа", () => { world.time = (world.time + 180) % 1440; }],
+    [() => nightF(world.time) > .5 ? "Сделать день" : "Сделать ночь", () => { world.time = nightF(world.time) > .5 ? 12 * 60 : 23 * 60; }],
+    [() => "Погода: " + ({ clear: "ясно", rain: "дождь", storm: "гроза", fog: "туман", snow: "снег" }[world.weather] || "ясно"), () => { const o = ["clear", "rain", "storm", "fog", "snow"]; setWeather(o[(o.indexOf(world.weather) + 1) % o.length]); }],
+    ["К военной базе", () => devTeleport("base")],
+    ["К центру города", () => devTeleport("center")]
+  ]]
+];
+function devTeleport(where) {
+  const p = world.player, M = world.map; if (p.veh) exitVehicle();
+  let x, y;
+  if (where === "base" && M.milBase) { x = M.milBase.x0 - 2; y = Math.floor(M.milBase.cy) + .5; }
+  else { x = ROADS[9] + 1.5; y = ROADS[9] + 1.5; }
+  p.x = x; p.y = y; p.vx = p.vy = 0; p.search = null;
+  if (T3.ok) T3.camT.set(x * U, 1, y * U);
+}
+function openDev() {
+  let m = $("#devModal");
+  if (!m) {
+    m = document.createElement("div"); m.className = "modal"; m.id = "devModal"; m.hidden = true;
+    m.innerHTML = `<div class="panel" role="dialog" aria-label="Тестовое меню" style="width:min(100%,720px);max-height:100%;overflow:auto"><header><h2>Тестовое меню</h2><button class="close" aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header><div id="devBody"></div></div>`;
+    $("#game").append(m); m.querySelector(".close").addEventListener("click", () => closeModals(true));
+    const st = document.createElement("style");
+    st.textContent = `#devBody h3 { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; }
+#devBody .devgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+#devBody button { padding: 10px 8px; border-radius: 11px; background: rgba(255,255,255,.07); color: var(--ink); font-size: 14px; text-align: left; }
+#devBody button:active { background: var(--amber); color: #1b1408; }`;
+    document.head.append(st);
+  }
+  renderDev(); openModal("devModal");
+}
+function renderDev() {
+  const body = $("#devBody"); body.innerHTML = "";
+  for (const [title, rows] of DEV_MENU) {
+    const h = document.createElement("h3"); h.textContent = title; body.append(h);
+    const g = document.createElement("div"); g.className = "devgrid";
+    for (const [label, fn] of rows) {
+      const b = document.createElement("button"); b.textContent = typeof label === "function" ? label() : label;
+      b.addEventListener("click", () => { fn(); tone(660, .07, "triangle", .04, 1.3); toast("Тест: " + b.textContent); renderDev(); updateHud(); });
+      g.append(b);
+    }
+    body.append(g);
+  }
+}
+// a button in the pause menu
+{
+  const menu = document.querySelector("#pauseModal .menu"), set = $("#openSettings2");
+  if (menu) { const b = document.createElement("button"); b.id = "openDev"; b.textContent = "Тестовое меню"; b.addEventListener("click", openDev); menu.insertBefore(b, set ? set.nextSibling : null); }
+}
+
 // ================= loop =================
 let last = performance.now();
 function frame(now) {
   requestAnimationFrame(frame);
-  const dt = Math.min(.05, (now - last) / 1000); last = now;
   if (!world) return;
+  // frame cap: 30 fps by default keeps the phone cool; menus and the pause screen tick at 12 fps
+  const target = paused ? 12 : world.mode === "play" ? (settings.fps || 30) : 30;
+  if (now - last < 1000 / target - 4) return;
+  T3.fpsT = target;
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
   if (!paused && world.mode !== "dead") update(dt);
   if (!paused) stepRain(dt);
   if (T3.ok) render3D(now / 1000, paused ? 0 : dt); else draw(now / 1000);
