@@ -2515,7 +2515,7 @@ function victory() {
   Wd.mode = "won"; store.set("save", null);
   setPlayUI(false); document.querySelectorAll(".modal").forEach(m => m.hidden = true); paused = false;
   engineSound(false); tone(523, .3, "triangle", .06, 1); setTimeout(() => tone(659, .3, "triangle", .06, 1), 250); setTimeout(() => tone(784, .6, "triangle", .06, 1), 500);
-  screen.innerHTML = `<div class="box">
+  screen.classList.remove("titlescr"); screen.innerHTML = `<div class="box">
     <span class="eyebrow">Эвакуация</span>
     <h1>Ты выбрался</h1>
     <p>Вертолёт поднимается над крышами. Внизу горят огни блокпоста, а улицы, по которым ты шёл ${Wd.day} ${Wd.day === 1 ? "день" : Wd.day < 5 ? "дня" : "дней"}, медленно тонут в темноте.</p>
@@ -2583,7 +2583,7 @@ function applySave(S) {
   Wd.npcs = S.npcs || [];
   if (Wd.power === false) for (const l of M.lamps) l.on = false;
   Wd.cfg = Wd.cfg || Object.assign({}, PRESETS.normal.v); p.prof = p.prof || "unemployed"; p.traits = p.traits || []; p.fat = p.fat || 0; p.sleep = null; sleepOverlay(false); restoreShelter();
-  screen.hidden = true; closeModals(true); setPlayUI(true); updateHud(); buildFlow();
+  screen.hidden = true; screen.classList.remove("titlescr"); closeModals(true); setPlayUI(true); updateHud(); buildFlow();
   if (S.P.car != null && M.cars[S.P.car]) enterCar(M.cars[S.P.car]);
   if (S.P.bike) { const o = { dt: "prop", kind: "bike", x: p.x, y: p.y, hx: .45, hy: .12, key: 0, var: 0 }; M.props.push(o); mountBike(o); }
   toast(`С возвращением. День ${Wd.day}, ${fmtTime(Wd.time)}`, true);
@@ -7256,29 +7256,126 @@ function setPlayUI(on) {
 }
 function rebuild(fn, seed) {
   setPlayUI(false); document.querySelectorAll(".modal").forEach(m => m.hidden = true);
-  screen.innerHTML = `<div class="box"><span class="eyebrow">Минутку</span><h1>Город строится…</h1></div>`; screen.hidden = false;
+  screen.classList.remove("titlescr"); screen.innerHTML = `<div class="box"><span class="eyebrow">Минутку</span><h1>Город строится…</h1></div>`; screen.hidden = false;
   setTimeout(() => { newWorld("title", seed); world._warm = true; fn(); }, 60);
 }
 function showTitle(fresh = true) {
   if (fresh) { newWorld("title"); world._warm = true; }
-  setPlayUI(false); paused = false;
+  // the city behind the menu: dusk, a little fog
+  world.time = 19.6 * 60; if (world.weather === "clear") { world.weather = "fog"; }
+  setPlayUI(false); paused = false; sleepOverlay(false);
+  titleCss();
   const best = store.get("best", null), sv = store.get("save", null);
-  screen.innerHTML = `<div class="box">
-    <span class="eyebrow">Выживание · ночь за ночью</span>
-    <h1>Последний квартал</h1>
-    <p>Город пал за одну неделю. Улицы полны мертвецов, припасов почти не осталось. Заходи в дома, обыскивай шкафы, ищи оружие и переживи как можно больше ночей.</p>
-    <div class="btns">${sv ? `<button class="big" id="cont">Продолжить · день ${sv.W.day}</button>` : ""}<button class="big${sv ? " ghost" : ""}" id="start">${sv ? "Новая игра" : "Начать"}</button><button class="big ghost" id="openSettings">Настройки</button></div>
-    <div class="howto">
-      <div class="glass"><b>Левый палец</b>Ходьба. Стик до упора — бег, но шумно</div>
-      <div class="glass"><b>Красная кнопка</b>Удар или выстрел. Стрельба созывает толпу</div>
-      <div class="glass"><b>Карта</b>Кнопка вверху: что разведано и где аптека</div>
-    </div>
-    ${best ? `<span class="best">Рекорд: ${fmtSurvived(best)}</span>` : ""}
-  </div>`;
+  const ng = store.get("newgame", null);
+  const item = (id, t, sub = "") => `<button class="tm" id="${id}"><span>${t}</span>${sub ? `<small>${sub}</small>` : ""}</button>`;
+  screen.classList.add("titlescr");
+  screen.innerHTML = `<div class="tgrain"></div>
+  <div class="tbox">
+    <div class="talert"><i></i>Экстренное оповещение · округ Ноксвилл</div>
+    <h1 class="ttitle">Последний<br>квартал</h1>
+    <div class="tline">Помощь не придёт. Выживай, сколько сможешь.</div>
+    <nav class="tmenu">
+      ${sv ? item("cont", "Продолжить", `День ${sv.W.day}, ${fmtTime(sv.W.time)}${sv.P && sv.P.prof && PROFS[sv.P.prof] ? " · " + PROFS[sv.P.prof].name.toLowerCase() : ""}`) : ""}
+      ${item("start", "Новая игра", ng && PROFS[ng.prof] ? `Последний выживший: ${PROFS[ng.prof].name.toLowerCase()}` : "Профессия, черты, правила мира")}
+      ${item("howto", "Как выжить")}
+      ${item("openSettings", "Настройки")}
+      ${item("credits", "Авторы")}
+    </nav>
+  </div>
+  ${best ? `<div class="tbest">Дольше всех продержался<b>${fmtSurvived(best)}</b></div>` : ""}
+  <div class="tticker"><span class="tlive"><i></i>В эфире</span><div class="tmarq"><div>${TICKER.concat(TICKER).map(t => `<span>${t}</span>`).join("")}</div></div></div>`;
   screen.hidden = false;
-  $("#start").addEventListener("click", () => { unlockAudio(); openNewGame(); });
-  if ($("#cont")) $("#cont").addEventListener("click", () => { unlockAudio(); continueGame(); });
-  $("#openSettings").addEventListener("click", () => { unlockAudio(); openModal("setModal"); });
+  const click = (id, fn) => { const b = $("#" + id); if (b) b.addEventListener("click", () => { unlockAudio(); sfx("swing", { vol: .25, rate: .7 }); fn(); }); };
+  click("start", () => { screen.classList.remove("titlescr"); openNewGame(); });
+  click("cont", () => { screen.classList.remove("titlescr"); continueGame(); });
+  click("howto", () => openInfo("Как выжить", HOWTO));
+  click("openSettings", () => openModal("setModal"));
+  click("credits", () => openInfo("Авторы", CREDITS));
+}
+const TICKER = [
+  "Жителям округа оставаться дома. Не открывайте двери незнакомцам",
+  "Эвакуационные пункты на окраинах закрыты",
+  "Укушенных изолировать. Повторяем: укушенных изолировать",
+  "Мосты через реку перекрыты военными",
+  "Подача электроэнергии будет прекращена в ближайшие дни",
+  "Не пытайтесь добраться до больницы округа",
+  "Если вы слышите это сообщение — заколотите окна"
+];
+const HOWTO = `<ul class="tlist">
+<li><b>Ходьба</b>Левый палец — стик. До упора — бег, но бег шумный и утомляет.</li>
+<li><b>Удар и выстрел</b>Красная кнопка. Выстрел слышит вся улица.</li>
+<li><b>Действие</b>Жёлтая кнопка появляется у шкафов, машин, кроватей, окон и дверей.</li>
+<li><b>Убежище</b>Молоток, доски и гвозди: заколоти окна и двери. Зомби будут ломиться, но доски держат.</li>
+<li><b>Сон</b>Спи у кровати в заколоченном доме. Без сна герой слабеет и падает от усталости.</li>
+<li><b>Раны</b>Бинт останавливает кровь, шина — для перелома. Укус лечат только антибиотики, и не всегда.</li>
+<li><b>Ночь</b>Ночью зомби злее и среди них бегуны. Фонарик светит и для них.</li>
+<li><b>Транспорт</b>Ключи ищи в домах рядом с машиной. Бензин сливай канистрой из брошенных машин.</li>
+</ul>`;
+const CREDITS = `<ul class="tlist">
+<li><b>Игра</b>Сделана вдвоём: идея и тесты — твои, код — Claude.</li>
+<li><b>Графика</b>Three.js. Город, дома, машины и люди построены кодом.</li>
+<li><b>Анимация</b>Ходьба и бег — Quaternius (CC0), перенесены на скелет игры.</li>
+<li><b>Звук</b>Oculus Audio Pack © 2015 Oculus VR, LLC (CC BY 4.0); голоса зомби — artisticdude (CC0); выстрелы — Fesliyan Studios; гром, ветер, сверчки — Freesound (CC0).</li>
+</ul>`;
+function openInfo(title, html) {
+  let m = $("#infoModal");
+  if (!m) {
+    m = document.createElement("div"); m.className = "modal"; m.id = "infoModal"; m.hidden = true;
+    m.innerHTML = `<div class="panel" role="dialog" style="width:min(100%,620px);max-height:100%;overflow:auto"><header><h2 id="infoT"></h2><button class="close" aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header><div id="infoB"></div></div>`;
+    $("#game").append(m); m.querySelector(".close").addEventListener("click", () => closeModals(true));
+  }
+  $("#infoT").textContent = title; $("#infoB").innerHTML = html;
+  openModal("infoModal");
+}
+function titleCss() {
+  if ($("#titlecss")) return;
+  const st = document.createElement("style"); st.id = "titlecss";
+  st.textContent = `
+.screen.titlescr { place-items: stretch; text-align: left; padding: 0;
+  background: radial-gradient(ellipse 80% 90% at 70% 45%, rgba(10,6,6,.05), rgba(6,4,4,.55) 60%, rgba(2,1,1,.92) 100%),
+              linear-gradient(90deg, rgba(4,3,3,.93) 0%, rgba(6,4,4,.72) 38%, rgba(8,4,4,.15) 75%); }
+.titlescr::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px); mix-blend-mode: multiply; }
+.tgrain { position: absolute; inset: -50%; pointer-events: none; opacity: .13; animation: tgr 1s steps(4) infinite;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+@keyframes tgr { 0% { transform: translate(0,0) } 25% { transform: translate(-6%,4%) } 50% { transform: translate(5%,-3%) } 75% { transform: translate(-3%,-6%) } 100% { transform: translate(0,0) } }
+.tbox { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; gap: 10px; height: 100%;
+  padding: calc(var(--st) + 14px) 24px calc(var(--sb) + 46px) calc(var(--sl) + 34px); max-width: 520px; }
+.talert { display: flex; align-items: center; gap: 8px; font: 600 11px Rubik, system-ui, sans-serif; letter-spacing: .2em; text-transform: uppercase; color: #d0453a; }
+.talert i, .tlive i { width: 8px; height: 8px; border-radius: 50%; background: #e0372b; box-shadow: 0 0 10px #e0372b; animation: tblink 1.2s steps(2) infinite; }
+@keyframes tblink { 50% { opacity: .15 } }
+.ttitle { margin: 2px 0 0; font-family: var(--display); font-weight: 400; text-transform: uppercase; font-size: clamp(34px, 7.2vw, 62px); line-height: .92; letter-spacing: .03em;
+  color: #e9e1d4; text-shadow: 0 0 1px #000, 2px 2px 0 rgba(120,14,10,.7), 0 8px 40px rgba(0,0,0,.9); animation: tflick 7s infinite; }
+@keyframes tflick { 0%, 91%, 93.5%, 96%, 100% { opacity: 1 } 92% { opacity: .55 } 95% { opacity: .78 } }
+.tline { font: italic 400 14px Georgia, serif; color: #a39a8c; margin-bottom: 8px; }
+.tmenu { display: flex; flex-direction: column; gap: 2px; border-left: 2px solid rgba(208,69,58,.35); }
+.tm { position: relative; display: flex; align-items: baseline; gap: 12px; padding: 8px 14px; background: none; border-radius: 0 10px 10px 0; text-align: left;
+  font-family: var(--display); font-size: 21px; letter-spacing: .06em; text-transform: uppercase; color: #cfc6b8; transition: color .15s, background .15s, padding .15s; }
+.tm small { font: 400 12px Rubik, system-ui, sans-serif; letter-spacing: 0; text-transform: none; color: #857c70; }
+.tm::before { content: ""; position: absolute; left: -2px; top: 6px; bottom: 6px; width: 3px; background: #e0372b; transform: scaleY(0); transition: transform .15s; }
+.tm:hover, .tm:focus-visible, .tm:active { color: #fff; background: linear-gradient(90deg, rgba(160,24,18,.35), transparent); padding-left: 20px; }
+.tm:hover::before, .tm:focus-visible::before, .tm:active::before { transform: scaleY(1); }
+.tm:first-child span { color: #f0e6d8; }
+.tbest { position: absolute; z-index: 1; right: calc(var(--sr) + 22px); top: calc(var(--st) + 18px); text-align: right; font: 600 11px Rubik, system-ui, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #8a8174; }
+.tbest b { display: block; font-family: var(--display); font-weight: 400; font-size: 20px; letter-spacing: .02em; text-transform: none; color: #d8cfc2; margin-top: 2px; }
+.tticker { position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 12px; height: 34px;
+  padding: 0 var(--sr) var(--sb) calc(var(--sl) + 20px); background: linear-gradient(90deg, rgba(40,6,4,.92), rgba(16,4,4,.75)); border-top: 1px solid rgba(208,69,58,.4); }
+.tlive { display: flex; align-items: center; gap: 7px; flex: none; font: 700 11px Rubik, system-ui, sans-serif; letter-spacing: .18em; text-transform: uppercase; color: #ff6a5c; }
+.tmarq { position: relative; flex: 1; overflow: hidden; height: 100%; mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent); }
+.tmarq > div { position: absolute; top: 50%; left: 0; display: flex; gap: 46px; white-space: nowrap; transform: translateY(-50%); animation: tmq 90s linear infinite; font: 500 13px Rubik, system-ui, sans-serif; color: #d9cfc2; }
+.tmarq span::before { content: "■ "; color: #d0453a; font-size: 9px; vertical-align: 2px; }
+@keyframes tmq { from { transform: translate(0, -50%) } to { transform: translate(-50%, -50%) } }
+.tlist { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 8px; }
+.tlist li { font-size: 14px; line-height: 1.45; color: #cfc8bc; }
+.tlist b { display: block; color: var(--ink); font-weight: 600; font-size: 14px; }
+#infoModal, #setModal { background: rgba(4,2,2,.72); }
+#infoModal .panel, #setModal .panel { background: linear-gradient(180deg, #1b1412, #0e0b0a); border: 1px solid rgba(208,69,58,.32); box-shadow: 0 20px 60px rgba(0,0,0,.7); }
+#infoModal h2, #setModal h2 { text-transform: uppercase; letter-spacing: .06em; color: #e9e1d4; }
+#infoModal .tlist li { padding-left: 12px; border-left: 2px solid rgba(208,69,58,.45); }
+.ngbox { background: linear-gradient(180deg, rgba(27,20,18,.92), rgba(12,9,8,.94)); border: 1px solid rgba(208,69,58,.3); border-radius: 18px; padding: 16px 18px; }
+.ngbox > * { justify-self: stretch; } .ngbox .btns, .ngbox .eyebrow { justify-self: start; }
+.ngbox h1 { text-transform: uppercase; letter-spacing: .03em; font-size: 26px !important; max-width: none !important; line-height: 1.05 !important; }
+@media (prefers-reduced-motion: reduce) { .tgrain, .ttitle, .tmarq > div, .talert i, .tlive i { animation: none; } }`;
+  document.head.append(st);
 }
 function startGame() {
   if (!world || world.mode !== "title") { rebuild(startGame); return; }
@@ -7286,7 +7383,7 @@ function startGame() {
   world.zombies = world.zombies.filter(z => Math.hypot(z.x - START.x, z.y - START.y) > 9);
   pickWeather();
   world.wet = world.raining ? 1 : 0;
-  applySurvivor(); boards3D(); sleepOverlay(false);
+  applySurvivor(); boards3D(); sleepOverlay(false); screen.classList.remove("titlescr");
   screen.hidden = true; closeModals(true);
   setPlayUI(true); updateHud();
   buildFlow();
@@ -7302,7 +7399,7 @@ function gameOver() {
   const best = store.get("best", 0), rec = Wd.elapsed > best;
   if (rec) store.set("best", Math.floor(Wd.elapsed));
   engineSound(false); if (!sfx("death", { vol: .8 })) tone(200, 1.2, "sawtooth", .05, .3);
-  screen.innerHTML = `<div class="box">
+  screen.classList.remove("titlescr"); screen.innerHTML = `<div class="box">
     <span class="eyebrow">${rec ? "Новый рекорд" : "Конец истории"}</span>
     <h1>Тебя настигли</h1>
     <div class="tally">
