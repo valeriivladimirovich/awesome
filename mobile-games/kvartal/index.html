@@ -7307,7 +7307,7 @@ function showTitle(fresh = true) {
   screen.innerHTML = `<div class="tgrain"></div>
   <div class="tbox">
     <div class="talert"><i></i>Экстренное оповещение · округ Ноксвилл</div>
-    <h1 class="ttitle">Последний<br>квартал</h1>
+    <div class="tbrand"><span class="temb">${emblemSVG("te")}</span><h1 class="ttitle">Последний<br>квартал</h1></div>
     <div class="tline">Помощь не придёт. Выживай, сколько сможешь.</div>
     <nav class="tmenu">
       ${sv ? item("cont", "Продолжить", `День ${sv.W.day}, ${fmtTime(sv.W.time)}${sv.P && sv.P.prof && PROFS[sv.P.prof] ? " · " + PROFS[sv.P.prof].name.toLowerCase() : ""}`) : ""}
@@ -7382,6 +7382,8 @@ function titleCss() {
 .ttitle { margin: 2px 0 0; font-family: var(--display); font-weight: 400; text-transform: uppercase; font-size: clamp(34px, 7.2vw, 62px); line-height: .92; letter-spacing: .03em;
   color: #e9e1d4; text-shadow: 0 0 1px #000, 2px 2px 0 rgba(120,14,10,.7), 0 8px 40px rgba(0,0,0,.9); animation: tflick 7s infinite; }
 @keyframes tflick { 0%, 91%, 93.5%, 96%, 100% { opacity: 1 } 92% { opacity: .55 } 95% { opacity: .78 } }
+.tbrand { display: flex; align-items: center; gap: clamp(10px, 2vw, 18px); }
+.temb svg { width: clamp(54px, 9vw, 96px); height: auto; display: block; filter: drop-shadow(0 0 18px rgba(242,165,65,.15)); }
 .tline { font: italic 400 14px Georgia, serif; color: #a39a8c; margin-bottom: 8px; }
 .tmenu { display: flex; flex-direction: column; gap: 2px; border-left: 2px solid rgba(208,69,58,.35); }
 .tm { position: relative; display: flex; align-items: baseline; gap: 12px; padding: 8px 14px; background: none; border-radius: 0 10px 10px 0; text-align: left;
@@ -7412,17 +7414,20 @@ function titleCss() {
 .ngbox h1 { text-transform: uppercase; letter-spacing: .03em; font-size: 26px !important; max-width: none !important; line-height: 1.05 !important; }
 /* short landscape screens (a phone, or a page under an app bar): title on the left, menu on the right */
 @media (orientation: landscape) and (max-height: 540px) {
-  .tbox { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(220px, .85fr); grid-template-rows: auto auto auto; column-gap: 28px; row-gap: 6px;
+  .tbox { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(210px, .7fr); grid-template-rows: auto auto auto; column-gap: 28px; row-gap: 6px;
     align-content: center; max-width: none; padding: calc(var(--st) + 10px) calc(var(--sr) + 24px) calc(var(--sb) + 48px) calc(var(--sl) + 28px); }
-  .talert { grid-column: 1; grid-row: 1; align-self: end; }
-  .ttitle { grid-column: 1; grid-row: 2; font-size: clamp(26px, min(6.4vw, 15vh), 62px); }
-  .tline { grid-column: 1; grid-row: 3; align-self: start; margin: 0; font-size: 13px; }
+  .tbox .talert { grid-column: 1; grid-row: 1; align-self: end; }
+  .tbox .tbrand { grid-column: 1; grid-row: 2; }
+  .tbox .ttitle { font-size: clamp(24px, min(5.1vw, 13vh), 58px); }
+  .temb svg { width: clamp(42px, 15vh, 80px); }
+  .tbrand { min-width: 0; }
+  .tbox .tline { grid-column: 1; grid-row: 3; align-self: start; margin: 0; font-size: 13px; }
   .tmenu { grid-column: 2; grid-row: 1 / 4; align-self: center; }
   .tm { font-size: clamp(14px, 4.6vh, 21px); padding: clamp(4px, 1.6vh, 8px) 12px; flex-wrap: wrap; row-gap: 0; }
   .tm small { flex-basis: 100%; font-size: 11px; }
   .tbest { top: auto; bottom: calc(var(--sb) + 46px); }
 }
-@media (orientation: landscape) and (max-height: 300px) { .tline, .tm small, .tbest { display: none; } .talert { font-size: 9px; } }
+@media (orientation: landscape) and (max-height: 300px) { .tbox .tline, .tm small, .tbest { display: none; } .tbox .talert { font-size: 9px; } }
 .tbox { overflow: auto; }
 @media (prefers-reduced-motion: reduce) { .tgrain, .ttitle, .tmarq > div, .talert i, .tlive i { animation: none; } }`;
   document.head.append(st);
@@ -8105,6 +8110,40 @@ const recheckSize = () => { if (window.innerWidth !== lastIW || window.innerHeig
 window.addEventListener("orientationchange", () => { setTimeout(recheckSize, 120); setTimeout(recheckSize, 500); });
 setInterval(recheckSize, 250);
 game.classList.toggle("lefty", !!settings.lefty);
+// ---------- the emblem: a dark block seen from above, one window still lit
+function emblemSVG(id = "em", full = false) {
+  // streets between nine blocks; each block holds a few roofs; one roof has a lit window
+  const roofs = [
+    [10, 10, 11, 9, "#1d1714"], [23, 10, 6, 12, "#191311"], [10, 21, 11, 8, "#17120f"],
+    [38, 10, 9, 8, "#1b1512"], [49, 10, 13, 9, "#16110f"], [38, 20, 24, 9, "#1a1411"],
+    [71, 10, 19, 8, "#18130f"], [71, 20, 8, 9, "#1c1613"], [81, 20, 9, 9, "#15110e"],
+    [10, 38, 8, 24, "#1a1411"], [20, 38, 9, 11, "#17120f"], [20, 51, 9, 11, "#1b1512"],
+    [38, 38, 11, 11, "#1c1613"], [51, 38, 11, 24, "#201915"], [38, 51, 11, 11, "#16110f"],
+    [71, 38, 19, 10, "#18130f"], [71, 50, 10, 12, "#1a1411"], [83, 50, 7, 12, "#16110f"],
+    [10, 71, 19, 9, "#17120f"], [10, 82, 10, 8, "#1b1512"], [22, 82, 7, 8, "#18130f"],
+    [38, 71, 12, 19, "#191311"], [52, 71, 10, 8, "#1c1613"], [52, 81, 10, 9, "#16110f"],
+    [71, 71, 9, 19, "#1a1411"], [82, 71, 8, 9, "#17120f"], [82, 82, 8, 8, "#1b1512"]
+  ];
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<defs>
+<radialGradient id="${id}g" cx="57" cy="45" r="30" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#f2a541" stop-opacity=".55"/><stop offset=".35" stop-color="#e07a2a" stop-opacity=".18"/><stop offset="1" stop-color="#e07a2a" stop-opacity="0"/></radialGradient>
+<radialGradient id="${id}v" cx="50" cy="50" r="62" gradientUnits="userSpaceOnUse"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".75"/></radialGradient>
+<clipPath id="${id}c"><rect width="100" height="100" rx="${full ? 0 : 18}"/></clipPath>
+</defs>
+<g clip-path="url(#${id}c)">
+<rect width="100" height="100" fill="#2a221d"/>
+<path d="M0 33.5h100M0 66.5h100M33.5 0v100M66.5 0v100" stroke="#3a302a" stroke-width="5"/>
+<path d="M0 33.5h100M0 66.5h100M33.5 0v100M66.5 0v100" stroke="#4a3e34" stroke-width=".6" stroke-dasharray="3 3"/>
+${roofs.map(([x, y, w, h, c]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}" stroke="#0c0908" stroke-width=".8"/>`).join("")}
+<rect width="100" height="100" fill="url(#${id}g)"/>
+<rect x="55" y="43" width="4" height="4" fill="#ffd58a"/><rect x="55" y="43" width="4" height="4" fill="none" stroke="#f2a541" stroke-width=".6"/>
+<path d="M61 63c4 3 9 3 12 1" stroke="#8a1a14" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".8"/>
+<rect width="100" height="100" fill="url(#${id}v)"/>
+</g>
+${full ? "" : `<rect x=".75" y=".75" width="98.5" height="98.5" rx="17.5" fill="none" stroke="rgba(208,69,58,.45)" stroke-width="1.5"/>`}
+</svg>`;
+}
+
 // ================= intro: tap for sound, an emergency broadcast, then the logo =================
 // a dry heartbeat and radio crackle made on the spot
 const heartbeat = v => { thud(v, 140); setTimeout(() => thud(v * .7, 110), 160); };
@@ -8114,7 +8153,7 @@ function playIntro() {
   const o = document.createElement("div"); o.id = "intro";
   o.innerHTML = `<div class="tgrain"></div><div class="iscan"></div>
     <div class="ibox"><div class="istart"><div class="ihp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="7" rx="1.5"/><rect x="16.5" y="14" width="4.5" height="7" rx="1.5"/></svg>Звук включится после касания · лучше в наушниках</div></div><div class="ilines"></div>
-    <div class="ilogo"><div class="talert"><i></i>Экстренное оповещение</div><h1 class="ttitle">Последний<br>квартал</h1><div class="tline">Помощь не придёт.</div></div></div>
+    <div class="ilogo"><div class="iemb">${emblemSVG("ie")}</div><div class="talert"><i></i>Экстренное оповещение</div><h1 class="ttitle">Последний<br>квартал</h1><div class="tline">Помощь не придёт.</div></div></div>
     <div class="itap">Коснись, чтобы включить звук</div>`;
   const st = document.createElement("style");
   st.textContent = `#intro { position: absolute; inset: 0; z-index: 30; background: #050303; display: grid; place-items: center; overflow: hidden; transition: opacity .9s ease; cursor: pointer; }
@@ -8131,6 +8170,7 @@ function playIntro() {
 #intro .ilogo { position: absolute; display: grid; justify-items: center; gap: 6px; text-align: center; opacity: 0; transform: scale(1.06); transition: opacity 1s ease, transform 2.4s ease-out; }
 #intro .ilogo .ttitle { font-size: clamp(38px, 9vw, 84px); text-align: center; }
 #intro .ilogo .talert { justify-content: center; }
+#intro .iemb svg { width: clamp(56px, 12vh, 96px); height: auto; display: block; margin-bottom: 4px; filter: drop-shadow(0 0 22px rgba(242,165,65,.18)); }
 #intro.logo .ilogo { opacity: 1; transform: scale(1); }
 #intro.logo .ilines, #intro.logo .istart { opacity: 0; }
 #intro.glitch .ibox { animation: iglitch .35s steps(3) 1; }
