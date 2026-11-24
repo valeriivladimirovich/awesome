@@ -7297,7 +7297,7 @@ function rebuild(fn, seed) {
 function showTitle(fresh = true) {
   if (fresh) { newWorld("title"); world._warm = true; }
   // the city behind the menu: dusk, a little fog
-  world.time = 19.6 * 60; if (world.weather === "clear") { world.weather = "fog"; }
+  world.time = 21.4 * 60; if (world.weather === "clear") { world.weather = "fog"; }
   setPlayUI(false); paused = false; sleepOverlay(false);
   titleCss();
   const best = store.get("best", null), sv = store.get("save", null);
@@ -7368,8 +7368,12 @@ function titleCss() {
   const st = document.createElement("style"); st.id = "titlecss";
   st.textContent = `
 .screen.titlescr { place-items: stretch; text-align: left; padding: 0;
-  background: radial-gradient(ellipse 80% 90% at 70% 45%, rgba(10,6,6,.05), rgba(6,4,4,.55) 60%, rgba(2,1,1,.92) 100%),
-              linear-gradient(90deg, rgba(4,3,3,.93) 0%, rgba(6,4,4,.72) 38%, rgba(8,4,4,.15) 75%); }
+  background: radial-gradient(ellipse 75% 85% at 72% 48%, rgba(14,4,4,.18), rgba(6,3,3,.7) 58%, rgba(1,0,0,.96) 100%),
+              linear-gradient(90deg, rgba(3,2,2,.96) 0%, rgba(5,3,3,.84) 40%, rgba(8,3,3,.38) 78%, rgba(4,2,2,.55) 100%); }
+.titlescr::before { content: ""; position: absolute; inset: -20%; pointer-events: none; opacity: .55; mix-blend-mode: multiply;
+  background: radial-gradient(40% 30% at 30% 60%, rgba(0,0,0,.9), transparent 70%), radial-gradient(35% 28% at 75% 30%, rgba(20,0,0,.8), transparent 70%), radial-gradient(30% 25% at 60% 80%, rgba(0,0,0,.85), transparent 70%);
+  animation: tfog 38s ease-in-out infinite alternate; }
+@keyframes tfog { from { transform: translate(-4%, 2%) scale(1) } to { transform: translate(5%, -3%) scale(1.12) } }
 .titlescr::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px); mix-blend-mode: multiply; }
 .tgrain { position: absolute; inset: -50%; pointer-events: none; opacity: .13; animation: tgr 1s steps(4) infinite;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
@@ -8149,7 +8153,10 @@ ${full ? "" : `<rect x=".75" y=".75" width="98.5" height="98.5" rx="17.5" fill="
 function bloodTitle(h1) {
   if (!h1 || h1.dataset.blood) return; h1.dataset.blood = 1;
   const lines = h1.innerHTML.split(/<br\s*\/?>/i);
-  h1.innerHTML = lines.map(t => `<span class="tl">${t}</span>`).join("<br>");
+  h1.innerHTML = lines.map(t => `<span class="tl">${[...t].map(ch => ch === " " ? " " : `<span class="tch" style="animation-duration:${rand(4, 11).toFixed(1)}s;animation-delay:${rand(-10, 0).toFixed(1)}s">${ch}</span>`).join("")}</span>`).join("<br>");
+  // now and then the whole title breaks up like a bad signal
+  const glitch = () => { if (!h1.isConnected) return; h1.classList.remove("glx"); void h1.offsetWidth; h1.classList.add("glx"); setTimeout(glitch, rand(3500, 9000)); };
+  setTimeout(glitch, rand(1500, 4000));
   h1.querySelectorAll(".tl").forEach((ln, li) => {
     const n = li ? 4 : 3;
     for (let k = 0; k < n; k++) {
@@ -8162,15 +8169,19 @@ function bloodTitle(h1) {
 }
 const BLOOD_CSS = `
 .ttitle[data-blood] { text-shadow: none; filter: drop-shadow(2px 2px 0 rgba(110,12,8,.75)) drop-shadow(0 6px 24px rgba(0,0,0,.85)); }
-.ttitle .tl { position: relative; display: inline-block;
-  background: linear-gradient(180deg, #ece4d6 0%, #e2d8c8 58%, #b8a89a 76%, #8a2a22 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ttitle .tl { position: relative; display: inline-block; }
+.ttitle .tch { display: inline-block; background: linear-gradient(180deg, #ece4d6 0%, #e2d8c8 58%, #b8a89a 76%, #8a2a22 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation-name: tflk; animation-iteration-count: infinite; animation-timing-function: steps(1); }
+@keyframes tflk { 0%, 100% { opacity: 1; transform: none } 91% { opacity: 1 } 92% { opacity: .35 } 93% { opacity: 1 } 94.5% { opacity: .55; transform: translateY(.02em) } 96% { opacity: 1; transform: translateY(.01em) } }
+.ttitle.glx { animation: tglx .42s steps(6) 1; }
+@keyframes tglx { 0% { transform: none } 17% { transform: translate(-.03em, .01em) skewX(-4deg); filter: drop-shadow(-.05em 0 0 rgba(255,40,30,.75)) drop-shadow(.05em 0 0 rgba(80,200,255,.45)) } 34% { transform: translate(.04em, -.01em); clip-path: inset(10% 0 45% 0) } 50% { transform: translate(-.02em, 0); clip-path: inset(55% 0 5% 0); filter: drop-shadow(.06em 0 0 rgba(255,40,30,.8)) } 67% { transform: translate(.02em, .01em) skewX(3deg); clip-path: none } 84% { opacity: .7 } 100% { transform: none; opacity: 1 } }
 .ttitle .drip { position: absolute; top: 86%; height: 0; border-radius: 0 0 .06em .06em; background: linear-gradient(180deg, #5a0907, #9e130e 70%, #b8180f);
   box-shadow: inset .012em 0 0 rgba(255,140,120,.25); animation-name: tdrip; animation-timing-function: cubic-bezier(.5,.05,.7,.4); animation-iteration-count: infinite; pointer-events: none; }
 .ttitle .drip::after { content: ""; position: absolute; left: 50%; bottom: -.07em; width: .14em; height: .16em; transform: translateX(-50%); border-radius: 50% 50% 50% 50% / 58% 58% 42% 42%;
   background: radial-gradient(circle at 35% 35%, #d8402f, #8e100b 70%); animation: inherit; animation-name: tdrop; }
 @keyframes tdrip { 0% { height: 0; opacity: 1 } 55% { height: var(--len); opacity: 1 } 72% { height: calc(var(--len) + .04em); opacity: 1 } 92% { height: calc(var(--len) + .04em); opacity: .0 } 100% { height: 0; opacity: 0 } }
 @keyframes tdrop { 0%, 66% { transform: translate(-50%, 0) scale(1); opacity: 1 } 70% { transform: translate(-50%, .02em) scale(1.12, .9) } 90% { transform: translate(-50%, .9em) scale(.8, 1.2); opacity: 0 } 100% { opacity: 0 } }
-@media (prefers-reduced-motion: reduce) { .ttitle .drip { display: none; } }`;
+@media (prefers-reduced-motion: reduce) { .ttitle .drip { display: none; } .ttitle .tch, .ttitle.glx, .titlescr::before { animation: none; } }`;
 
 // ================= intro: tap for sound, an emergency broadcast, then the logo =================
 // a dry heartbeat and radio crackle made on the spot
