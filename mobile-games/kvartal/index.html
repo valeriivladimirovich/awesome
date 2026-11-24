@@ -2157,6 +2157,8 @@ function saveSettings(key) {
 
 // ================= UI =================
 function toast(text, warn) {
+  // the same message twice in a row just refreshes the one already showing
+  for (const o of $("#toasts").children) if (o.textContent === text) o.remove();
   const t = document.createElement("div");
   t.className = "toast glass" + (warn ? " warn" : "");
   t.textContent = text;
@@ -2230,7 +2232,7 @@ function updateHud() {
   else if (ca) { act.hidden = false; act.innerHTML = (ca.search ? ICON.search : "") + ca.label; }
   else act.hidden = true;
   let wp = $("#woundp");
-  if (!wp) { wp = document.createElement("div"); wp.id = "woundp"; wp.style.cssText = "position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 96px);transform:translateX(-50%);display:flex;gap:6px;z-index:4;pointer-events:none"; $("#game").append(wp); }
+  if (!wp) { wp = document.createElement("div"); wp.id = "woundp"; wp.style.cssText = "position:absolute;left:calc(var(--sl) + 2px);top:calc(var(--st) + 58px);display:flex;flex-direction:column;align-items:flex-start;gap:5px;z-index:4;pointer-events:none"; $("#game").append(wp); }
   const chips = moodles(); sleepHud();
   const sig = chips.map(c => c.join(":")).join("|"); if (wp.dataset.s !== sig) { wp.dataset.s = sig; wp.innerHTML = chips.map(([c, l]) => `<span style="padding:4px 10px;border-radius:999px;background:${MOOD_BG[l]};color:#fff2e6;font:600 12px Rubik,system-ui,sans-serif;white-space:nowrap">${c}${l > 1 ? " " + "!".repeat(l - 1) : ""}</span>`).join(""); }
   // dashboard while driving or riding
