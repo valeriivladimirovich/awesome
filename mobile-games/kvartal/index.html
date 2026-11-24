@@ -8091,10 +8091,72 @@ function frame(now) {
   if (T3.ok) render3D(now / 1000, paused ? 0 : dt); else draw(now / 1000);
 }
 window.addEventListener("resize", () => { resize(); if (!$("#mapModal").hidden) renderMap(false); });
+// iOS can report the old size while the phone turns (or at launch): check again after rotation and every half second
+let lastIW = 0, lastIH = 0;
+const recheckSize = () => { if (window.innerWidth !== lastIW || window.innerHeight !== lastIH || ROT !== (window.innerHeight > window.innerWidth * 1.05 && matchMedia("(pointer: coarse)").matches)) { lastIW = window.innerWidth; lastIH = window.innerHeight; resize(); } };
+window.addEventListener("orientationchange", () => { setTimeout(recheckSize, 120); setTimeout(recheckSize, 500); });
+setInterval(recheckSize, 500);
 game.classList.toggle("lefty", !!settings.lefty);
+// ================= intro: an emergency broadcast, then the logo =================
+function playIntro() {
+  const seen = store.get("introSeen", false);
+  const o = document.createElement("div"); o.id = "intro";
+  o.innerHTML = `<div class="tgrain"></div><div class="iscan"></div>
+    <div class="ibox"><div class="ilines"></div>
+    <div class="ilogo"><div class="talert"><i></i>Экстренное оповещение</div><h1 class="ttitle">Последний<br>квартал</h1><div class="tline">Помощь не придёт.</div></div></div>
+    <div class="itap">Коснись экрана</div>`;
+  const st = document.createElement("style");
+  st.textContent = `#intro { position: absolute; inset: 0; z-index: 30; background: #050303; display: grid; place-items: center; overflow: hidden; transition: opacity .9s ease; cursor: pointer; }
+#intro.out { opacity: 0; pointer-events: none; }
+#intro .iscan { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.35) 0 1px, transparent 1px 3px); }
+#intro .ibox { position: relative; display: grid; place-items: center; width: min(92%, 760px); }
+#intro .ilines { font: 500 clamp(13px, 2.2vw, 17px)/1.7 ui-monospace, "SF Mono", Menlo, monospace; color: #d9c9b4; letter-spacing: .02em; min-height: 7.2em; width: 100%; transition: opacity .5s; }
+#intro .ilines div:first-child { color: #e0453a; letter-spacing: .18em; text-transform: uppercase; font-size: .82em; }
+#intro .ilines span.cur { display: inline-block; width: .6em; height: 1em; background: #d9c9b4; vertical-align: -2px; animation: tblink .8s steps(2) infinite; }
+#intro .ilogo { position: absolute; display: grid; justify-items: center; gap: 6px; text-align: center; opacity: 0; transform: scale(1.06); transition: opacity 1s ease, transform 2.4s ease-out; }
+#intro .ilogo .ttitle { font-size: clamp(38px, 9vw, 84px); text-align: center; }
+#intro .ilogo .talert { justify-content: center; }
+#intro.logo .ilogo { opacity: 1; transform: scale(1); }
+#intro.logo .ilines { opacity: 0; }
+#intro.glitch .ibox { animation: iglitch .35s steps(3) 1; }
+@keyframes iglitch { 0% { transform: translate(0,0); filter: none } 33% { transform: translate(-6px,2px); filter: hue-rotate(90deg) saturate(3) } 66% { transform: translate(5px,-3px); filter: invert(1) } 100% { transform: none; filter: none } }
+#intro .itap { position: absolute; bottom: calc(var(--sb) + 18px); font: 600 12px Rubik, system-ui, sans-serif; letter-spacing: .3em; text-transform: uppercase; color: #a39a8c; opacity: 0; transition: opacity .8s; }
+#intro.ready .itap { opacity: 1; animation: tblink 1.6s ease-in-out infinite; }`;
+  document.head.append(st); titleCss(); $("#game").append(o);
+  const lines = ["Экстренное вещание · округ Ноксвилл", "…всем жителям оставаться в своих домах.", "…не открывайте двери. Не выходите на улицу.", "…эвакуация прекращена. Помощь не придёт."];
+  const box = o.querySelector(".ilines"), timers = [];
+  const later = (ms, fn) => timers.push(setTimeout(fn, ms));
+  let done = false;
+  const showLogo = () => { o.classList.add("glitch"); later(120, () => o.classList.add("logo")); later(1300, () => o.classList.add("ready")); };
+  const finish = () => {
+    if (done) return; done = true; timers.forEach(clearTimeout);
+    unlockAudio(); sfx("thunderFar", { vol: .5, lp: 1200 });
+    store.set("introSeen", true);
+    o.classList.add("logo", "out"); setTimeout(() => o.remove(), 1000);
+  };
+  o.addEventListener("pointerdown", () => { if (o.classList.contains("ready") || seen) finish(); else { timers.forEach(clearTimeout); timers.length = 0; o.classList.add("logo"); later(300, () => o.classList.add("ready")); } });
+  if (seen) { later(250, showLogo); return; }
+  // type the broadcast line by line: each line starts when the last one is done, speed follows the clock
+  const typeLine = i => {
+    if (done) return;
+    if (i >= lines.length) { later(700, showLogo); return; }
+    const ln = lines[i], d = document.createElement("div"), ms = i ? 30 : 20, t0 = performance.now();
+    box.querySelectorAll(".cur").forEach(c => c.remove()); box.append(d);
+    const step = () => {
+      if (done) return;
+      const k = Math.min(ln.length, Math.floor((performance.now() - t0) / ms) + 1);
+      d.textContent = ln.slice(0, k); const c = document.createElement("span"); c.className = "cur"; d.append(c);
+      if (k < ln.length) timers.push(setTimeout(step, ms)); else later(i ? 420 : 300, () => typeLine(i + 1));
+    };
+    step();
+  };
+  later(500, () => typeLine(0));
+}
+
 init3D();
 resize();
 showTitle();
+playIntro();
 requestAnimationFrame(frame);
 
 })();
